@@ -14,7 +14,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.iris.assistant.ui.theme.IrisTheme
+import com.iris.assistant.ui.components.IrisButtonPrimary
 
 // ---------------------------------------------------------------------------
 // Shared skeleton composable — reused by all onboarding steps
@@ -43,13 +43,7 @@ private fun OnboardingStepScreen(
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Spacer(Modifier.height(48.dp))
-        // TODO: Replace with IrisButton (Phase 1 components)
-        Button(
-            onClick = onNext,
-            colors  = ButtonDefaults.buttonColors(containerColor = IrisTheme.colors.primary)
-        ) {
-            Text(buttonLabel)
-        }
+        IrisButtonPrimary(text = buttonLabel, onClick = onNext)
     }
 }
 

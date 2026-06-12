@@ -2,6 +2,11 @@ package com.iris.assistant.util
 
 object Constants {
 
+    // --- UI ---
+    const val BUTTON_HEIGHT        = 52
+    const val CARD_CORNER_RADIUS   = 18
+    const val BUTTON_CORNER_RADIUS = 16
+
     // --- User ---
     const val USER_NAME = "Muhofy"
 

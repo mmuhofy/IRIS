@@ -12,6 +12,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.iris.assistant.ui.components.IrisButtonPrimary
 import com.iris.assistant.ui.theme.IrisTheme
 
 @Composable
@@ -33,14 +34,6 @@ fun OnboardingWelcomeScreen(onNext: () -> Unit) {
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Spacer(Modifier.height(48.dp))
-        // TODO: Replace with IrisButton component (Phase 1 components)
-        androidx.compose.material3.Button(
-            onClick = onNext,
-            colors  = androidx.compose.material3.ButtonDefaults.buttonColors(
-                containerColor = IrisTheme.colors.primary
-            )
-        ) {
-            Text("Başla")
-        }
+        IrisButtonPrimary(text = "Başla", onClick = onNext)
     }
 }
