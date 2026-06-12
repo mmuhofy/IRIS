@@ -17,8 +17,9 @@ object Constants {
     const val GROQ_STT_LANGUAGE    = "tr"
 
     // --- LLM ---
-    // VERIFY current model string at https://ai.google.dev/gemini-api/docs/models before use
-    const val GEMINI_MODEL         = "gemini-2.5-flash"  // TODO: confirm at implementation time
+    // Verified: https://ai.google.dev/gemini-api/docs/models — June 2026
+    const val GEMINI_MODEL         = "gemini-3.5-flash"
+    const val GEMINI_ENDPOINT      = "https://generativelanguage.googleapis.com/v1beta/models"
     const val GROQ_LLM_MODEL       = "llama-3.3-70b-versatile" // TODO: confirm at implementation time
 
     // --- TTS ---

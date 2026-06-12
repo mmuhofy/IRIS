@@ -1,6 +1,9 @@
 package com.iris.assistant.di
 
+import com.iris.assistant.data.remote.gemini.GeminiRepository
+import com.iris.assistant.data.remote.groq.GroqLlmRepository
 import com.iris.assistant.data.remote.groq.WhisperRepository
+import com.iris.assistant.domain.repository.LlmRepository
 import com.iris.assistant.domain.repository.SttRepository
 import dagger.Binds
 import dagger.Module
@@ -15,4 +18,14 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindSttRepository(impl: WhisperRepository): SttRepository
+
+    @Binds
+    @Singleton
+    @PrimaryLlm
+    abstract fun bindPrimaryLlm(impl: GeminiRepository): LlmRepository
+
+    @Binds
+    @Singleton
+    @FallbackLlm
+    abstract fun bindFallbackLlm(impl: GroqLlmRepository): LlmRepository
 }
