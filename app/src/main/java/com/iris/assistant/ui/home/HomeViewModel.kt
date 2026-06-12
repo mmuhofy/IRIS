@@ -7,6 +7,7 @@ import com.iris.assistant.domain.model.ChatMessage
 import com.iris.assistant.domain.model.IrisException
 import com.iris.assistant.domain.repository.ConversationRepository
 import com.iris.assistant.domain.usecase.SendMessageUseCase
+import com.iris.assistant.data.remote.tts.TtsProvider
 import com.iris.assistant.domain.usecase.TranscribeAudioUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
@@ -38,7 +39,8 @@ class HomeViewModel @Inject constructor(
     private val audioRecorder          : AudioRecorder,
     private val transcribeAudioUseCase : TranscribeAudioUseCase,
     private val sendMessageUseCase     : SendMessageUseCase,
-    private val conversationRepository : ConversationRepository
+    private val conversationRepository : ConversationRepository,
+    private val ttsProvider            : TtsProvider
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
@@ -135,22 +137,22 @@ class HomeViewModel @Inject constructor(
 
             // 9. SPEAKING — TTS
             _uiState.update {
-                it.copy(
-                    coreState  = IrisCoreState.SPEAKING,
-                    statusText = "Konuşuyorum..."
-                )
+                it.copy(coreState = IrisCoreState.SPEAKING, statusText = "Konuşuyorum...")
             }
 
-            // TODO: EdgeTTS synthesis + playback (Phase 1 Part A)
-            kotlinx.coroutines.delay(2000L)
-
-            _uiState.update {
-                it.copy(
-                    coreState   = IrisCoreState.IDLE,
-                    ttsProgress = 0f,
-                    statusText  = "Dinlemeye hazır"
-                )
-            }
+            ttsProvider.speak(
+                text       = reply,
+                onProgress = { progress -> onTtsProgressUpdate(progress) },
+                onDone     = {
+                    _uiState.update {
+                        it.copy(
+                            coreState   = IrisCoreState.IDLE,
+                            ttsProgress = 0f,
+                            statusText  = "Dinlemeye hazır"
+                        )
+                    }
+                }
+            )
         }
     }
 
@@ -160,6 +162,7 @@ class HomeViewModel @Inject constructor(
     fun onStop() {
         pipelineJob?.cancel()
         pipelineJob = null
+        ttsProvider.stop()
         _uiState.update {
             it.copy(
                 coreState   = IrisCoreState.IDLE,
@@ -219,5 +222,6 @@ class HomeViewModel @Inject constructor(
     override fun onCleared() {
         super.onCleared()
         pipelineJob?.cancel()
+        ttsProvider.release()
     }
 }
