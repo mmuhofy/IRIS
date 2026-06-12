@@ -22,8 +22,11 @@ import androidx.compose.material.icons.outlined.Stop
 import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material.icons.outlined.MicOff
 import androidx.compose.material.icons.outlined.Tv
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
+import androidx.compose.material3.Snackbar
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
@@ -39,9 +42,16 @@ fun HomeScreen(
     viewModel     : HomeViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    // Show error as snackbar
+    LaunchedEffect(uiState.errorMessage) {
+        uiState.errorMessage?.let { snackbarHostState.showSnackbar(it) }
+    }
 
     Scaffold(
-        containerColor = MaterialTheme.colorScheme.background
+        containerColor = MaterialTheme.colorScheme.background,
+        snackbarHost   = { SnackbarHost(snackbarHostState) }
     ) { innerPadding ->
         Box(
             modifier = Modifier
