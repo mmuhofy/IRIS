@@ -51,6 +51,7 @@ compose-ui-test-manifest        = { group = "androidx.compose.ui",  name = "ui-t
 compose-ui-test-junit4          = { group = "androidx.compose.ui",  name = "ui-test-junit4" }
 compose-material3               = { group = "androidx.compose.material3", name = "material3" }
 compose-googlefonts             = { group = "androidx.compose.ui",  name = "ui-text-google-fonts" }
+compose-icons-extended          = { group = "androidx.compose.material", name = "material-icons-extended" }
 material-components             = { group = "com.google.android.material", name = "material", version.ref = "materialComponents" }
 
 # Lifecycle + ViewModel
