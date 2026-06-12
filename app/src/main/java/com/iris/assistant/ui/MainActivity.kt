@@ -15,7 +15,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            // TODO: IrisApp() composable — Phase 1 theme + nav setup
+            IrisApp()
         }
     }
 }
