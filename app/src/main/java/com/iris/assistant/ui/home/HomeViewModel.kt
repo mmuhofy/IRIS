@@ -44,19 +44,17 @@ class HomeViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
-    // Conversation history — persisted to Room
-    // In-memory list kept in sync for fast LLM context access
+    // In-memory history kept in sync with Room for fast LLM context access
     private val history = mutableListOf<ChatMessage>()
 
+    // Active pipeline job — cancelled on stop()
+    private var pipelineJob: Job? = null
+
     init {
-        // Load existing history from Room on startup
         viewModelScope.launch {
             history.addAll(conversationRepository.getHistory())
         }
     }
-
-    // Active pipeline job — cancelled on stop()
-    private var pipelineJob: Job? = null
 
     // ---------------------------------------------------------------------------
     // Mic toggle
@@ -77,9 +75,9 @@ class HomeViewModel @Inject constructor(
             // 1. LISTENING
             _uiState.update {
                 it.copy(
-                    isMicOn    = true,
-                    coreState  = IrisCoreState.LISTENING,
-                    statusText = "Dinliyorum...",
+                    isMicOn      = true,
+                    coreState    = IrisCoreState.LISTENING,
+                    statusText   = "Dinliyorum...",
                     errorMessage = null
                 )
             }
@@ -112,29 +110,30 @@ class HomeViewModel @Inject constructor(
                 return@launch
             }
 
-            // Add user message to history and persist
+            // 5. Persist user message
             val userMsg = ChatMessage(role = ChatMessage.Role.USER, content = transcript)
-            val savedId = conversationRepository.saveMessage(userMsg)
-            history.add(userMsg.copy(id = savedId))
+            val userMsgId = conversationRepository.saveMessage(userMsg)
+            history.add(userMsg.copy(id = userMsgId))
 
-            // 5. THINKING — LLM in progress
+            // 6. THINKING — LLM in progress
             _uiState.update { it.copy(statusText = "Düşünüyorum...") }
 
-            // 6. LLM — Gemini (with Groq fallback)
+            // 7. LLM — Gemini (with Groq fallback)
             val reply = runCatching {
                 sendMessageUseCase(history.toList())
             }.getOrElse { e ->
-                history.removeLastOrNull() // rollback user message on failure
+                // Rollback user message from in-memory history on failure
+                history.removeLastOrNull()
                 handleError("Yanıt alınamadı", e)
                 return@launch
             }
 
-            // Add assistant message to history and persist
+            // 8. Persist assistant message
             val assistantMsg = ChatMessage(role = ChatMessage.Role.ASSISTANT, content = reply)
-            val savedId = conversationRepository.saveMessage(assistantMsg)
-            history.add(assistantMsg.copy(id = savedId))
+            val assistantMsgId = conversationRepository.saveMessage(assistantMsg)
+            history.add(assistantMsg.copy(id = assistantMsgId))
 
-            // 7. SPEAKING — TTS
+            // 9. SPEAKING — TTS
             _uiState.update {
                 it.copy(
                     coreState  = IrisCoreState.SPEAKING,
@@ -142,8 +141,7 @@ class HomeViewModel @Inject constructor(
                 )
             }
 
-            // TODO: TTS synthesis + playback (Phase 1 — EdgeTTS client)
-            // Placeholder: simulate TTS duration then return to IDLE
+            // TODO: EdgeTTS synthesis + playback (Phase 1 Part A)
             kotlinx.coroutines.delay(2000L)
 
             _uiState.update {
@@ -157,7 +155,7 @@ class HomeViewModel @Inject constructor(
     }
 
     // ---------------------------------------------------------------------------
-    // Stop / interrupt — cancels active pipeline immediately
+    // Stop / interrupt
     // ---------------------------------------------------------------------------
     fun onStop() {
         pipelineJob?.cancel()
@@ -171,7 +169,7 @@ class HomeViewModel @Inject constructor(
                 statusText  = "Dinlemeye hazır"
             )
         }
-        // TODO: ttsPlayer.stop() (Phase 1)
+        // TODO: ttsPlayer.stop() (Phase 1 Part A)
     }
 
     // ---------------------------------------------------------------------------
@@ -183,7 +181,7 @@ class HomeViewModel @Inject constructor(
     }
 
     // ---------------------------------------------------------------------------
-    // TTS progress update — called by TTS player (Phase 1)
+    // TTS progress update — called by TTS player (Phase 1 Part A)
     // ---------------------------------------------------------------------------
     fun onTtsProgressUpdate(progress: Float) {
         _uiState.update {
@@ -196,23 +194,23 @@ class HomeViewModel @Inject constructor(
     }
 
     // ---------------------------------------------------------------------------
-    // Error handling — maps IrisException to user-facing message
+    // Error handling
     // ---------------------------------------------------------------------------
     private fun handleError(context: String, e: Throwable) {
         val msg = when (e) {
-            is IrisException.NetworkException  -> "$context: İnternet bağlantısı yok"
+            is IrisException.NetworkException   -> "$context: İnternet bağlantısı yok"
             is IrisException.RateLimitException -> "$context: API limiti aşıldı"
-            is IrisException.AuthException     -> "$context: API anahtarı eksik"
-            is IrisException.SttException      -> "$context: ${e.message}"
-            is IrisException.LlmException      -> "$context: ${e.message}"
-            else                               -> "$context: Bilinmeyen hata"
+            is IrisException.AuthException      -> "$context: API anahtarı eksik"
+            is IrisException.SttException       -> "$context: ${e.message}"
+            is IrisException.LlmException       -> "$context: ${e.message}"
+            else                                -> "$context: Bilinmeyen hata"
         }
         _uiState.update {
             it.copy(
-                coreState  = IrisCoreState.IDLE,
-                isMicOn    = false,
-                amplitude  = 0f,
-                statusText = "Dinlemeye hazır",
+                coreState    = IrisCoreState.IDLE,
+                isMicOn      = false,
+                amplitude    = 0f,
+                statusText   = "Dinlemeye hazır",
                 errorMessage = msg
             )
         }
