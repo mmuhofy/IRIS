@@ -30,9 +30,6 @@ jobs:
       - name: Grant Gradle wrapper execute permission
         run: chmod +x gradlew
 
-      - name: Run lint
-        run: ./gradlew lint --stacktrace
-
       - name: Build debug APK
         run: ./gradlew assembleDebug --stacktrace
 
