@@ -15,10 +15,13 @@ val localProps = Properties().apply {
     if (f.exists()) load(f.inputStream())
 }
 
-fun apiKey(name: String): String =
-    localProps.getProperty(name)
+fun apiKey(name: String): String {
+    val raw = localProps.getProperty(name)
         ?: System.getenv(name)
-        ?: "\"\"" // empty string fallback — will not crash build
+        ?: ""
+    // buildConfigField requires a quoted Java string literal: "\"value\""
+    return "\"$raw\""
+}
 
 android {
     namespace   = "com.iris.assistant"
