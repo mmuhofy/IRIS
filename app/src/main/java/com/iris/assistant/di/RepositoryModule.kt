@@ -1,0 +1,18 @@
+package com.iris.assistant.di
+
+import com.iris.assistant.data.remote.groq.WhisperRepository
+import com.iris.assistant.domain.repository.SttRepository
+import dagger.Binds
+import dagger.Module
+import dagger.hilt.InstallIn
+import dagger.hilt.components.SingletonComponent
+import javax.inject.Singleton
+
+@Module
+@InstallIn(SingletonComponent::class)
+abstract class RepositoryModule {
+
+    @Binds
+    @Singleton
+    abstract fun bindSttRepository(impl: WhisperRepository): SttRepository
+}
