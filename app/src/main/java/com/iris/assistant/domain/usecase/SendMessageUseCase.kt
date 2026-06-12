@@ -2,6 +2,7 @@ package com.iris.assistant.domain.usecase
 
 import com.iris.assistant.di.FallbackLlm
 import com.iris.assistant.di.PrimaryLlm
+import com.iris.assistant.domain.model.ChatMessage
 import com.iris.assistant.domain.model.IrisException
 import com.iris.assistant.domain.model.SystemPrompt
 import com.iris.assistant.domain.repository.LlmRepository
@@ -12,7 +13,7 @@ import javax.inject.Inject
  * Falls back to Groq if Gemini throws RateLimitException.
  *
  * @param primaryLlm   GeminiRepository
- * @param fallbackLlm  GroqLlmRepository (Phase 1 — stub until implemented)
+ * @param fallbackLlm  GroqLlmRepository (Phase 1 â€” stub until implemented)
  */
 class SendMessageUseCase @Inject constructor(
     @PrimaryLlm  private val primaryLlm : LlmRepository,
@@ -27,7 +28,7 @@ class SendMessageUseCase @Inject constructor(
         return try {
             primaryLlm.chat(history, SystemPrompt.v1)
         } catch (e: IrisException.RateLimitException) {
-            // Gemini rate-limited — try Groq fallback
+            // Gemini rate-limited â€” try Groq fallback
             fallbackLlm.chat(history, SystemPrompt.v1)
         }
     }
