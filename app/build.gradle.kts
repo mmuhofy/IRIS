@@ -69,6 +69,11 @@ android {
         compose      = true
         buildConfig  = true
     }
+
+    // Room schema export path — commit schemas/ to version control for migration tracking
+    ksp {
+        arg("room.schemaLocation", "$projectDir/schemas")
+    }
 }
 
 dependencies {

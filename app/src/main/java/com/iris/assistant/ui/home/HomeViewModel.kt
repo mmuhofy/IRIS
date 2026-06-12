@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.iris.assistant.data.audio.AudioRecorder
 import com.iris.assistant.domain.model.ChatMessage
 import com.iris.assistant.domain.model.IrisException
+import com.iris.assistant.domain.repository.ConversationRepository
 import com.iris.assistant.domain.usecase.SendMessageUseCase
 import com.iris.assistant.domain.usecase.TranscribeAudioUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -34,17 +35,25 @@ data class HomeUiState(
 // ---------------------------------------------------------------------------
 @HiltViewModel
 class HomeViewModel @Inject constructor(
-    private val audioRecorder       : AudioRecorder,
-    private val transcribeAudioUseCase: TranscribeAudioUseCase,
-    private val sendMessageUseCase  : SendMessageUseCase
+    private val audioRecorder          : AudioRecorder,
+    private val transcribeAudioUseCase : TranscribeAudioUseCase,
+    private val sendMessageUseCase     : SendMessageUseCase,
+    private val conversationRepository : ConversationRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
-    // Conversation history — kept in memory for the session
-    // TODO: persist to Room in Phase 1 local storage step
+    // Conversation history — persisted to Room
+    // In-memory list kept in sync for fast LLM context access
     private val history = mutableListOf<ChatMessage>()
+
+    init {
+        // Load existing history from Room on startup
+        viewModelScope.launch {
+            history.addAll(conversationRepository.getHistory())
+        }
+    }
 
     // Active pipeline job — cancelled on stop()
     private var pipelineJob: Job? = null
@@ -103,8 +112,10 @@ class HomeViewModel @Inject constructor(
                 return@launch
             }
 
-            // Add user message to history
-            history.add(ChatMessage(role = ChatMessage.Role.USER, content = transcript))
+            // Add user message to history and persist
+            val userMsg = ChatMessage(role = ChatMessage.Role.USER, content = transcript)
+            val savedId = conversationRepository.saveMessage(userMsg)
+            history.add(userMsg.copy(id = savedId))
 
             // 5. THINKING — LLM in progress
             _uiState.update { it.copy(statusText = "Düşünüyorum...") }
@@ -118,8 +129,10 @@ class HomeViewModel @Inject constructor(
                 return@launch
             }
 
-            // Add assistant message to history
-            history.add(ChatMessage(role = ChatMessage.Role.ASSISTANT, content = reply))
+            // Add assistant message to history and persist
+            val assistantMsg = ChatMessage(role = ChatMessage.Role.ASSISTANT, content = reply)
+            val savedId = conversationRepository.saveMessage(assistantMsg)
+            history.add(assistantMsg.copy(id = savedId))
 
             // 7. SPEAKING — TTS
             _uiState.update {
