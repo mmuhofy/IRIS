@@ -9,11 +9,15 @@ import com.iris.assistant.ui.theme.IrisTheme
 // Navigation graph will be wired here in Phase 1 (onboarding + home)
 // ColorSchemeOption will come from ViewModel/DataStore in Phase 1
 // ---------------------------------------------------------------------------
+import androidx.navigation.compose.rememberNavController
+import com.iris.assistant.ui.navigation.IrisNavGraph
+
 @Composable
 fun IrisApp(
     colorSchemeOption: ColorSchemeOption = ColorSchemeOption.LAVENDER
 ) {
+    val navController = rememberNavController()
     IrisTheme(colorSchemeOption = colorSchemeOption) {
-        // TODO: NavHost (onboarding → home) — Phase 1
+        IrisNavGraph(navController = navController)
     }
 }
