@@ -9,7 +9,6 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.iris.assistant.ui.theme.ColorSchemeOption
 import com.iris.assistant.util.Constants
-import com.iris.assistant.util.Constants
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -24,9 +23,9 @@ class PreferencesRepository @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
     private object Keys {
-        val COLOR_SCHEME          = stringPreferencesKey("color_scheme")
-        val BACKGROUND_LISTENING  = booleanPreferencesKey("background_listening")
-        val ONBOARDING_COMPLETED  = booleanPreferencesKey("onboarding_completed")
+        val COLOR_SCHEME         = stringPreferencesKey("color_scheme")
+        val BACKGROUND_LISTENING = booleanPreferencesKey("background_listening")
+        val ONBOARDING_COMPLETED = booleanPreferencesKey("onboarding_completed")
     }
 
     val preferences: Flow<UserPreferences> = context.dataStore.data.map { prefs ->
