@@ -1,13 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <!--
-        Parent: Theme.MaterialComponents.DayNight.NoActionBar
+        Base theme: Theme.MaterialComponents.DayNight.NoActionBar
         - AppCompat-derived (required by ComponentActivity + SplashScreen API)
-        - No action bar (Compose handles all UI via Scaffold)
-        - DayNight: respects system dark/light mode at XML level
-        - All actual theming (colors, typography) is handled in Compose MaterialTheme
+        - No action bar (Compose handles all UI)
+        - All actual theming handled in Compose MaterialTheme
     -->
     <style name="Theme.IRIS" parent="Theme.MaterialComponents.DayNight.NoActionBar">
         <item name="android:windowBackground">@android:color/black</item>
+        <!-- Splash screen background color (shown before Compose loads) -->
+        <item name="android:windowSplashScreenBackground" tools:targetApi="31">@color/splash_background</item>
+    </style>
+
+    <!--
+        Post-splash theme — applied after splash finishes.
+        Must not have a window background that conflicts with Compose.
+    -->
+    <style name="Theme.IRIS.NoSplash" parent="Theme.IRIS">
+        <item name="android:windowSplashScreenAnimatedIcon" tools:ignore="NewApi">@mipmap/ic_launcher</item>
     </style>
 </resources>
