@@ -11,9 +11,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.iris.assistant.ui.components.IrisButtonPrimary
-import com.iris.assistant.ui.theme.IrisTheme
 
 @Composable
 fun OnboardingWelcomeScreen(onNext: () -> Unit) {
@@ -23,15 +23,17 @@ fun OnboardingWelcomeScreen(onNext: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text  = "Merhaba, Muhofy.",
-            style = MaterialTheme.typography.displaySmall,
-            color = MaterialTheme.colorScheme.onBackground
+            text      = "Merhaba, Muhofy.",
+            style     = MaterialTheme.typography.displaySmall,
+            color     = MaterialTheme.colorScheme.onBackground,
+            textAlign = TextAlign.Center
         )
         Spacer(Modifier.height(12.dp))
         Text(
-            text  = "Ben IRIS. Hazır olduğunda başlayalım.",
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            text      = "Ben IRIS. Hazır olduğunda başlayalım.",
+            style     = MaterialTheme.typography.bodyLarge,
+            color     = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center
         )
         Spacer(Modifier.height(48.dp))
         IrisButtonPrimary(text = "Başla", onClick = onNext)
