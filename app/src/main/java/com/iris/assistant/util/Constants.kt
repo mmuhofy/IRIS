@@ -34,6 +34,9 @@ object Constants {
     const val NOTIFICATION_CHANNEL_NAME_WAKE = "IRIS Arka Plan"
 
     // --- Room ---
-    const val DATABASE_NAME = "iris_database"
+    const val DATABASE_NAME    = "iris_database"
     const val DATABASE_VERSION = 1
+
+    // --- DataStore ---
+    const val DATASTORE_NAME = "iris_preferences"
 }
