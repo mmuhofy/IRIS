@@ -1,5 +1,6 @@
 package com.iris.assistant.ui.settings
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -10,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -38,6 +40,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.iris.assistant.domain.model.TtsVoice
 import com.iris.assistant.ui.components.IrisButtonDestructive
 import com.iris.assistant.ui.theme.ColorSchemeOption
 import com.iris.assistant.ui.theme.IrisTheme
@@ -107,6 +110,24 @@ fun SettingsScreen(
             HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
             Spacer(Modifier.height(24.dp))
 
+            // --- Ses Karakteri ---
+            SettingsSectionTitle("Ses Karakteri")
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text  = "IRIS'in sesi için bir karakter seç",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(Modifier.height(12.dp))
+            VoiceSelector(
+                current  = uiState.ttsVoice,
+                onChange = viewModel::onTtsVoiceChange
+            )
+
+            Spacer(Modifier.height(24.dp))
+            HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
+            Spacer(Modifier.height(24.dp))
+
             // --- Arka Plan ---
             SettingsSectionTitle("Arka Plan")
             Spacer(Modifier.height(8.dp))
@@ -125,11 +146,80 @@ fun SettingsScreen(
             SettingsSectionTitle("Veri")
             Spacer(Modifier.height(12.dp))
             IrisButtonDestructive(
-                text    = "Sohbet Geçmişini Temizle",
-                onClick = { showClearDialog = true },
+                text     = "Sohbet Geçmişini Temizle",
+                onClick  = { showClearDialog = true },
                 modifier = Modifier.fillMaxWidth()
             )
             Spacer(Modifier.height(32.dp))
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Voice selector — grid of selectable voice chips
+// ---------------------------------------------------------------------------
+@Composable
+private fun VoiceSelector(
+    current : TtsVoice,
+    onChange: (TtsVoice) -> Unit
+) {
+    // Two items per row
+    val voices = TtsVoice.entries
+    val rows = voices.chunked(2)
+
+    Column(modifier = Modifier.fillMaxWidth()) {
+        rows.forEach { row ->
+            Row(modifier = Modifier.fillMaxWidth()) {
+                row.forEach { voice ->
+                    VoiceChip(
+                        voice      = voice,
+                        isSelected = voice == current,
+                        onClick    = { onChange(voice) },
+                        modifier   = Modifier
+                            .weight(1f)
+                            .padding(end = if (voice == row.last()) 0.dp else 8.dp)
+                            .padding(bottom = 8.dp)
+                    )
+                }
+                // If odd row with one item, fill remaining space
+                if (row.size == 1) Spacer(Modifier.weight(1f))
+            }
+        }
+    }
+}
+
+@Composable
+private fun VoiceChip(
+    voice     : TtsVoice,
+    isSelected: Boolean,
+    onClick   : () -> Unit,
+    modifier  : Modifier = Modifier
+) {
+    val primary = IrisTheme.colors.primary
+    Surface(
+        onClick      = onClick,
+        shape        = RoundedCornerShape(12.dp),
+        color        = if (isSelected) primary.copy(alpha = 0.15f)
+                       else MaterialTheme.colorScheme.surface,
+        border       = BorderStroke(
+            width = if (isSelected) 1.5.dp else 1.dp,
+            color = if (isSelected) primary
+                    else MaterialTheme.colorScheme.surfaceVariant
+        ),
+        modifier     = modifier
+    ) {
+        Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
+            Text(
+                text  = voice.displayName,
+                style = MaterialTheme.typography.bodyMedium,
+                color = if (isSelected) primary
+                        else MaterialTheme.colorScheme.onBackground
+            )
+            Text(
+                text  = voice.description,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }
@@ -151,14 +241,14 @@ private fun ColorSchemeSelector(
             val irisColors = scheme.toIrisColorScheme()
             val isSelected = scheme == current
             Surface(
-                onClick = { onChange(scheme) },
-                shape   = CircleShape,
-                color   = irisColors.primary,
+                onClick  = { onChange(scheme) },
+                shape    = CircleShape,
+                color    = irisColors.primary,
                 modifier = Modifier
                     .padding(end = 10.dp)
                     .size(if (isSelected) 38.dp else 30.dp),
-                border = if (isSelected)
-                    androidx.compose.foundation.BorderStroke(2.dp, Color.White)
+                border   = if (isSelected)
+                    BorderStroke(2.dp, Color.White)
                 else null
             ) {}
         }
@@ -189,8 +279,8 @@ private fun SettingsToggleRow(
             checked         = checked,
             onCheckedChange = onChange,
             colors          = SwitchDefaults.colors(
-                checkedThumbColor  = MaterialTheme.colorScheme.background,
-                checkedTrackColor  = IrisTheme.colors.primary
+                checkedThumbColor = MaterialTheme.colorScheme.background,
+                checkedTrackColor = IrisTheme.colors.primary
             )
         )
     }

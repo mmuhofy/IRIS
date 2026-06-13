@@ -17,25 +17,25 @@ object Constants {
     const val GROQ_STT_LANGUAGE = "tr"
 
     // --- LLM ---
-    // Verified: https://ai.google.dev/gemini-api/docs/models — June 2026
     const val GEMINI_MODEL    = "gemini-3.5-flash"
     const val GEMINI_ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models"
     const val GROQ_LLM_MODEL  = "llama-3.3-70b-versatile" // TODO: confirm at implementation time
 
     // --- TTS — Gemini ---
-    // Model: gemini-3.1-flash-tts-preview (current stable TTS model per official docs, 2026-05-18)
-    // Endpoint: /v1beta/models/{model}:generateContent — same as standard generateContent API
+    // Model: gemini-3.1-flash-tts-preview (current stable TTS model, verified 2026-05)
+    // Endpoint: /v1beta/models/{model}:generateContent
     // Output: PCM 16-bit signed, 24000 Hz, mono — base64 in candidates[0].content.parts[0].inlineData.data
-    // Language: auto-detected from input text — Turkish (tr) confirmed supported
-    // Verified against: https://ai.google.dev/gemini-api/docs/speech-generation
-    const val GEMINI_TTS_MODEL    = "gemini-3.1-flash-tts-preview"
-    const val GEMINI_TTS_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models"
-    const val GEMINI_TTS_VOICE    = "Aoede" // Breezy tone — 30 voices available, see docs for full list
+    // Language: auto-detected — Turkish confirmed supported
+    const val GEMINI_TTS_MODEL       = "gemini-3.1-flash-tts-preview"
+    const val GEMINI_TTS_BASE_URL    = "https://generativelanguage.googleapis.com/v1beta/models"
     const val GEMINI_TTS_SAMPLE_RATE = 24000   // Hz, per Gemini TTS spec
     const val GEMINI_TTS_MIN_BUFFER_SIZE = 8192 // bytes, safety floor for AudioTrack buffer
 
+    // Default voice — used as fallback if preference not yet set
+    const val GEMINI_TTS_DEFAULT_VOICE = "Aoede"
+
     // Retry config — Gemini TTS occasionally returns HTTP 500 with text tokens instead of audio
-    const val GEMINI_TTS_MAX_RETRIES   = 3
+    const val GEMINI_TTS_MAX_RETRIES    = 3
     const val GEMINI_TTS_RETRY_DELAY_MS = 1000L
 
     // --- VAD ---

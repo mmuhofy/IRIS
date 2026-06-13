@@ -6,9 +6,12 @@ import android.media.AudioTrack
 import android.util.Base64
 import android.util.Log
 import com.iris.assistant.BuildConfig
+import com.iris.assistant.data.local.datastore.PreferencesRepository
+import com.iris.assistant.domain.model.TtsVoice
 import com.iris.assistant.util.Constants
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -22,10 +25,10 @@ import javax.inject.Singleton
 /**
  * TTS provider using the Gemini generateContent API.
  *
- * Verified endpoint (from official docs, last updated 2026-05-18):
+ * Verified endpoint:
  *   POST https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent
  *
- * Model: gemini-3.1-flash-tts-preview (current stable TTS model per docs)
+ * Model: gemini-3.1-flash-tts-preview
  *
  * Request shape:
  * {
@@ -46,16 +49,17 @@ import javax.inject.Singleton
  *
  * Output format: PCM 16-bit signed, 24000 Hz, mono
  * Language: auto-detected from input text — Turkish (tr) supported
- * Streaming: NOT supported by this model
  *
- * Known issue (documented): model occasionally returns text tokens instead of audio,
- * causing HTTP 500. Retry logic handles this automatically.
+ * Voice: read from DataStore (PreferencesRepository) on each call.
+ * Changing the voice in Settings takes effect on the next speak() call.
  */
 @Singleton
 class GeminiTtsClient @Inject constructor(
-    private val okHttpClient: OkHttpClient
+    private val okHttpClient         : OkHttpClient,
+    private val preferencesRepository: PreferencesRepository
 ) : TtsProvider {
 
+    // API key sourced from BuildConfig — injected at build time via GitHub Secrets / local.properties
     private val apiKey: String get() = BuildConfig.GEMINI_API_KEY
 
     companion object {
@@ -66,13 +70,16 @@ class GeminiTtsClient @Inject constructor(
     @Volatile private var stopRequested = false
 
     override suspend fun speak(
-        text: String,
+        text      : String,
         onProgress: (Float) -> Unit,
-        onDone: () -> Unit
+        onDone    : () -> Unit
     ) {
         stopRequested = false
 
-        val pcmBytes = fetchPcmWithRetry(text) ?: run {
+        // Read user's preferred voice from DataStore — .first() takes the current snapshot
+        val voice = preferencesRepository.preferences.first().ttsVoice
+
+        val pcmBytes = fetchPcmWithRetry(text, voice) ?: run {
             Log.e(TAG, "speak: failed to fetch audio after ${Constants.GEMINI_TTS_MAX_RETRIES} retries")
             onDone()
             return
@@ -84,14 +91,13 @@ class GeminiTtsClient @Inject constructor(
     /**
      * Retries the TTS request up to GEMINI_TTS_MAX_RETRIES times.
      * HTTP 500 with text tokens is a known intermittent issue — retry handles it.
-     * Returns PCM bytes on success, null if all attempts fail.
      */
-    private suspend fun fetchPcmWithRetry(text: String): ByteArray? =
+    private suspend fun fetchPcmWithRetry(text: String, voice: TtsVoice): ByteArray? =
         withContext(Dispatchers.IO) {
             repeat(Constants.GEMINI_TTS_MAX_RETRIES) { attempt ->
                 if (stopRequested) return@withContext null
 
-                val result = runCatching { fetchPcm(text) }
+                val result = runCatching { fetchPcm(text, voice) }
                 val pcm = result.getOrNull()
 
                 if (pcm != null) return@withContext pcm
@@ -107,87 +113,78 @@ class GeminiTtsClient @Inject constructor(
 
     /**
      * Single TTS request attempt.
-     *
-     * Endpoint: /v1beta/models/gemini-3.1-flash-tts-preview:generateContent
-     * Auth: x-goog-api-key header
-     *
-     * Throws on:
-     *   - Network error
-     *   - Non-200 HTTP response
-     *   - Response missing inlineData (text-token fallback — triggers retry)
+     * Throws on network error, non-200 response, or missing inlineData block.
      */
-    private suspend fun fetchPcm(text: String): ByteArray = withContext(Dispatchers.IO) {
-        val bodyJson = JSONObject().apply {
-            put("contents", JSONArray().apply {
-                put(JSONObject().apply {
-                    put("parts", JSONArray().apply {
-                        put(JSONObject().apply {
-                            put("text", text)
+    private suspend fun fetchPcm(text: String, voice: TtsVoice): ByteArray =
+        withContext(Dispatchers.IO) {
+            val bodyJson = JSONObject().apply {
+                put("contents", JSONArray().apply {
+                    put(JSONObject().apply {
+                        put("parts", JSONArray().apply {
+                            put(JSONObject().apply { put("text", text) })
                         })
                     })
                 })
-            })
-            put("generationConfig", JSONObject().apply {
-                put("responseModalities", JSONArray().apply { put("AUDIO") })
-                put("speechConfig", JSONObject().apply {
-                    put("voiceConfig", JSONObject().apply {
-                        put("prebuiltVoiceConfig", JSONObject().apply {
-                            put("voiceName", Constants.GEMINI_TTS_VOICE)
+                put("generationConfig", JSONObject().apply {
+                    put("responseModalities", JSONArray().apply { put("AUDIO") })
+                    put("speechConfig", JSONObject().apply {
+                        put("voiceConfig", JSONObject().apply {
+                            put("prebuiltVoiceConfig", JSONObject().apply {
+                                put("voiceName", voice.apiName)
+                            })
                         })
                     })
                 })
-            })
+            }
+
+            val url = "${Constants.GEMINI_TTS_BASE_URL}/${Constants.GEMINI_TTS_MODEL}:generateContent"
+
+            val request = Request.Builder()
+                .url(url)
+                .addHeader("x-goog-api-key", apiKey)
+                .addHeader("Content-Type", "application/json")
+                .post(bodyJson.toString().toRequestBody("application/json".toMediaType()))
+                .build()
+
+            val response     = okHttpClient.newCall(request).execute()
+            val responseBody = response.body?.string()
+
+            if (!response.isSuccessful || responseBody == null) {
+                throw IllegalStateException("TTS request failed: HTTP ${response.code} — $responseBody")
+            }
+
+            // Parse: candidates[0].content.parts[0].inlineData.data
+            val json = JSONObject(responseBody)
+            val candidates = json.optJSONArray("candidates")
+                ?: throw IllegalStateException("TTS response missing 'candidates' — body: $responseBody")
+
+            val parts = candidates
+                .getJSONObject(0)
+                .optJSONObject("content")
+                ?.optJSONArray("parts")
+                ?: throw IllegalStateException("TTS response missing 'content.parts'")
+
+            val inlineData = parts
+                .getJSONObject(0)
+                .optJSONObject("inlineData")
+                ?: throw IllegalStateException("TTS inlineData missing — model may have returned text tokens, will retry")
+
+            val base64Data = inlineData.optString("data")
+            if (base64Data.isEmpty()) {
+                throw IllegalStateException("TTS inlineData.data is empty")
+            }
+
+            Base64.decode(base64Data, Base64.DEFAULT)
         }
-
-        val url = "${Constants.GEMINI_TTS_BASE_URL}/${Constants.GEMINI_TTS_MODEL}:generateContent"
-
-        val request = Request.Builder()
-            .url(url)
-            .addHeader("x-goog-api-key", apiKey)
-            .addHeader("Content-Type", "application/json")
-            .post(bodyJson.toString().toRequestBody("application/json".toMediaType()))
-            .build()
-
-        val response = okHttpClient.newCall(request).execute()
-        val responseBody = response.body?.string()
-
-        if (!response.isSuccessful || responseBody == null) {
-            throw IllegalStateException("TTS request failed: HTTP ${response.code} — $responseBody")
-        }
-
-        // Parse: candidates[0].content.parts[0].inlineData.data
-        val json = JSONObject(responseBody)
-        val candidates = json.optJSONArray("candidates")
-            ?: throw IllegalStateException("TTS response missing 'candidates' — full response: $responseBody")
-
-        val parts = candidates
-            .getJSONObject(0)
-            .optJSONObject("content")
-            ?.optJSONArray("parts")
-            ?: throw IllegalStateException("TTS response missing 'content.parts'")
-
-        val inlineData = parts
-            .getJSONObject(0)
-            .optJSONObject("inlineData")
-            ?: throw IllegalStateException("TTS response missing 'inlineData' — model may have returned text tokens, will retry")
-
-        val base64Data = inlineData.optString("data")
-        if (base64Data.isEmpty()) {
-            throw IllegalStateException("TTS inlineData.data is empty")
-        }
-
-        Base64.decode(base64Data, Base64.DEFAULT)
-    }
 
     /**
      * Plays raw PCM bytes via AudioTrack.
-     * Format: PCM 16-bit signed, 24000 Hz, mono — verified against Gemini TTS spec.
-     * Reports progress [0.0, 1.0] as playback advances, calls onDone() when finished.
+     * Format: PCM 16-bit signed, 24000 Hz, mono — matches Gemini TTS output spec.
      */
     private suspend fun playPcm(
-        pcmBytes: ByteArray,
+        pcmBytes  : ByteArray,
         onProgress: (Float) -> Unit,
-        onDone: () -> Unit
+        onDone    : () -> Unit
     ) = withContext(Dispatchers.IO) {
         val sampleRate = Constants.GEMINI_TTS_SAMPLE_RATE
         val channelCfg = AudioFormat.CHANNEL_OUT_MONO

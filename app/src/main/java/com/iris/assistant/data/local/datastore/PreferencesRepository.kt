@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.iris.assistant.domain.model.TtsVoice
 import com.iris.assistant.ui.theme.ColorSchemeOption
 import com.iris.assistant.util.Constants
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -26,6 +27,7 @@ class PreferencesRepository @Inject constructor(
         val COLOR_SCHEME         = stringPreferencesKey("color_scheme")
         val BACKGROUND_LISTENING = booleanPreferencesKey("background_listening")
         val ONBOARDING_COMPLETED = booleanPreferencesKey("onboarding_completed")
+        val TTS_VOICE            = stringPreferencesKey("tts_voice")
     }
 
     val preferences: Flow<UserPreferences> = context.dataStore.data.map { prefs ->
@@ -34,7 +36,10 @@ class PreferencesRepository @Inject constructor(
                 ?.let { runCatching { ColorSchemeOption.valueOf(it) }.getOrDefault(ColorSchemeOption.LAVENDER) }
                 ?: ColorSchemeOption.LAVENDER,
             backgroundListening = prefs[Keys.BACKGROUND_LISTENING] ?: true,
-            onboardingCompleted = prefs[Keys.ONBOARDING_COMPLETED] ?: false
+            onboardingCompleted = prefs[Keys.ONBOARDING_COMPLETED] ?: false,
+            ttsVoice            = prefs[Keys.TTS_VOICE]
+                ?.let { TtsVoice.fromApiName(it) }
+                ?: TtsVoice.DEFAULT
         )
     }
 
@@ -48,5 +53,9 @@ class PreferencesRepository @Inject constructor(
 
     suspend fun setOnboardingCompleted(completed: Boolean) {
         context.dataStore.edit { it[Keys.ONBOARDING_COMPLETED] = completed }
+    }
+
+    suspend fun setTtsVoice(voice: TtsVoice) {
+        context.dataStore.edit { it[Keys.TTS_VOICE] = voice.apiName }
     }
 }
