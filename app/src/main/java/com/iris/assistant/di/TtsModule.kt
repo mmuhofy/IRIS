@@ -1,6 +1,6 @@
 package com.iris.assistant.di
 
-import com.iris.assistant.data.remote.tts.AndroidTtsClient
+import com.iris.assistant.data.remote.tts.GeminiTtsClient
 import com.iris.assistant.data.remote.tts.TtsProvider
 import dagger.Binds
 import dagger.Module
@@ -14,5 +14,5 @@ abstract class TtsModule {
 
     @Binds
     @Singleton
-    abstract fun bindTtsProvider(impl: AndroidTtsClient): TtsProvider
+    abstract fun bindTtsProvider(impl: GeminiTtsClient): TtsProvider
 }
