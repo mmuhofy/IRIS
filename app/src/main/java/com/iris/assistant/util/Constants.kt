@@ -23,14 +23,14 @@ object Constants {
     const val GROQ_LLM_MODEL  = "llama-3.3-70b-versatile" // TODO: confirm at implementation time
 
     // --- TTS — Gemini ---
-    // Model: gemini-2.5-flash-tts (stable, not preview)
-    // Endpoint: v1beta/interactions — dedicated TTS endpoint, separate from v1beta/models
-    // Output: PCM 16-bit signed, 24000 Hz, mono — base64 encoded in response
-    // Language: auto-detected from input text (Turkish supported)
-    // UNTESTED — verify endpoint and response shape against official docs before use
-    const val GEMINI_TTS_MODEL       = "gemini-2.5-flash-tts"
-    const val GEMINI_TTS_ENDPOINT    = "https://generativelanguage.googleapis.com/v1beta/interactions"
-    const val GEMINI_TTS_VOICE       = "Aoede" // Default voice — UNTESTED, verify voice names in official docs
+    // Model: gemini-3.1-flash-tts-preview (current stable TTS model per official docs, 2026-05-18)
+    // Endpoint: /v1beta/models/{model}:generateContent — same as standard generateContent API
+    // Output: PCM 16-bit signed, 24000 Hz, mono — base64 in candidates[0].content.parts[0].inlineData.data
+    // Language: auto-detected from input text — Turkish (tr) confirmed supported
+    // Verified against: https://ai.google.dev/gemini-api/docs/speech-generation
+    const val GEMINI_TTS_MODEL    = "gemini-3.1-flash-tts-preview"
+    const val GEMINI_TTS_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models"
+    const val GEMINI_TTS_VOICE    = "Aoede" // Breezy tone — 30 voices available, see docs for full list
     const val GEMINI_TTS_SAMPLE_RATE = 24000   // Hz, per Gemini TTS spec
     const val GEMINI_TTS_MIN_BUFFER_SIZE = 8192 // bytes, safety floor for AudioTrack buffer
 
