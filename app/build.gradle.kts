@@ -41,10 +41,6 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        ndk {
-            abiFilters += "arm64-v8a"
-        }
-
         buildConfigField("String", "GEMINI_API_KEY", apiKey("GEMINI_API_KEY"))
         buildConfigField("String", "GROQ_API_KEY",   apiKey("GROQ_API_KEY"))
     }
