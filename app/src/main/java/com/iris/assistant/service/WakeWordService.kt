@@ -28,31 +28,28 @@ import kotlinx.coroutines.launch
  * Library: xyz.rementia:openwakeword:0.1.5
  * Source verified: https://github.com/Re-MENTIA/openwakeword-android-kt
  *
- * Verified imports (from source):
+ * Verified imports:
  *   WakeWordEngine   → com.rementia.openwakeword.lib.WakeWordEngine
  *   WakeWordModel    → com.rementia.openwakeword.lib.model.WakeWordModel
  *   DetectionMode    → com.rementia.openwakeword.lib.model.DetectionMode
- *   WakeWordDetection → com.rementia.openwakeword.lib.model.WakeWordDetection
  *
- * Verified API (from source):
- *   WakeWordModel(name: String, modelPath: String, threshold: Float = 0.5f)
- *   WakeWordEngine(context, models, detectionMode, detectionCooldownMs, scope?)
- *   engine.start()    — begins audio recording + detection
- *   engine.detections — SharedFlow<WakeWordDetection>
- *   engine.release()  — stops + frees all resources
- *   WakeWordDetection.model.name — String
- *   WakeWordDetection.score      — Float
+ * Verified API:
+ *   WakeWordModel(name, modelPath, threshold)
+ *   WakeWordEngine(context, models, detectionMode, detectionCooldownMs)
+ *   engine.start()      — opens AudioRecord, begins detection
+ *   engine.release()    — stops AudioRecord, frees resources
+ *   engine.detections   — SharedFlow<WakeWordDetection>
+ *   detection.model.name, detection.score
+ *
+ * Mic lifecycle:
+ *   ACTION_PAUSE  — releases engine (frees AudioRecord) so voice pipeline can open its own
+ *   ACTION_RESUME — recreates and starts engine after voice pipeline finishes
+ *   This prevents dual-AudioRecord conflict (Android does not allow two concurrent AudioRecord instances)
  *
  * Required assets in app/src/main/assets/:
  *   - hey_jarvis.onnx
  *   - melspectrogram.onnx
  *   - embedding_model.onnx
- *
- * Download from:
- *   https://github.com/dscripka/openWakeWord/tree/main/openwakeword/resources/models
- *
- * On detection → broadcasts ACTION_WAKE_WORD_DETECTED (local, package-scoped).
- * HomeViewModel registers a BroadcastReceiver to handle this.
  */
 @AndroidEntryPoint
 class WakeWordService : Service() {
@@ -63,12 +60,25 @@ class WakeWordService : Service() {
         const val ACTION_WAKE_WORD_DETECTED = "com.iris.assistant.WAKE_WORD_DETECTED"
         const val ACTION_START              = "com.iris.assistant.wake_word.START"
         const val ACTION_STOP               = "com.iris.assistant.wake_word.STOP"
+
+        /**
+         * Pause detection — releases AudioRecord so voice pipeline can use the mic.
+         * Engine is fully released (not just paused) because WakeWordEngine has no pause API.
+         */
+        const val ACTION_PAUSE              = "com.iris.assistant.wake_word.PAUSE"
+
+        /**
+         * Resume detection — recreates engine after voice pipeline finishes.
+         */
+        const val ACTION_RESUME             = "com.iris.assistant.wake_word.RESUME"
     }
 
-    // Tied to service lifetime — cancelled in onDestroy()
     private val serviceScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
 
     private var engine: WakeWordEngine? = null
+
+    // Tracks whether we are intentionally paused (vs stopped)
+    private var isPaused = false
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -81,10 +91,11 @@ class WakeWordService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
-            ACTION_START -> startDetection()
-            ACTION_STOP  -> stopSelf()
+            ACTION_START  -> { isPaused = false; startDetection() }
+            ACTION_PAUSE  -> { isPaused = true;  stopDetection()  }
+            ACTION_RESUME -> { isPaused = false; startDetection() }
+            ACTION_STOP   -> stopSelf()
         }
-        // STICKY: system restarts the service with last intent if killed
         return START_STICKY
     }
 
@@ -107,8 +118,6 @@ class WakeWordService : Service() {
 
         Log.d(TAG, "startDetection: initializing WakeWordEngine")
 
-        // WakeWordModel(name, modelPath, threshold)
-        // Verified constructor from source: data class WakeWordModel(val name: String, val modelPath: String, val threshold: Float = 0.5f)
         val models = listOf(
             WakeWordModel(
                 name      = Constants.WAKE_WORD_MODEL_NAME,
@@ -117,8 +126,6 @@ class WakeWordService : Service() {
             )
         )
 
-        // WakeWordEngine verified constructor from source:
-        // WakeWordEngine(context, models, detectionMode, detectionCooldownMs, scope?)
         engine = WakeWordEngine(
             context             = applicationContext,
             models              = models,
@@ -128,8 +135,6 @@ class WakeWordService : Service() {
 
         engine?.start()
 
-        // engine.detections is a SharedFlow — .catch{} is NOT valid on SharedFlow directly.
-        // Use try/catch inside collect instead.
         serviceScope.launch {
             try {
                 engine?.detections?.collect { detection ->
@@ -137,8 +142,8 @@ class WakeWordService : Service() {
                     broadcastDetected()
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "Detection flow error — stopping service", e)
-                stopSelf()
+                Log.e(TAG, "Detection flow error", e)
+                // Do not stopSelf() here — engine may have been released intentionally via PAUSE
             }
         }
     }
@@ -146,18 +151,13 @@ class WakeWordService : Service() {
     private fun stopDetection() {
         engine?.release()
         engine = null
-        Log.d(TAG, "stopDetection: engine released")
+        Log.d(TAG, "stopDetection: engine released (isPaused=$isPaused)")
     }
 
-    /**
-     * Sends a local broadcast to HomeViewModel's BroadcastReceiver.
-     * setPackage() ensures this stays app-internal.
-     */
     private fun broadcastDetected() {
-        val intent = Intent(ACTION_WAKE_WORD_DETECTED).apply {
+        sendBroadcast(Intent(ACTION_WAKE_WORD_DETECTED).apply {
             setPackage(packageName)
-        }
-        sendBroadcast(intent)
+        })
     }
 
     // ---------------------------------------------------------------------------

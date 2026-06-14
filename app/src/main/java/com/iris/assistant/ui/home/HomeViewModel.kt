@@ -47,13 +47,13 @@ data class HomeUiState(
 // ---------------------------------------------------------------------------
 @HiltViewModel
 class HomeViewModel @Inject constructor(
-    @ApplicationContext private val context            : Context,
-    private val audioRecorder                         : AudioRecorder,
-    private val transcribeAudioUseCase                : TranscribeAudioUseCase,
-    private val sendMessageUseCase                    : SendMessageUseCase,
-    private val conversationRepository                : ConversationRepository,
-    private val ttsProvider                           : TtsProvider,
-    private val preferencesRepository                 : PreferencesRepository
+    @ApplicationContext private val context           : Context,
+    private val audioRecorder                        : AudioRecorder,
+    private val transcribeAudioUseCase               : TranscribeAudioUseCase,
+    private val sendMessageUseCase                   : SendMessageUseCase,
+    private val conversationRepository               : ConversationRepository,
+    private val ttsProvider                          : TtsProvider,
+    private val preferencesRepository                : PreferencesRepository
 ) : ViewModel() {
 
     companion object {
@@ -63,23 +63,18 @@ class HomeViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
-    // In-memory history kept in sync with Room for fast LLM context access
-    private val history = mutableListOf<ChatMessage>()
-
-    // Active pipeline job — cancelled on stop()
-    private var pipelineJob: Job? = null
+    private val history     = mutableListOf<ChatMessage>()
+    private var pipelineJob : Job? = null
 
     // ---------------------------------------------------------------------------
     // Wake word BroadcastReceiver
-    // Registered/unregistered with the app lifecycle (see HomeScreen DisposableEffect).
-    // Not registered here in init{} to avoid leaking a Context-bound receiver
-    // beyond the ViewModel's scope without a paired unregister call.
+    // Registered/unregistered by HomeScreen's DisposableEffect — not here —
+    // so the receiver lifetime matches the screen lifecycle, not the ViewModel.
     // ---------------------------------------------------------------------------
     private val wakeWordReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context?, intent: Intent?) {
+        override fun onReceive(ctx: Context?, intent: Intent?) {
             if (intent?.action == WakeWordService.ACTION_WAKE_WORD_DETECTED) {
-                Log.d(TAG, "BroadcastReceiver: wake word detected — starting pipeline")
-                // Only start if not already active
+                Log.d(TAG, "BroadcastReceiver: wake word detected")
                 if (_uiState.value.coreState == IrisCoreState.IDLE) {
                     startVoicePipeline()
                 }
@@ -88,102 +83,113 @@ class HomeViewModel @Inject constructor(
     }
 
     init {
-        // Load conversation history
         viewModelScope.launch {
             history.addAll(conversationRepository.getHistory())
         }
 
-        // Observe backgroundListening preference — start/stop WakeWordService accordingly
+        // Observe backgroundListening — start/stop WakeWordService accordingly.
+        // distinctUntilChanged ensures we react to actual changes and also to
+        // the first emission (which starts the service on app launch if enabled).
         viewModelScope.launch {
             preferencesRepository.preferences
                 .map { it.backgroundListening }
                 .distinctUntilChanged()
                 .collect { enabled ->
-                    Log.d(TAG, "backgroundListening changed: $enabled")
+                    Log.d(TAG, "backgroundListening → $enabled")
                     if (enabled) startWakeWordService() else stopWakeWordService()
                 }
         }
     }
 
     // ---------------------------------------------------------------------------
-    // WakeWordService start / stop
+    // WakeWordService control
     // ---------------------------------------------------------------------------
 
-    /**
-     * Starts WakeWordService as a foreground service.
-     * Safe to call multiple times — service is idempotent (ACTION_START guarded inside).
-     */
     fun startWakeWordService() {
+        sendWakeWordServiceAction(WakeWordService.ACTION_START)
+    }
+
+    private fun stopWakeWordService() {
+        sendWakeWordServiceAction(WakeWordService.ACTION_STOP)
+    }
+
+    /**
+     * Pauses wake word detection so the voice pipeline can open the microphone.
+     * WakeWordEngine releases AudioRecord on PAUSE, freeing the mic for AudioRecorder.
+     * Must be called BEFORE AudioRecorder.recordUntilSilence().
+     */
+    private fun pauseWakeWordService() {
+        sendWakeWordServiceAction(WakeWordService.ACTION_PAUSE)
+    }
+
+    /**
+     * Resumes wake word detection after the voice pipeline has finished and
+     * AudioRecorder has released the microphone.
+     * Must be called AFTER AudioRecorder and TTS are both done.
+     */
+    private fun resumeWakeWordService() {
+        sendWakeWordServiceAction(WakeWordService.ACTION_RESUME)
+    }
+
+    private fun sendWakeWordServiceAction(action: String) {
         val intent = Intent(context, WakeWordService::class.java).apply {
-            action = WakeWordService.ACTION_START
+            this.action = action
         }
-        // startForegroundService required on Android 8+ for foreground services
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
+            action == WakeWordService.ACTION_START
+        ) {
             context.startForegroundService(intent)
         } else {
             context.startService(intent)
         }
-        Log.d(TAG, "startWakeWordService: intent sent")
-    }
-
-    /**
-     * Stops WakeWordService.
-     * Called when backgroundListening is disabled in Settings.
-     */
-    private fun stopWakeWordService() {
-        val intent = Intent(context, WakeWordService::class.java).apply {
-            action = WakeWordService.ACTION_STOP
-        }
-        context.startService(intent)
-        Log.d(TAG, "stopWakeWordService: stop intent sent")
+        Log.d(TAG, "sendWakeWordServiceAction: $action")
     }
 
     // ---------------------------------------------------------------------------
-    // BroadcastReceiver registration — called from HomeScreen DisposableEffect
+    // BroadcastReceiver — called from HomeScreen DisposableEffect
     // ---------------------------------------------------------------------------
 
-    /**
-     * Registers the wake word BroadcastReceiver.
-     * Must be called from HomeScreen's DisposableEffect (onResume equivalent).
-     * Paired with [unregisterWakeWordReceiver].
-     */
     fun registerWakeWordReceiver() {
         val filter = IntentFilter(WakeWordService.ACTION_WAKE_WORD_DETECTED)
-        // RECEIVER_NOT_EXPORTED: local broadcast, package-scoped — no external apps
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             context.registerReceiver(wakeWordReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
         } else {
+            @Suppress("UnspecifiedRegisterReceiverFlag")
             context.registerReceiver(wakeWordReceiver, filter)
         }
         Log.d(TAG, "registerWakeWordReceiver: registered")
     }
 
-    /**
-     * Unregisters the wake word BroadcastReceiver.
-     * Must be called from HomeScreen's DisposableEffect onDispose.
-     */
     fun unregisterWakeWordReceiver() {
         runCatching { context.unregisterReceiver(wakeWordReceiver) }
         Log.d(TAG, "unregisterWakeWordReceiver: unregistered")
     }
 
     // ---------------------------------------------------------------------------
-    // Mic toggle
+    // Mic toggle (manual button)
     // ---------------------------------------------------------------------------
+
     fun onMicToggle() {
         if (_uiState.value.isMicOn) {
             onStop()
-            return
+        } else {
+            startVoicePipeline()
         }
-        startVoicePipeline()
     }
 
     // ---------------------------------------------------------------------------
-    // Full voice pipeline: record → STT → LLM → TTS
+    // Voice pipeline: PAUSE wake word → record → STT → LLM → TTS → RESUME wake word
     // ---------------------------------------------------------------------------
+
     private fun startVoicePipeline() {
         pipelineJob = viewModelScope.launch {
-            // 1. LISTENING
+
+            // Step 1 — Pause WakeWordService BEFORE opening mic
+            // This releases WakeWordEngine's AudioRecord so our AudioRecorder can open.
+            // Android does not allow two concurrent AudioRecord instances.
+            pauseWakeWordService()
+
+            // Step 2 — LISTENING state
             _uiState.update {
                 it.copy(
                     isMicOn      = true,
@@ -193,65 +199,69 @@ class HomeViewModel @Inject constructor(
                 )
             }
 
-            // 2. Record until VAD silence
+            // Step 3 — Record until VAD silence
             val audioBytes = runCatching {
                 audioRecorder.recordUntilSilence(
                     onAmplitude = { amp -> _uiState.update { it.copy(amplitude = amp) } }
                 )
             }.getOrElse { e ->
                 handleError("Kayıt hatası", e)
+                resumeWakeWordService() // Always resume on error
                 return@launch
             }
 
-            // 3. THINKING — STT in progress
+            // Step 4 — THINKING (STT)
             _uiState.update {
                 it.copy(
-                    isMicOn   = false,
-                    amplitude = 0f,
-                    coreState = IrisCoreState.THINKING,
+                    isMicOn    = false,
+                    amplitude  = 0f,
+                    coreState  = IrisCoreState.THINKING,
                     statusText = "Anlıyorum..."
                 )
             }
 
-            // 4. STT — Groq Whisper
+            // Step 5 — STT via Groq Whisper
             val transcript = runCatching {
                 transcribeAudioUseCase(audioBytes)
             }.getOrElse { e ->
                 handleError("Ses anlaşılamadı", e)
+                resumeWakeWordService()
                 return@launch
             }
 
-            // 5. Persist user message
-            val userMsg = ChatMessage(role = ChatMessage.Role.USER, content = transcript)
+            // Step 6 — Persist user message
+            val userMsg   = ChatMessage(role = ChatMessage.Role.USER, content = transcript)
             val userMsgId = conversationRepository.saveMessage(userMsg)
             history.add(userMsg.copy(id = userMsgId))
 
-            // 6. THINKING — LLM in progress
+            // Step 7 — THINKING (LLM)
             _uiState.update { it.copy(statusText = "Düşünüyorum...") }
 
-            // 7. LLM — Gemini (with Groq fallback)
+            // Step 8 — LLM via Gemini (Groq fallback handled inside use case)
             val reply = runCatching {
                 sendMessageUseCase(history.toList())
             }.getOrElse { e ->
                 history.removeLastOrNull()
                 handleError("Yanıt alınamadı", e)
+                resumeWakeWordService()
                 return@launch
             }
 
-            // 8. Persist assistant message
-            val assistantMsg = ChatMessage(role = ChatMessage.Role.ASSISTANT, content = reply)
+            // Step 9 — Persist assistant message
+            val assistantMsg   = ChatMessage(role = ChatMessage.Role.ASSISTANT, content = reply)
             val assistantMsgId = conversationRepository.saveMessage(assistantMsg)
             history.add(assistantMsg.copy(id = assistantMsgId))
 
-            // 9. SPEAKING — TTS
+            // Step 10 — SPEAKING (TTS)
             _uiState.update {
                 it.copy(coreState = IrisCoreState.SPEAKING, statusText = "Konuşuyorum...")
             }
 
             ttsProvider.speak(
                 text       = reply,
-                onProgress = { progress -> onTtsProgressUpdate(progress) },
+                onProgress = { p -> _uiState.update { it.copy(ttsProgress = p.coerceIn(0f, 1f)) } },
                 onDone     = {
+                    // Step 11 — TTS done: back to IDLE, resume wake word listening
                     _uiState.update {
                         it.copy(
                             coreState   = IrisCoreState.IDLE,
@@ -259,6 +269,7 @@ class HomeViewModel @Inject constructor(
                             statusText  = "Dinlemeye hazır"
                         )
                     }
+                    resumeWakeWordService() // Mic is free — wake word can listen again
                 }
             )
         }
@@ -267,6 +278,7 @@ class HomeViewModel @Inject constructor(
     // ---------------------------------------------------------------------------
     // Stop / interrupt
     // ---------------------------------------------------------------------------
+
     fun onStop() {
         pipelineJob?.cancel()
         pipelineJob = null
@@ -280,41 +292,33 @@ class HomeViewModel @Inject constructor(
                 statusText  = "Dinlemeye hazır"
             )
         }
+        // Resume wake word after manual stop — mic is now free
+        resumeWakeWordService()
     }
 
     // ---------------------------------------------------------------------------
     // Screen control toggle
     // ---------------------------------------------------------------------------
+
     fun onScreenControlToggle() {
         _uiState.update { it.copy(isScreenCtrl = !it.isScreenCtrl) }
-        // TODO: Start/stop AccessibilityService (Phase 3)
-    }
-
-    // ---------------------------------------------------------------------------
-    // TTS progress
-    // ---------------------------------------------------------------------------
-    fun onTtsProgressUpdate(progress: Float) {
-        _uiState.update {
-            it.copy(
-                coreState   = IrisCoreState.SPEAKING,
-                ttsProgress = progress.coerceIn(0f, 1f),
-                statusText  = "Konuşuyorum..."
-            )
-        }
+        // TODO Phase 3: Start/stop AccessibilityService
     }
 
     // ---------------------------------------------------------------------------
     // Error handling
     // ---------------------------------------------------------------------------
-    private fun handleError(context: String, e: Throwable) {
+
+    private fun handleError(ctx: String, e: Throwable) {
         val msg = when (e) {
-            is IrisException.NetworkException   -> "$context: İnternet bağlantısı yok"
-            is IrisException.RateLimitException -> "$context: API limiti aşıldı"
-            is IrisException.AuthException      -> "$context: API anahtarı eksik"
-            is IrisException.SttException       -> "$context: ${e.message}"
-            is IrisException.LlmException       -> "$context: ${e.message}"
-            else                                -> "$context: Bilinmeyen hata"
+            is IrisException.NetworkException   -> "$ctx: İnternet bağlantısı yok"
+            is IrisException.RateLimitException -> "$ctx: API limiti aşıldı"
+            is IrisException.AuthException      -> "$ctx: API anahtarı eksik"
+            is IrisException.SttException       -> "$ctx: ${e.message}"
+            is IrisException.LlmException       -> "$ctx: ${e.message}"
+            else                                -> "$ctx: Bilinmeyen hata"
         }
+        Log.e(TAG, "handleError: $msg", e)
         _uiState.update {
             it.copy(
                 coreState    = IrisCoreState.IDLE,
@@ -330,6 +334,6 @@ class HomeViewModel @Inject constructor(
         super.onCleared()
         pipelineJob?.cancel()
         ttsProvider.release()
-        // Receiver is unregistered by HomeScreen's DisposableEffect — not here
+        // BroadcastReceiver unregistered by HomeScreen's DisposableEffect — not here
     }
 }
