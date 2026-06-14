@@ -20,6 +20,7 @@ import com.iris.assistant.service.WakeWordService
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -184,10 +185,13 @@ class HomeViewModel @Inject constructor(
     private fun startVoicePipeline() {
         pipelineJob = viewModelScope.launch {
 
-            // Step 1 — Pause WakeWordService BEFORE opening mic
-            // This releases WakeWordEngine's AudioRecord so our AudioRecorder can open.
+            // Step 1 — Pause WakeWordService BEFORE opening mic.
+            // WakeWordEngine's AudioRecord must be released before AudioRecorder can open.
             // Android does not allow two concurrent AudioRecord instances.
+            // delay(150ms) gives the service time to process the PAUSE Intent and release
+            // AudioRecord before we attempt to open our own — Intent dispatch is async.
             pauseWakeWordService()
+            delay(Constants.WAKE_WORD_PAUSE_DELAY_MS)
 
             // Step 2 — LISTENING state
             _uiState.update {

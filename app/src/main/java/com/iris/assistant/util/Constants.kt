@@ -54,6 +54,12 @@ object Constants {
     //
     // WAKE_WORD_COOLDOWN_MS: prevents repeated triggers from a single detection event.
     // 2000ms matches typical post-detection UX (show listening state, start recording).
+    // Delay between sending ACTION_PAUSE to WakeWordService and opening AudioRecorder.
+    // Intent dispatch to a service is async — this gives WakeWordEngine time to call
+    // engine.release() and free AudioRecord before AudioRecorder.startRecording() is called.
+    // 150ms is conservative; tune down if latency is noticeable.
+    const val WAKE_WORD_PAUSE_DELAY_MS = 150L
+
     const val WAKE_WORD_MODEL_NAME    = "hey_jarvis"
     const val WAKE_WORD_MODEL_FILE    = "hey_jarvis.onnx"
     const val WAKE_WORD_THRESHOLD     = 0.5f
