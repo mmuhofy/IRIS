@@ -25,9 +25,10 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
@@ -42,8 +43,16 @@ fun HomeScreen(
     onOpenSettings: () -> Unit,
     viewModel     : HomeViewModel = hiltViewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val uiState       by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
+
+    // Register wake word BroadcastReceiver while HomeScreen is in composition.
+    // DisposableEffect fires on entry; onDispose fires when HomeScreen leaves composition.
+    // This keeps receiver tied to screen lifecycle — no leak risk.
+    DisposableEffect(Unit) {
+        viewModel.registerWakeWordReceiver()
+        onDispose { viewModel.unregisterWakeWordReceiver() }
+    }
 
     LaunchedEffect(uiState.errorMessage) {
         uiState.errorMessage?.let { snackbarHostState.showSnackbar(it) }
@@ -67,7 +76,7 @@ fun HomeScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment     = Alignment.CenterVertically
             ) {
-                IconButton(onClick = { /* TODO: drawer (Phase 1) */ }) {
+                IconButton(onClick = { /* TODO: drawer (Phase 2) */ }) {
                     Icon(Icons.Filled.Menu, contentDescription = "Menü",
                         tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
@@ -118,7 +127,8 @@ fun HomeScreen(
             ) {
                 IconButton(onClick = viewModel::onMicToggle) {
                     Icon(
-                        imageVector        = if (uiState.isMicOn) Icons.Outlined.Mic else Icons.Outlined.MicOff,
+                        imageVector        = if (uiState.isMicOn) Icons.Outlined.Mic
+                                             else Icons.Outlined.MicOff,
                         contentDescription = "Mikrofon",
                         tint               = if (uiState.isMicOn) IrisTheme.colors.primary
                                              else MaterialTheme.colorScheme.onSurfaceVariant
