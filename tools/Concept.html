@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>IRIS — Matte Orb & Precision Ring</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        body {
+            /* Saf koyu premium arka plan - gökyüzü maviliği tamamen yok edildi */
+            background-color: #040407; 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            overflow: hidden;
+            padding: 20px;
+        }
+        
+        .container {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+            flex-grow: 1;
+        }
+
+        #system-log {
+            width: 100%;
+            text-align: left;
+            font-size: 0.65rem;
+            color: #4F46E5;
+            text-transform: uppercase;
+            letter-spacing: 0.2em;
+            line-height: 1.6;
+            font-family: monospace;
+            padding: 10px;
+        }
+
+        .canvas-container {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            max-height: 50vh;
+            filter: none; /* BULANIKLIK TAMAMEN KALDIRILDI */
+        }
+
+        canvas {
+            background: transparent;
+        }
+
+        /* 2x2 Taşma Yapmayan Mobil Panel */
+        .control-panel {
+            width: 100%;
+            max-width: 400px;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            background: rgba(12, 12, 18, 0.85);
+            padding: 12px;
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(20px);
+            margin-bottom: 10px;
+            z-index: 20;
+        }
+
+        button {
+            background: transparent;
+            border: 1px solid transparent;
+            color: #3F3F46;
+            padding: 14px 10px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            cursor: pointer;
+            border-radius: 10px;
+            text-transform: uppercase;
+            transition: all 0.3s ease;
+            font-family: monospace;
+        }
+
+        button.active {
+            color: #FFF;
+            background: rgba(255, 255, 255, 0.04);
+            border-color: rgba(255, 255, 255, 0.06);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="system-log">
+        IRIS // PRECISION CORE ACTIVE<br>
+        FIELD: <span id="status-span" style="color: #FFF;">IDLE</span>
+    </div>
+
+    <div class="container">
+        <div class="canvas-container">
+            <canvas id="precisionCanvas"></canvas>
+        </div>
+    </div>
+
+    <div class="control-panel">
+        <button id="btn-idle" class="active" onclick="setIrisState('IDLE')">IDLE_AURA</button>
+        <button id="btn-listening" onclick="setIrisState('LISTENING')">LISTENING</button>
+        <button id="btn-thinking" onclick="setIrisState('THINKING')">THINKING</button>
+        <button id="btn-speaking" onclick="setIrisState('SPEAKING')">SPEAKING</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('precisionCanvas');
+        const ctx = canvas.getContext('2d');
+        const statusSpan = document.getElementById('status-span');
+
+        let currentState = 'IDLE';
+        let time = 0;
+        
+        let currentNoise = 10;
+        let targetNoise = 10;
+
+        // Görseldeki o zengin, mat, lüks lacivert, koyu mor ve tok asistan tonları
+        const palettes = {
+            IDLE: { core: '#4F46E5', ring: 'rgba(99, 102, 241, 0.6)', dark: '#1E1B4B' },
+            LISTENING: { core: '#2563EB', ring: 'rgba(96, 165, 250, 0.7)', dark: '#172554' },
+            THINKING: { core: '#DC2626', ring: 'rgba(248, 113, 113, 0.6)', dark: '#450A0A' },
+            SPEAKING: { core: '#059669', ring: 'rgba(52, 211, 153, 0.7)', dark: '#022C22' }
+        };
+
+        function resize() {
+            const size = Math.min(window.innerWidth * 0.85, 350);
+            canvas.width = size;
+            canvas.height = size;
+        }
+        resize();
+        window.addEventListener('resize', resize);
+
+        function setIrisState(state) {
+            currentState = state;
+            statusSpan.innerText = state;
+            document.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+            document.getElementById(`btn-${state.toLowerCase()}`).classList.add('active');
+        }
+
+        // Su gibi dalgalanan keskin hatlı küreyi çizen fonksiyon
+        function drawLiquidCore(cx, cy, radius, noise, colors) {
+            ctx.save();
+            ctx.beginPath();
+            
+            let points = 90;
+            for (let i = 0; i <= points; i++) {
+                let angle = (i / points) * Math.PI * 2;
+                
+                // Saf matematiksel su dalgalanması (Bulanıklık olmadan net kenarlar)
+                let offset = Math.sin(angle * 3 + time) * noise + Math.cos(angle * 2 - time * 1.2) * (noise * 0.4);
+                let r = radius + offset;
+                
+                let x = cx + Math.cos(angle) * r;
+                let y = cy + Math.sin(angle) * r;
+                
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.closePath();
+            
+            // Parlamayı kesen tok ve mat 3D gradyan dolgu
+            let grad = ctx.createRadialGradient(cx - 10, cy - 10, radius * 0.1, cx, cy, radius * 1.1);
+            grad.addColorStop(0, '#FFFFFF'); // Hafif üst mat ışık vuruşu
+            grad.addColorStop(0.2, colors.core);
+            grad.addColorStop(0.95, colors.dark);
+            grad.addColorStop(1, 'transparent');
+            
+            ctx.fillStyle = grad;
+            ctx.fill();
+            ctx.restore();
+        }
+
+        // Kürenin etrafında dönen keskin cam halka
+        function drawPrecisionRing(cx, cy, radius, noise, colors) {
+            ctx.save();
+            ctx.strokeStyle = colors.ring;
+            ctx.lineWidth = 2;
+            
+            // Durumlara göre halkanın geometrik davranışı değişir
+            if (currentState === 'THINKING') {
+                // Düşünürken halka Satürn yörüngesi gibi 3D bükülür
+                ctx.translate(cx, cy);
+                ctx.rotate(time * 1.5);
+                ctx.scale(1, 0.3);
+                ctx.beginPath();
+                ctx.arc(0, 0, radius + 25, 0, Math.PI * 2);
+                ctx.stroke();
+            } else if (currentState === 'SPEAKING') {
+                // Konuşurken halka ses dalgalarına göre tırtıklı/frekanslı hale gelir
+                ctx.beginPath();
+                let points = 80;
+                for (let i = 0; i <= points; i++) {
+                    let angle = (i / points) * Math.PI * 2;
+                    let wave = Math.sin(angle * 12 + time * 10) * (noise * 0.4);
+                    let r = radius + 20 + wave;
+                    let x = cx + Math.cos(angle) * r;
+                    let y = cy + Math.sin(angle) * r;
+                    if (i === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.closePath();
+                ctx.stroke();
+            } else if (currentState === 'LISTENING') {
+                // Dinlerken halka pür dikkat reaktif şok dalgaları yayar
+                let ringRadius = radius + 15 + (noise * 0.5);
+                ctx.beginPath();
+                ctx.arc(cx, cy, ringRadius, 0, Math.PI * 2);
+                ctx.stroke();
+            } else {
+                // IDLE: Sakin ve asil bir şekilde kürenin etrafında döner
+                ctx.translate(cx, cy);
+                ctx.rotate(-time * 0.5);
+                ctx.beginPath();
+                ctx.arc(0, 0, radius + 20, 0, Math.PI * 1.6); // Estetik kesikli halka
+                ctx.stroke();
+            }
+            
+            ctx.restore();
+        }
+
+        function drawLoop() {
+            // Arka plandaki tüm parlamaları ve kalıntıları sıfırlayan net temizlik
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.globalCompositeOperation = 'source-over';
+            
+            const cx = canvas.width / 2;
+            const cy = canvas.height / 2;
+            
+            if (currentState === 'IDLE') {
+                time += 0.015;
+                targetNoise = 8;
+            } else if (currentState === 'LISTENING') {
+                time += 0.04;
+                targetNoise = 22 + Math.sin(time * 6) * 10;
+            } else if (currentState === 'THINKING') {
+                time += 0.025;
+                targetNoise = 12;
+            } else if (currentState === 'SPEAKING') {
+                time += 0.035;
+                targetNoise = 26 + Math.cos(time * 8) * 12;
+            }
+
+            currentNoise += (targetNoise - currentNoise) * 0.1;
+            const currentColors = palettes[currentState] || palettes.IDLE;
+            const baseRadius = canvas.width * 0.3;
+
+            // 1. İçteki Sıvı Küre Çekirdeği Çiz
+            drawLiquidCore(cx, cy, baseRadius, currentNoise, currentColors);
+            
+            // 2. Dıştaki Keskin Yörünge Halkasını Çiz
+            drawPrecisionRing(cx, cy, baseRadius, currentNoise, currentColors);
+
+            requestAnimationFrame(drawLoop);
+        }
+
+        setIrisState('IDLE');
+        drawLoop();
+    </script>
+</body>
+</html>

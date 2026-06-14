@@ -19,7 +19,6 @@ fun apiKey(name: String): String {
     val raw = localProps.getProperty(name)
         ?: System.getenv(name)
         ?: ""
-    // buildConfigField requires a quoted Java string literal: "\"value\""
     return "\"$raw\""
 }
 
@@ -36,7 +35,6 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        // Inject API keys into BuildConfig
         buildConfigField("String", "GEMINI_API_KEY", apiKey("GEMINI_API_KEY"))
         buildConfigField("String", "GROQ_API_KEY",   apiKey("GROQ_API_KEY"))
     }
@@ -66,11 +64,10 @@ android {
     }
 
     buildFeatures {
-        compose      = true
-        buildConfig  = true
+        compose     = true
+        buildConfig = true
     }
 
-    // Room schema export path — commit schemas/ to version control for migration tracking
     ksp {
         arg("room.schemaLocation", "$projectDir/schemas")
     }
@@ -84,7 +81,7 @@ dependencies {
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.splashscreen)
 
-    // Compose BOM — all compose versions managed by BOM
+    // Compose BOM
     val composeBom = platform(libs.compose.bom)
     implementation(composeBom)
     implementation(libs.compose.ui)
@@ -128,6 +125,12 @@ dependencies {
 
     // Serialization
     implementation(libs.kotlinx.serialization.json)
+
+    // Wake Word — openWakeWord via ONNX Runtime
+    // Requires 3 ONNX assets in app/src/main/assets/:
+    //   hey_jarvis.onnx, melspectrogram.onnx, embedding_model.onnx
+    // onnxruntime-android:1.18.0 comes in as a transitive dependency
+    implementation(libs.openwakeword)
 
     // Testing
     testImplementation("junit:junit:4.13.2")

@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>IRIS — The Bio-Digital Matrix Eye</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        body {
+            background-color: #030305;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            overflow: hidden;
+            color: #71717A;
+            padding: 20px;
+        }
+        
+        .container {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+            flex-grow: 1;
+        }
+
+        #system-log {
+            width: 100%;
+            text-align: left;
+            font-size: 0.65rem;
+            color: #A78BFA;
+            text-transform: uppercase;
+            letter-spacing: 0.25em;
+            line-height: 1.6;
+            font-family: monospace;
+            padding: 10px 20px;
+            margin-top: 10px;
+            text-shadow: 0 0 10px rgba(167, 139, 250, 0.2);
+        }
+
+        canvas {
+            background: transparent;
+            max-width: 100%;
+            max-height: 55vh;
+        }
+
+        .control-panel {
+            width: 100%;
+            max-width: 400px;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            background: rgba(6, 6, 9, 0.9);
+            padding: 10px;
+            border-radius: 14px;
+            border: 1px solid rgba(167, 139, 250, 0.15);
+            backdrop-filter: blur(15px);
+            margin-bottom: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        button {
+            background: rgba(255, 255, 255, 0.01);
+            border: 1px solid rgba(255, 255, 255, 0.03);
+            color: #44444F;
+            padding: 14px 10px;
+            font-size: 0.65rem;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            cursor: pointer;
+            border-radius: 8px;
+            text-transform: uppercase;
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            font-family: monospace;
+            text-align: center;
+        }
+
+        button:hover {
+            color: #818CF8;
+            border-color: rgba(129, 140, 248, 0.2);
+        }
+
+        button.active {
+            color: #FFF;
+            background: rgba(167, 139, 250, 0.12);
+            border-color: #A78BFA;
+            box-shadow: 0 0 20px rgba(167, 139, 250, 0.15);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="system-log">
+        SYS: IRIS_INTELLIGENCE_v5<br>
+        BIOMETRIC: APERTURE_GRID_EYE<br>
+        CONSCIOUSNESS_LEVEL: <span id="status-span" style="color: #FFF;">INIT</span>
+    </div>
+
+    <div class="container">
+        <canvas id="irisCanvas"></canvas>
+    </div>
+
+    <div class="control-panel">
+        <button id="btn-idle" class="active" onclick="setIrisState('IDLE')">01_IRIS_AURA</button>
+        <button id="btn-listening" onclick="setIrisState('LISTENING')">02_IRIS_PUPIL</button>
+        <button id="btn-thinking" onclick="setIrisState('THINKING')">03_IRIS_SYNAPSE</button>
+        <button id="btn-speaking" onclick="setIrisState('SPEAKING')">04_IRIS_VOICE</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('irisCanvas');
+        const ctx = canvas.getContext('2d');
+        const statusSpan = document.getElementById('status-span');
+
+        let currentState = 'IDLE';
+        let time = 0;
+        let audioAmplitude = 0;
+        
+        // Yumuşak geçişler için interpolasyon (Lerp) değişkenleri
+        let pupilRadiusTarget = 30;
+        let pupilRadiusCurrent = 30;
+
+        function resize() {
+            const size = Math.min(window.innerWidth * 0.85, 380);
+            canvas.width = size;
+            canvas.height = size;
+        }
+        resize();
+        window.addEventListener('resize', resize);
+
+        function setIrisState(state) {
+            currentState = state;
+            statusSpan.innerText = state + '_CONSCIOUS';
+            document.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+            document.getElementById(`btn-${state.toLowerCase()}`).classList.add('active');
+            
+            // Durumlara göre göz bebeği (Pupil) hedef boyutları
+            if (state === 'LISTENING') {
+                statusSpan.style.color = '#818CF8';
+                pupilRadiusTarget = 15; // Dinlerken pür dikkat odaklanır (Göz bebeği küçülür)
+            } else if (state === 'THINKING') {
+                statusSpan.style.color = '#F87171';
+                pupilRadiusTarget = 45; // Düşünürken veri havuzunu genişletir (Göz bebeği büyür)
+            } else if (state === 'SPEAKING') {
+                statusSpan.style.color = '#34D399';
+                pupilRadiusTarget = 25; // Konuşurken ritmik bükülür
+            } else {
+                statusSpan.style.color = '#A78BFA';
+                pupilRadiusTarget = 30; // Varsayılan bekleme odağı
+            }
+        }
+
+        function drawLoop() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.globalCompositeOperation = 'screen';
+            
+            const cx = canvas.width / 2;
+            const cy = canvas.height / 2;
+            time += 0.02;
+
+            // Ses simülasyonu genliği
+            if (currentState === 'LISTENING') {
+                audioAmplitude = 0.4 + Math.sin(time * 16) * 0.35;
+            } else if (currentState === 'SPEAKING') {
+                audioAmplitude = 0.3 + Math.cos(time * 10) * 0.25;
+            } else {
+                audioAmplitude = 0.02;
+            }
+
+            // Göz bebeği boyutunu hedefe yumuşakça yaklaştır (Lerp)
+            pupilRadiusCurrent += (pupilRadiusTarget - pupilRadiusCurrent) * 0.1;
+
+            let gridSize = 15; 
+            let spacing = canvas.width / 28;  
+            let eyeRadius = canvas.width * 0.44; // Biyonik Gözün Dış Sınırı
+
+            for (let i = -gridSize; i <= gridSize; i++) {
+                for (let j = -gridSize; j <= gridSize; j++) {
+                    
+                    let originalX = cx + i * spacing;
+                    let originalY = cy + j * spacing;
+
+                    let dx = originalX - cx;
+                    let dy = originalY - cy;
+                    let dist = Math.sqrt(dx*dx + dy*dy);
+
+                    // Pikselleri dairesel bir göz formu sınırında kesiyoruz
+                    if (dist > eyeRadius) continue;
+
+                    // 1. KATMAN: 3D Küresel Mercek Bükülmesi (Fisheye / Eye Lens Effect)
+                    let normDist = dist / eyeRadius;
+                    let z = Math.sqrt(1 - normDist * normDist); 
+                    let lensDistortion = (1 - z) * 0.5; 
+
+                    let finalX = originalX - dx * lensDistortion;
+                    let finalY = originalY - dy * lensDistortion;
+
+                    // Gözün İris tabakasını oluşturmak için güncellenmiş mesafe hesabı
+                    let currentDist = Math.sqrt((finalX-cx)*(finalX-cx) + (finalY-cy)*(finalY-cy));
+
+                    // 2. KATMAN: Merkezdeki "Göz Bebeği Açıklığı" (Pupil Aperture)
+                    // Pikseller merkezdeki boşluğun (Pupil) etrafından dışarı doğru itilir, gerçek göz dokusu oluşur
+                    if (currentDist < pupilRadiusCurrent) {
+                        // Eğer nokta göz bebeğinin içindeyse, onu göz bebeğinin sınırına itiyoruz
+                        let angle = Math.atan2(finalY - cy, finalX - cx);
+                        finalX = cx + Math.cos(angle) * pupilRadiusCurrent;
+                        finalY = cy + Math.sin(angle) * pupilRadiusCurrent;
+                        currentDist = pupilRadiusCurrent;
+                    }
+
+                    let pointColor = 'rgba(167, 139, 250, 0.2)';
+                    let pointSize = 1.2 * (z * 1.3);
+
+                    // ========================================================
+                    // 1. DURUM: IDLE -> "IRIS AURA" (Biyonik Göz Beklemede)
+                    // ========================================================
+                    if (currentState === 'IDLE') {
+                        // İris lifleri üzerinde yavaşça dışarı doğru akan asil kasılmalar
+                        let pulse = Math.sin(currentDist * 0.05 - time * 2.5) * 1.8;
+                        let angle = Math.atan2(finalY - cy, finalX - cx);
+                        finalX += Math.cos(angle) * pulse;
+                        finalY += Math.sin(angle) * pulse;
+                        
+                        let alpha = z * (0.15 + (1 - currentDist/eyeRadius) * 0.4);
+                        pointColor = `rgba(167, 139, 250, ${alpha})`;
+                    }
+
+                    // ========================================================
+                    // 2. DURUM: LISTENING -> "IRIS PUPIL FOCUS" (Odağı Daraltıp Dinleme)
+                    // ========================================================
+                    else if (currentState === 'LISTENING') {
+                        // Ses geldikçe göz bebeği çemberi titreşerek içeri doğru çöker (Sesi hapseder)
+                        let force = Math.sin(currentDist * 0.07 - time * 14) * (audioAmplitude * 20);
+                        let angle = Math.atan2(finalY - cy, finalX - cx);
+                        
+                        finalX += Math.cos(angle) * force * z;
+                        finalY += Math.sin(angle) * force * z;
+
+                        let alpha = z * (0.2 + (1 - currentDist/eyeRadius) * (0.4 + audioAmplitude * 0.4));
+                        pointColor = `rgba(129, 140, 248, ${alpha})`;
+                        
+                        // Göz bebeğinin çeperindeki pikselleri parlatıyoruz (Işık halkası)
+                        if (currentDist < pupilRadiusCurrent + 8) {
+                            pointSize += audioAmplitude * 1.8;
+                        }
+                    }
+
+                    // ========================================================
+                    // 3. DURUM: THINKING -> "SYNAPSE MATRIX VORTEX" (Veri Sinaps Sarmalı)
+                    // ========================================================
+                    else if (currentState === 'THINKING') {
+                        // Göz bebeği genişler ve iris lifleri bir delikten içeri akan sinapslar gibi döner
+                        let angle = Math.atan2(finalY - cy, finalX - cx);
+                        let speed = (1 - (currentDist / eyeRadius)) * 2.2;
+
+                        finalX = cx + Math.cos(angle + time * speed) * currentDist;
+                        finalY = cy + Math.sin(angle + time * speed) * currentDist;
+
+                        let alpha = z * (0.2 + (1 - currentDist/eyeRadius) * 0.5);
+                        pointColor = `rgba(248, 113, 113, ${alpha})`;
+                    }
+
+                    // ========================================================
+                    // 4. DURUM: SPEAKING -> "VOICE RESONANCE APERTURE" (Ses Merceği)
+                    // ========================================================
+                    else if (currentState === 'SPEAKING') {
+                        // Göz bebeğinin çeperi, ses tellerinin titreşimiyle dışarı doğru dalgalar fırlatır
+                        let angle = Math.atan2(finalY - cy, finalX - cx);
+                        let wave = Math.sin(currentDist * 0.08 - time * 12) * (audioAmplitude * 16);
+                        
+                        finalX += Math.cos(angle) * wave * z;
+                        finalY += Math.sin(angle) * wave * z;
+
+                        let alpha = z * (0.15 + (1 - currentDist/eyeRadius) * 0.45);
+                        pointColor = `rgba(52, 211, 153, ${alpha})`;
+                    }
+
+                    // Pikselleri Ekrana Bas
+                    ctx.fillStyle = pointColor;
+                    ctx.fillRect(finalX - pointSize/2, finalY - pointSize/2, pointSize, pointSize);
+                }
+            }
+
+            // Gözün Tam Arkasından Sızan Derinlik Işıması (Aura Glow)
+            let glowColor = '167, 139, 250';
+            if (currentState === 'LISTENING') glowColor = '129, 140, 248';
+            else if (currentState === 'THINKING') glowColor = '248, 113, 113';
+            else if (currentState === 'SPEAKING') glowColor = '52, 211, 153';
+
+            let gradient = ctx.createRadialGradient(cx, cy, pupilRadiusCurrent, cx, cy, eyeRadius);
+            gradient.addColorStop(0, `rgba(${glowColor}, 0.05)`);
+            gradient.addColorStop(0.5, `rgba(${glowColor}, 0.02)`);
+            gradient.addColorStop(1, 'transparent');
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.arc(cx, cy, eyeRadius, 0, Math.PI * 2);
+            ctx.fill();
+
+            requestAnimationFrame(drawLoop);
+        }
+
+        setIrisState('IDLE');
+        drawLoop();
+    </script>
+</body>
+</html>

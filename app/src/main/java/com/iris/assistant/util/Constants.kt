@@ -26,24 +26,45 @@ object Constants {
     // Endpoint: /v1beta/models/{model}:generateContent
     // Output: PCM 16-bit signed, 24000 Hz, mono — base64 in candidates[0].content.parts[0].inlineData.data
     // Language: auto-detected — Turkish confirmed supported
-    const val GEMINI_TTS_MODEL       = "gemini-3.1-flash-tts-preview"
-    const val GEMINI_TTS_BASE_URL    = "https://generativelanguage.googleapis.com/v1beta/models"
-    const val GEMINI_TTS_SAMPLE_RATE = 24000   // Hz, per Gemini TTS spec
-    const val GEMINI_TTS_MIN_BUFFER_SIZE = 8192 // bytes, safety floor for AudioTrack buffer
-
-    // Default voice — used as fallback if preference not yet set
-    const val GEMINI_TTS_DEFAULT_VOICE = "Aoede"
-
-    // Retry config — Gemini TTS occasionally returns HTTP 500 with text tokens instead of audio
-    const val GEMINI_TTS_MAX_RETRIES    = 3
-    const val GEMINI_TTS_RETRY_DELAY_MS = 1000L
+    const val GEMINI_TTS_MODEL           = "gemini-3.1-flash-tts-preview"
+    const val GEMINI_TTS_BASE_URL        = "https://generativelanguage.googleapis.com/v1beta/models"
+    const val GEMINI_TTS_SAMPLE_RATE     = 24000   // Hz, per Gemini TTS spec
+    const val GEMINI_TTS_MIN_BUFFER_SIZE = 8192    // bytes, safety floor for AudioTrack buffer
+    const val GEMINI_TTS_DEFAULT_VOICE   = "Aoede" // fallback if preference not yet set
+    const val GEMINI_TTS_MAX_RETRIES     = 3
+    const val GEMINI_TTS_RETRY_DELAY_MS  = 1000L
 
     // --- VAD ---
     const val VAD_SILENCE_THRESHOLD_MS = 1500L
 
+    // --- Wake Word ---
+    // Library: xyz.rementia:openwakeword:0.1.5
+    // Source: https://github.com/Re-MENTIA/openwakeword-android-kt
+    //
+    // Required ONNX assets in app/src/main/assets/:
+    //   - hey_jarvis.onnx         (prebuilt MVP placeholder — download from openWakeWord repo)
+    //   - melspectrogram.onnx     (download from openWakeWord repo)
+    //   - embedding_model.onnx    (download from openWakeWord repo)
+    //
+    // Download from:
+    //   https://github.com/dscripka/openWakeWord/tree/main/openwakeword/resources/models
+    //
+    // WAKE_WORD_THRESHOLD: tune empirically — 0.5f is docs default for hey_jarvis model.
+    // Lower = more sensitive (more false positives). Higher = less sensitive (more misses).
+    //
+    // WAKE_WORD_COOLDOWN_MS: prevents repeated triggers from a single detection event.
+    // 2000ms matches typical post-detection UX (show listening state, start recording).
+    const val WAKE_WORD_MODEL_NAME    = "hey_jarvis"
+    const val WAKE_WORD_MODEL_FILE    = "hey_jarvis.onnx"
+    const val WAKE_WORD_THRESHOLD     = 0.5f
+    const val WAKE_WORD_COOLDOWN_MS   = 2000L
+
     // --- Notifications ---
     const val NOTIFICATION_CHANNEL_ID_WAKE   = "iris_wake_word_channel"
     const val NOTIFICATION_CHANNEL_NAME_WAKE = "IRIS Arka Plan"
+    const val NOTIFICATION_TITLE_WAKE        = "IRIS aktif"
+    const val NOTIFICATION_TEXT_WAKE         = "\"Hey IRIS\" dinleniyor"
+    const val NOTIFICATION_ID_WAKE           = 1001
 
     // --- Room ---
     const val DATABASE_NAME    = "iris_database"

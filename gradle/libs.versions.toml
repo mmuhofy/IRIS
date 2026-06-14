@@ -34,6 +34,13 @@ retrofit                = "2.11.0"
 # Serialization
 kotlinxSerialization    = "1.8.1"
 
+# Wake Word
+# Kotlin library wrapping openWakeWord for Android via ONNX Runtime
+# Source: https://github.com/Re-MENTIA/openwakeword-android-kt
+# Maven Central: xyz.rementia:openwakeword:0.1.5
+# Brings in onnxruntime-android:1.18.0 as a transitive dependency
+openwakeword            = "0.1.5"
+
 [libraries]
 # AndroidX Core
 androidx-core-ktx               = { group = "androidx.core",       name = "core-ktx",          version.ref = "coreKtx" }
@@ -86,6 +93,10 @@ retrofit-core                   = { group = "com.squareup.retrofit2", name = "re
 
 # Serialization
 kotlinx-serialization-json      = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinxSerialization" }
+
+# Wake Word — openWakeWord via ONNX Runtime
+# Brings in onnxruntime-android:1.18.0 as a transitive dependency (no explicit entry needed)
+openwakeword                    = { group = "xyz.rementia", name = "openwakeword", version.ref = "openwakeword" }
 
 [plugins]
 android-application     = { id = "com.android.application",                    version.ref = "agp" }
