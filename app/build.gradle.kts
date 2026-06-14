@@ -35,6 +35,10 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
+        ndk {
+            abiFilters += "arm64-v8a"
+        }
+
         buildConfigField("String", "GEMINI_API_KEY", apiKey("GEMINI_API_KEY"))
         buildConfigField("String", "GROQ_API_KEY",   apiKey("GROQ_API_KEY"))
     }
@@ -61,6 +65,15 @@ android {
 
     kotlinOptions {
         jvmTarget = "17"
+    }
+
+    splits {
+        abi {
+            isEnabled = true
+            reset()
+            include("arm64-v8a")
+            isUniversalApk = false
+        }
     }
 
     buildFeatures {

@@ -127,11 +127,11 @@ fun HomeScreen(
             ) {
                 IconButton(onClick = viewModel::onMicToggle) {
                     Icon(
-                        imageVector        = if (uiState.isMicOn) Icons.Outlined.Mic
-                                             else Icons.Outlined.MicOff,
-                        contentDescription = "Mikrofon",
-                        tint               = if (uiState.isMicOn) IrisTheme.colors.primary
-                                             else MaterialTheme.colorScheme.onSurfaceVariant
+                        imageVector        = if (uiState.isMuted) Icons.Outlined.MicOff
+                                             else Icons.Outlined.Mic,
+                        contentDescription = if (uiState.isMuted) "Mikrofon kapalı" else "Mikrofon açık",
+                        tint               = if (uiState.isMuted) MaterialTheme.colorScheme.onSurfaceVariant
+                                             else IrisTheme.colors.primary
                     )
                 }
                 IconButton(onClick = viewModel::onStop) {

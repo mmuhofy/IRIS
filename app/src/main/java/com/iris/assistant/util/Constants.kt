@@ -62,8 +62,8 @@ object Constants {
 
     const val WAKE_WORD_MODEL_NAME    = "hey_jarvis"
     const val WAKE_WORD_MODEL_FILE    = "hey_jarvis.onnx"
-    const val WAKE_WORD_THRESHOLD     = 0.5f
-    const val WAKE_WORD_COOLDOWN_MS   = 2000L
+    const val WAKE_WORD_THRESHOLD     = 0.3f
+    const val WAKE_WORD_COOLDOWN_MS   = 1500L
 
     // --- Notifications ---
     const val NOTIFICATION_CHANNEL_ID_WAKE   = "iris_wake_word_channel"

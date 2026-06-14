@@ -38,7 +38,7 @@ data class HomeUiState(
     val coreState   : IrisCoreState = IrisCoreState.IDLE,
     val amplitude   : Float         = 0f,
     val ttsProgress : Float         = 0f,
-    val isMicOn     : Boolean       = false,
+    val isMuted     : Boolean       = false,
     val isScreenCtrl: Boolean       = false,
     val statusText  : String        = "Dinlemeye hazır",
     val errorMessage: String?       = null
@@ -77,7 +77,8 @@ class HomeViewModel @Inject constructor(
         override fun onReceive(ctx: Context?, intent: Intent?) {
             if (intent?.action == WakeWordService.ACTION_WAKE_WORD_DETECTED) {
                 Log.d(TAG, "BroadcastReceiver: wake word detected")
-                if (_uiState.value.coreState == IrisCoreState.IDLE) {
+                val state = _uiState.value
+                if (state.coreState == IrisCoreState.IDLE && !state.isMuted) {
                     startVoicePipeline()
                 }
             }
@@ -172,9 +173,14 @@ class HomeViewModel @Inject constructor(
     // ---------------------------------------------------------------------------
 
     fun onMicToggle() {
-        if (_uiState.value.isMicOn) {
-            onStop()
-        } else {
+        val newMuted = !_uiState.value.isMuted
+        _uiState.update {
+            it.copy(
+                isMuted    = newMuted,
+                statusText = if (newMuted) "Sessize alındı" else "Dinlemeye hazır"
+            )
+        }
+        if (!newMuted && _uiState.value.coreState == IrisCoreState.IDLE) {
             startVoicePipeline()
         }
     }
@@ -197,7 +203,7 @@ class HomeViewModel @Inject constructor(
             // Step 2 — LISTENING state
             _uiState.update {
                 it.copy(
-                    isMicOn      = true,
+                    isMuted      = false,
                     coreState    = IrisCoreState.LISTENING,
                     statusText   = "Dinliyorum...",
                     errorMessage = null
@@ -218,7 +224,6 @@ class HomeViewModel @Inject constructor(
             // Step 4 — THINKING (STT)
             _uiState.update {
                 it.copy(
-                    isMicOn    = false,
                     amplitude  = 0f,
                     coreState  = IrisCoreState.THINKING,
                     statusText = "Anlıyorum..."
@@ -266,15 +271,15 @@ class HomeViewModel @Inject constructor(
                 text       = reply,
                 onProgress = { p -> _uiState.update { it.copy(ttsProgress = p.coerceIn(0f, 1f)) } },
                 onDone     = {
-                    // Step 11 — TTS done: back to IDLE, resume wake word listening
+                    val muted = _uiState.value.isMuted
                     _uiState.update {
                         it.copy(
                             coreState   = IrisCoreState.IDLE,
                             ttsProgress = 0f,
-                            statusText  = "Dinlemeye hazır"
+                            statusText  = if (muted) "Sessize alındı" else "Dinlemeye hazır"
                         )
                     }
-                    resumeWakeWordService() // Mic is free — wake word can listen again
+                    resumeWakeWordService()
                 }
             )
         }
@@ -288,16 +293,15 @@ class HomeViewModel @Inject constructor(
         pipelineJob?.cancel()
         pipelineJob = null
         ttsProvider.stop()
+        val muted = _uiState.value.isMuted
         _uiState.update {
             it.copy(
                 coreState   = IrisCoreState.IDLE,
-                isMicOn     = false,
                 amplitude   = 0f,
                 ttsProgress = 0f,
-                statusText  = "Dinlemeye hazır"
+                statusText  = if (muted) "Sessize alındı" else "Dinlemeye hazır"
             )
         }
-        // Resume wake word after manual stop — mic is now free
         resumeWakeWordService()
     }
 
@@ -324,12 +328,12 @@ class HomeViewModel @Inject constructor(
             else                                -> "$ctx: Bilinmeyen hata"
         }
         Log.e(TAG, "handleError: $msg", e)
+        val muted = _uiState.value.isMuted
         _uiState.update {
             it.copy(
                 coreState    = IrisCoreState.IDLE,
-                isMicOn      = false,
                 amplitude    = 0f,
-                statusText   = "Dinlemeye hazır",
+                statusText   = if (muted) "Sessize alındı" else "Dinlemeye hazır",
                 errorMessage = msg
             )
         }

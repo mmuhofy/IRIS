@@ -152,8 +152,12 @@ class WakeWordService : Service() {
                     broadcastDetected()
                 }
             } catch (e: Exception) {
-                // Engine released via pauseDetection() causes collect() to throw — expected, not an error
-                Log.d(TAG, "detectionJob: collection ended (${e.message})")
+                Log.w(TAG, "detectionJob: ended (${e.message}) — restarting in 500ms")
+                engine = null
+                kotlinx.coroutines.delay(500L)
+                if (engine == null) {
+                    startDetection()
+                }
             }
         }
 
