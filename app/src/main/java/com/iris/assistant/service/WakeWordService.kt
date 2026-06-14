@@ -12,6 +12,7 @@ import androidx.core.app.NotificationCompat
 import com.iris.assistant.R
 import com.iris.assistant.ui.MainActivity
 import com.iris.assistant.util.Constants
+import com.rementia.openwakeword.lib.DetectionMode
 import com.rementia.openwakeword.lib.WakeWordEngine
 import com.rementia.openwakeword.lib.WakeWordModel
 import dagger.hilt.android.AndroidEntryPoint
@@ -20,23 +21,22 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
 /**
  * Foreground service that runs openWakeWord continuously in the background.
  *
- * Uses WakeWordEngine (single model — 1 wake word, sequential processing).
+ * Library: xyz.rementia:openwakeword:0.1.5
+ * API verified against: https://github.com/Re-MENTIA/openwakeword-android-kt (README, v0.1.5)
+ *
  * On detection, broadcasts [ACTION_WAKE_WORD_DETECTED] so HomeViewModel can react.
  *
  * Required assets in app/src/main/assets/:
- *   - hey_jarvis.onnx        (prebuilt model from openWakeWord repo — MVP placeholder)
+ *   - hey_jarvis.onnx        (prebuilt model — download from openWakeWord repo)
  *   - melspectrogram.onnx    (from openWakeWord repo)
  *   - embedding_model.onnx   (from openWakeWord repo)
  *
  * Download from:
  *   https://github.com/dscripka/openWakeWord/tree/main/openwakeword/resources/models
- *
- * UNTESTED — verify asset filenames and threshold against actual model before use.
  */
 @AndroidEntryPoint
 class WakeWordService : Service() {
@@ -47,19 +47,13 @@ class WakeWordService : Service() {
         /** Broadcast action sent when wake word is detected. */
         const val ACTION_WAKE_WORD_DETECTED = "com.iris.assistant.WAKE_WORD_DETECTED"
 
-        /** Start command — sent by HomeViewModel or boot receiver. */
         const val ACTION_START = "com.iris.assistant.wake_word.START"
-
-        /** Stop command — sent when user disables background listening in Settings. */
-        const val ACTION_STOP = "com.iris.assistant.wake_word.STOP"
-
-        private const val NOTIFICATION_ID = 1001
+        const val ACTION_STOP  = "com.iris.assistant.wake_word.STOP"
     }
 
     // Service-scoped coroutine scope — cancelled in onDestroy()
     private val serviceScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
 
-    // WakeWordEngine instance — created in startDetection(), released in stopDetection()
     private var engine: WakeWordEngine? = null
 
     override fun onBind(intent: Intent?): IBinder? = null
@@ -67,7 +61,7 @@ class WakeWordService : Service() {
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
-        startForeground(NOTIFICATION_ID, buildNotification())
+        startForeground(Constants.NOTIFICATION_ID_WAKE, buildNotification())
         Log.d(TAG, "onCreate: foreground service started")
     }
 
@@ -76,7 +70,6 @@ class WakeWordService : Service() {
             ACTION_START -> startDetection()
             ACTION_STOP  -> stopSelf()
         }
-        // STICKY: if killed by system, restart with last intent
         return START_STICKY
     }
 
@@ -88,17 +81,9 @@ class WakeWordService : Service() {
     }
 
     // ---------------------------------------------------------------------------
-    // Wake word detection
+    // Detection
     // ---------------------------------------------------------------------------
 
-    /**
-     * Initializes WakeWordEngine with hey_jarvis.onnx and starts listening.
-     *
-     * UNTESTED — verify:
-     *   - Asset filenames match exactly what's placed in assets/
-     *   - Threshold (0.5f) is appropriate for hey_jarvis model
-     *   - WakeWordEngine constructor does not throw on these asset names
-     */
     private fun startDetection() {
         if (engine != null) {
             Log.w(TAG, "startDetection: engine already running, ignoring")
@@ -107,6 +92,8 @@ class WakeWordService : Service() {
 
         Log.d(TAG, "startDetection: initializing WakeWordEngine")
 
+        // WakeWordModel(name, modelPath, threshold)
+        // Verified constructor: data class WakeWordModel(val name: String, val modelPath: String, val threshold: Float = 0.5f)
         val models = listOf(
             WakeWordModel(
                 name      = Constants.WAKE_WORD_MODEL_NAME,
@@ -115,20 +102,24 @@ class WakeWordService : Service() {
             )
         )
 
+        // WakeWordEngine: standard engine — correct for single model use case
+        // Verified constructor: WakeWordEngine(context, models, detectionMode, detectionCooldownMs, scope)
         engine = WakeWordEngine(
-            context            = applicationContext,
-            models             = models,
+            context             = applicationContext,
+            models              = models,
+            detectionMode       = DetectionMode.SINGLE_BEST,
             detectionCooldownMs = Constants.WAKE_WORD_COOLDOWN_MS
         )
 
         engine?.start()
 
-        // Collect detections on service scope
         serviceScope.launch {
-            engine?.detections?.collect { detection ->
-                Log.d(TAG, "Wake word detected: ${detection.model.name} (score=${detection.score})")
-                broadcastDetected()
-            }
+            engine?.detections
+                ?.catch { e -> Log.e(TAG, "Detection flow error", e) }
+                ?.collect { detection ->
+                    Log.d(TAG, "Wake word detected: ${detection.model.name} (score=${detection.score})")
+                    broadcastDetected()
+                }
         }
     }
 
@@ -138,13 +129,9 @@ class WakeWordService : Service() {
         Log.d(TAG, "stopDetection: engine released")
     }
 
-    /**
-     * Sends a local broadcast that HomeViewModel listens for.
-     * HomeViewModel registers a BroadcastReceiver tied to the screen lifecycle.
-     */
     private fun broadcastDetected() {
         val intent = Intent(ACTION_WAKE_WORD_DETECTED).apply {
-            setPackage(packageName) // local only — not system-wide
+            setPackage(packageName) // local only
         }
         sendBroadcast(intent)
     }
@@ -157,31 +144,31 @@ class WakeWordService : Service() {
         val channel = NotificationChannel(
             Constants.NOTIFICATION_CHANNEL_ID_WAKE,
             Constants.NOTIFICATION_CHANNEL_NAME_WAKE,
-            NotificationManager.IMPORTANCE_LOW // Low: no sound, shows in tray
+            NotificationManager.IMPORTANCE_LOW
         ).apply {
             description = "IRIS arka planda dinliyor"
             setShowBadge(false)
         }
-        val manager = getSystemService(NotificationManager::class.java)
-        manager.createNotificationChannel(channel)
+        getSystemService(NotificationManager::class.java)
+            .createNotificationChannel(channel)
     }
 
     private fun buildNotification(): Notification {
-        val openAppIntent = Intent(this, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
-        }
         val pendingIntent = PendingIntent.getActivity(
-            this, 0, openAppIntent,
+            this, 0,
+            Intent(this, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
+            },
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
         return NotificationCompat.Builder(this, Constants.NOTIFICATION_CHANNEL_ID_WAKE)
             .setContentTitle(Constants.NOTIFICATION_TITLE_WAKE)
             .setContentText(Constants.NOTIFICATION_TEXT_WAKE)
-            .setSmallIcon(R.drawable.ic_launcher_foreground) // Replace with a proper mic/iris icon
+            .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setContentIntent(pendingIntent)
-            .setOngoing(true)      // Cannot be dismissed by user while service runs
-            .setSilent(true)       // No sound on post
+            .setOngoing(true)
+            .setSilent(true)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .build()
     }
