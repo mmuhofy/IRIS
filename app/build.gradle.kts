@@ -22,6 +22,12 @@ fun apiKey(name: String): String {
     return "\"$raw\""
 }
 
+kotlin {
+    compilerOptions {
+        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17
+    }
+}
+
 android {
     namespace   = "com.iris.assistant"
     compileSdk  = 36
@@ -63,13 +69,9 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    kotlinOptions {
-        jvmTarget = "17"
-    }
-
     splits {
         abi {
-            isEnabled = true
+            isEnable = true
             reset()
             include("arm64-v8a")
             isUniversalApk = false
