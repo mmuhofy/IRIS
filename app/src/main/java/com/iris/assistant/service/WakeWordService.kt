@@ -12,9 +12,9 @@ import androidx.core.app.NotificationCompat
 import com.iris.assistant.R
 import com.iris.assistant.ui.MainActivity
 import com.iris.assistant.util.Constants
-import com.rementia.openwakeword.lib.DetectionMode
 import com.rementia.openwakeword.lib.WakeWordEngine
-import com.rementia.openwakeword.lib.WakeWordModel
+import com.rementia.openwakeword.lib.model.DetectionMode
+import com.rementia.openwakeword.lib.model.WakeWordModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -23,20 +23,36 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 
 /**
- * Foreground service that runs openWakeWord continuously in the background.
+ * Foreground service for continuous wake word detection using openWakeWord.
  *
  * Library: xyz.rementia:openwakeword:0.1.5
- * API verified against: https://github.com/Re-MENTIA/openwakeword-android-kt (README, v0.1.5)
+ * Source verified: https://github.com/Re-MENTIA/openwakeword-android-kt
  *
- * On detection, broadcasts [ACTION_WAKE_WORD_DETECTED] so HomeViewModel can react.
+ * Verified imports (from source):
+ *   WakeWordEngine   → com.rementia.openwakeword.lib.WakeWordEngine
+ *   WakeWordModel    → com.rementia.openwakeword.lib.model.WakeWordModel
+ *   DetectionMode    → com.rementia.openwakeword.lib.model.DetectionMode
+ *   WakeWordDetection → com.rementia.openwakeword.lib.model.WakeWordDetection
+ *
+ * Verified API (from source):
+ *   WakeWordModel(name: String, modelPath: String, threshold: Float = 0.5f)
+ *   WakeWordEngine(context, models, detectionMode, detectionCooldownMs, scope?)
+ *   engine.start()    — begins audio recording + detection
+ *   engine.detections — SharedFlow<WakeWordDetection>
+ *   engine.release()  — stops + frees all resources
+ *   WakeWordDetection.model.name — String
+ *   WakeWordDetection.score      — Float
  *
  * Required assets in app/src/main/assets/:
- *   - hey_jarvis.onnx        (prebuilt model — download from openWakeWord repo)
- *   - melspectrogram.onnx    (from openWakeWord repo)
- *   - embedding_model.onnx   (from openWakeWord repo)
+ *   - hey_jarvis.onnx
+ *   - melspectrogram.onnx
+ *   - embedding_model.onnx
  *
  * Download from:
  *   https://github.com/dscripka/openWakeWord/tree/main/openwakeword/resources/models
+ *
+ * On detection → broadcasts ACTION_WAKE_WORD_DETECTED (local, package-scoped).
+ * HomeViewModel registers a BroadcastReceiver to handle this.
  */
 @AndroidEntryPoint
 class WakeWordService : Service() {
@@ -44,14 +60,12 @@ class WakeWordService : Service() {
     companion object {
         private const val TAG = "WakeWordService"
 
-        /** Broadcast action sent when wake word is detected. */
         const val ACTION_WAKE_WORD_DETECTED = "com.iris.assistant.WAKE_WORD_DETECTED"
-
-        const val ACTION_START = "com.iris.assistant.wake_word.START"
-        const val ACTION_STOP  = "com.iris.assistant.wake_word.STOP"
+        const val ACTION_START              = "com.iris.assistant.wake_word.START"
+        const val ACTION_STOP               = "com.iris.assistant.wake_word.STOP"
     }
 
-    // Service-scoped coroutine scope — cancelled in onDestroy()
+    // Tied to service lifetime — cancelled in onDestroy()
     private val serviceScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
 
     private var engine: WakeWordEngine? = null
@@ -70,6 +84,7 @@ class WakeWordService : Service() {
             ACTION_START -> startDetection()
             ACTION_STOP  -> stopSelf()
         }
+        // STICKY: system restarts the service with last intent if killed
         return START_STICKY
     }
 
@@ -93,7 +108,7 @@ class WakeWordService : Service() {
         Log.d(TAG, "startDetection: initializing WakeWordEngine")
 
         // WakeWordModel(name, modelPath, threshold)
-        // Verified constructor: data class WakeWordModel(val name: String, val modelPath: String, val threshold: Float = 0.5f)
+        // Verified constructor from source: data class WakeWordModel(val name: String, val modelPath: String, val threshold: Float = 0.5f)
         val models = listOf(
             WakeWordModel(
                 name      = Constants.WAKE_WORD_MODEL_NAME,
@@ -102,8 +117,8 @@ class WakeWordService : Service() {
             )
         )
 
-        // WakeWordEngine: standard engine — correct for single model use case
-        // Verified constructor: WakeWordEngine(context, models, detectionMode, detectionCooldownMs, scope)
+        // WakeWordEngine verified constructor from source:
+        // WakeWordEngine(context, models, detectionMode, detectionCooldownMs, scope?)
         engine = WakeWordEngine(
             context             = applicationContext,
             models              = models,
@@ -113,13 +128,18 @@ class WakeWordService : Service() {
 
         engine?.start()
 
+        // engine.detections is a SharedFlow — .catch{} is NOT valid on SharedFlow directly.
+        // Use try/catch inside collect instead.
         serviceScope.launch {
-            engine?.detections
-                ?.catch { e -> Log.e(TAG, "Detection flow error", e) }
-                ?.collect { detection ->
-                    Log.d(TAG, "Wake word detected: ${detection.model.name} (score=${detection.score})")
+            try {
+                engine?.detections?.collect { detection ->
+                    Log.d(TAG, "Detected: ${detection.model.name} (score=${detection.score})")
                     broadcastDetected()
                 }
+            } catch (e: Exception) {
+                Log.e(TAG, "Detection flow error — stopping service", e)
+                stopSelf()
+            }
         }
     }
 
@@ -129,9 +149,13 @@ class WakeWordService : Service() {
         Log.d(TAG, "stopDetection: engine released")
     }
 
+    /**
+     * Sends a local broadcast to HomeViewModel's BroadcastReceiver.
+     * setPackage() ensures this stays app-internal.
+     */
     private fun broadcastDetected() {
         val intent = Intent(ACTION_WAKE_WORD_DETECTED).apply {
-            setPackage(packageName) // local only
+            setPackage(packageName)
         }
         sendBroadcast(intent)
     }
