@@ -14,13 +14,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.outlined.Chat
-import androidx.compose.material.icons.outlined.Mic
-import androidx.compose.material.icons.outlined.MicOff
-import androidx.compose.material.icons.outlined.Stop
-import androidx.compose.material.icons.outlined.Tv
+import com.phosphor.icons.PhIcons
+import com.phosphor.icons.regular.*
+import com.phosphor.icons.filled.*
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -94,14 +90,14 @@ fun HomeScreen(
                 Row {
                     IconButton(onClick = onOpenChat) {
                         Icon(
-                            Icons.Outlined.Chat,
+                            PhIcons.Regular.ChatText,
                             contentDescription = "Sohbet",
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                     IconButton(onClick = onOpenSettings) {
                         Icon(
-                            Icons.Filled.Settings,
+                            PhIcons.Regular.Gear,
                             contentDescription = "Ayarlar",
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -178,7 +174,7 @@ fun HomeScreen(
             ) {
                 // Mute / Unmute
                 ControlButton(
-                    icon      = if (uiState.isMuted) Icons.Outlined.MicOff else Icons.Outlined.Mic,
+                    icon      = if (uiState.isMuted) PhIcons.Regular.MicrophoneSlash else PhIcons.Regular.Microphone,
                     label     = if (uiState.isMuted) "Sessiz" else "Mikrofon",
                     tint      = if (uiState.isMuted) MaterialTheme.colorScheme.onSurfaceVariant
                                 else primary,
@@ -188,7 +184,7 @@ fun HomeScreen(
 
                 // Stop
                 ControlButton(
-                    icon      = Icons.Outlined.Stop,
+                    icon      = PhIcons.Regular.StopCircle,
                     label     = "Durdur",
                     tint      = MaterialTheme.colorScheme.onSurfaceVariant,
                     highlight = false,
@@ -197,7 +193,7 @@ fun HomeScreen(
 
                 // Screen control
                 ControlButton(
-                    icon      = Icons.Outlined.Tv,
+                    icon      = PhIcons.Regular.Television,
                     label     = "Ekran",
                     tint      = if (uiState.isScreenCtrl) primary
                                 else MaterialTheme.colorScheme.onSurfaceVariant,

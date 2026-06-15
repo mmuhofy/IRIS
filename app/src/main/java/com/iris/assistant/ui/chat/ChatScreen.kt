@@ -18,11 +18,9 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Stop
+import com.phosphor.icons.PhIcons
+import com.phosphor.icons.regular.*
+import com.phosphor.icons.filled.*
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -92,7 +90,7 @@ fun ChatScreen(
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack,
+                            PhIcons.Regular.ArrowLeft,
                             contentDescription = "Geri",
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -102,7 +100,7 @@ fun ChatScreen(
                     if (uiState.isLoading) {
                         IconButton(onClick = viewModel::onStop) {
                             Icon(
-                                Icons.Filled.Stop,
+                                PhIcons.Filled.StopCircleFill,
                                 contentDescription = "Durdur",
                                 tint = IrisTheme.colors.primary
                             )
@@ -110,7 +108,7 @@ fun ChatScreen(
                     }
                     IconButton(onClick = onOpenSettings) {
                         Icon(
-                            Icons.Filled.Settings,
+                            PhIcons.Regular.Gear,
                             contentDescription = "Ayarlar",
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -223,7 +221,7 @@ fun ChatScreen(
                     enabled  = uiState.inputText.isNotBlank() && !uiState.isLoading
                 ) {
                     Icon(
-                        Icons.AutoMirrored.Filled.Send,
+                        PhIcons.Filled.PaperPlaneRightFill,
                         contentDescription = "Gönder",
                         tint = if (uiState.inputText.isNotBlank() && !uiState.isLoading)
                                    IrisTheme.colors.primary

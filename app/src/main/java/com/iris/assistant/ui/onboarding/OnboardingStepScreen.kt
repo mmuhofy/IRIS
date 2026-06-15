@@ -15,11 +15,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.BatteryChargingFull
-import androidx.compose.material.icons.filled.Mic
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.VolumeUp
+import com.phosphor.icons.PhIcons
+import com.phosphor.icons.regular.*
+import com.phosphor.icons.filled.*
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -125,7 +123,7 @@ fun OnboardingMicScreen(onNext: () -> Unit) {
 
     OnboardingStepLayout(
         step = 2,
-        icon = Icons.Filled.Mic,
+        icon = PhIcons.Filled.MicrophoneFill,
         title = "Mikrofon İzni",
         description = if (permissionDenied)
             "Mikrofon izni reddedildi.\nIRIS'in seni duyabilmesi için izin gerekli."
@@ -142,7 +140,7 @@ fun OnboardingMicScreen(onNext: () -> Unit) {
 fun OnboardingWakeWordScreen(onNext: () -> Unit) {
     OnboardingStepLayout(
         step = 3,
-        icon = Icons.Filled.VolumeUp,
+        icon = PhIcons.Filled.SpeakerHighFill,
         title = "\"Hey IRIS\"",
         description = "Beni uyandırmak için \"Hey IRIS\" de.\nWake word desteği yakında eklenecek.",
         buttonLabel = "Devam",
@@ -154,7 +152,7 @@ fun OnboardingWakeWordScreen(onNext: () -> Unit) {
 fun OnboardingDemoScreen(onNext: () -> Unit) {
     OnboardingStepLayout(
         step = 4,
-        icon = Icons.Filled.PlayArrow,
+        icon = PhIcons.Filled.PlayFill,
         title = "Hazır!",
         description = "Ana ekranda 🎤 butonuna bas ve bir şey sor.\nÖrneğin: \"Bugün hava nasıl?\"",
         buttonLabel = "Devam",
@@ -176,7 +174,7 @@ fun OnboardingBatteryScreen(
 
     OnboardingStepLayout(
         step = 5,
-        icon = Icons.Filled.BatteryChargingFull,
+        icon = PhIcons.Filled.BatteryChargingFill,
         title = "Arka Plan İzni",
         description = if (isIgnoringBatteryOptimizations)
             "Pil optimizasyonu zaten devre dışı.\nHazırsın!"

@@ -19,10 +19,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowForward
-import androidx.compose.material.icons.filled.Face
-import androidx.compose.material.icons.filled.Person
+import com.phosphor.icons.PhIcons
+import com.phosphor.icons.regular.*
+import com.phosphor.icons.filled.*
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -60,7 +59,7 @@ fun OnboardingWelcomeScreen(
         Spacer(Modifier.weight(1f))
 
         Icon(
-            imageVector = Icons.Filled.Face,
+            imageVector = PhIcons.Regular.Smiley,
             contentDescription = null,
             modifier = Modifier.size(72.dp),
             tint = IrisTheme.colors.primary
@@ -84,7 +83,7 @@ fun OnboardingWelcomeScreen(
             singleLine = true,
             leadingIcon = {
                 Icon(
-                    imageVector = Icons.Filled.Person,
+                    imageVector = PhIcons.Regular.User,
                     contentDescription = null,
                     tint = IrisTheme.colors.primary
                 )
@@ -118,7 +117,7 @@ fun OnboardingWelcomeScreen(
             text = "Başla",
             onClick = onNext,
             enabled = userName.isNotBlank(),
-            icon = Icons.Filled.ArrowForward,
+            icon = PhIcons.Filled.ArrowRightFill,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(bottom = 48.dp)
