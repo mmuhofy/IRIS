@@ -2,6 +2,7 @@ package com.iris.assistant.ui.home
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,8 +12,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.Chat
 import androidx.compose.material.icons.outlined.Mic
@@ -26,18 +28,25 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.iris.assistant.ui.theme.IrisTheme
@@ -48,12 +57,11 @@ fun HomeScreen(
     onOpenSettings: () -> Unit,
     viewModel     : HomeViewModel = hiltViewModel()
 ) {
-    val uiState       by viewModel.uiState.collectAsStateWithLifecycle()
-    val snackbarHostState = remember { SnackbarHostState() }
+    val uiState           by viewModel.uiState.collectAsStateWithLifecycle()
+    val snackbarHostState =  remember { SnackbarHostState() }
+    val primary           =  IrisTheme.colors.primary
+    val gradientEnd       =  IrisTheme.colors.gradientEnd
 
-    // Register wake word BroadcastReceiver while HomeScreen is in composition.
-    // DisposableEffect fires on entry; onDispose fires when HomeScreen leaves composition.
-    // This keeps receiver tied to screen lifecycle — no leak risk.
     DisposableEffect(Unit) {
         viewModel.registerWakeWordReceiver()
         onDispose { viewModel.unregisterWakeWordReceiver() }
@@ -72,6 +80,24 @@ fun HomeScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
+
+            // --- Ambient background glow behind animation ---
+            Box(
+                modifier = Modifier
+                    .size(320.dp)
+                    .align(Alignment.Center)
+                    .blur(80.dp)
+                    .background(
+                        brush = Brush.radialGradient(
+                            colors = listOf(
+                                primary.copy(alpha = 0.18f),
+                                gradientEnd.copy(alpha = 0.08f),
+                                Color.Transparent
+                            )
+                        )
+                    )
+            )
+
             // --- Top bar ---
             Row(
                 modifier              = Modifier
@@ -81,28 +107,28 @@ fun HomeScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment     = Alignment.CenterVertically
             ) {
-                IconButton(onClick = { /* TODO: drawer (Phase 2) */ }) {
-                    Icon(Icons.Filled.Menu, contentDescription = "Menü",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                Text(
-                    text  = "IRIS",
-                    style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
+                // Empty space to balance the right side icons
+                Box(Modifier.size(48.dp))
+
                 Row {
                     IconButton(onClick = onOpenChat) {
-                        Icon(Icons.Outlined.Chat, contentDescription = "Sohbet",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Icon(
+                            Icons.Outlined.Chat,
+                            contentDescription = "Sohbet",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
                     IconButton(onClick = onOpenSettings) {
-                        Icon(Icons.Filled.Settings, contentDescription = "Ayarlar",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Icon(
+                            Icons.Filled.Settings,
+                            contentDescription = "Ayarlar",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
                 }
             }
 
-            // --- Center: Iris Core + status text ---
+            // --- Center: animation + status ---
             Column(
                 modifier            = Modifier.align(Alignment.Center),
                 horizontalAlignment = Alignment.CenterHorizontally
@@ -112,86 +138,132 @@ fun HomeScreen(
                     amplitude   = uiState.amplitude,
                     ttsProgress = uiState.ttsProgress
                 )
-                Spacer(Modifier.height(24.dp))
+                Spacer(Modifier.height(28.dp))
                 Text(
                     text      = uiState.statusText,
-                    style     = MaterialTheme.typography.bodyMedium,
+                    style     = MaterialTheme.typography.bodyMedium.copy(
+                        fontWeight   = FontWeight.Medium,
+                        letterSpacing = 0.5.sp
+                    ),
                     color     = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center
                 )
             }
 
-            // --- Permission request dialog ---
+            // --- Permission dialog ---
             val permissionRequest = uiState.permissionRequest
             if (permissionRequest != null) {
                 val isWriteSettings = permissionRequest.permission == "android.permission.WRITE_SETTINGS"
-
                 val permLauncher = rememberLauncherForActivityResult(
-                    contract = ActivityResultContracts.RequestPermission()
+                    ActivityResultContracts.RequestPermission()
                 ) { granted -> viewModel.onPermissionResult(granted) }
-
                 val context = LocalContext.current
 
                 AlertDialog(
                     onDismissRequest = { viewModel.onPermissionResult(false) },
-                    title            = { Text("İzin Gerekli") },
-                    text             = { Text(permissionRequest.rationale) },
+                    title   = { Text("İzin Gerekli") },
+                    text    = { Text(permissionRequest.rationale) },
                     confirmButton = {
                         TextButton(onClick = {
                             if (isWriteSettings) {
-                                val intent = android.content.Intent(
-                                    android.provider.Settings.ACTION_MANAGE_WRITE_SETTINGS
-                                ).apply {
-                                    data = android.net.Uri.parse("package:${context.packageName}")
-                                }
-                                context.startActivity(intent)
+                                context.startActivity(
+                                    android.content.Intent(
+                                        android.provider.Settings.ACTION_MANAGE_WRITE_SETTINGS
+                                    ).apply {
+                                        data = android.net.Uri.parse("package:${context.packageName}")
+                                    }
+                                )
                                 viewModel.onPermissionResult(true)
                             } else {
                                 permLauncher.launch(permissionRequest.permission)
                             }
-                        }) {
-                            Text("İzin Ver")
-                        }
+                        }) { Text("İzin Ver") }
                     },
                     dismissButton = {
                         TextButton(onClick = { viewModel.onPermissionResult(false) }) {
-                            Text("Reddet")
-                        }
+                            Text("Reddet") }
                     }
                 )
             }
 
-            // --- Bottom quick controls ---
+            // --- Bottom controls: 3 separate round buttons ---
             Row(
                 modifier              = Modifier
                     .fillMaxWidth()
                     .align(Alignment.BottomCenter)
-                    .padding(horizontal = 40.dp, vertical = 32.dp),
+                    .padding(horizontal = 48.dp, vertical = 36.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment     = Alignment.CenterVertically
             ) {
-                IconButton(onClick = viewModel::onMicToggle) {
-                    Icon(
-                        imageVector        = if (uiState.isMuted) Icons.Outlined.MicOff
-                                             else Icons.Outlined.Mic,
-                        contentDescription = if (uiState.isMuted) "Mikrofon kapalı" else "Mikrofon açık",
-                        tint               = if (uiState.isMuted) MaterialTheme.colorScheme.onSurfaceVariant
-                                             else IrisTheme.colors.primary
-                    )
-                }
-                IconButton(onClick = viewModel::onStop) {
-                    Icon(Icons.Outlined.Stop, contentDescription = "Durdur",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                IconButton(onClick = viewModel::onScreenControlToggle) {
-                    Icon(
-                        imageVector        = Icons.Outlined.Tv,
-                        contentDescription = "Ekran kontrolü",
-                        tint               = if (uiState.isScreenCtrl) IrisTheme.colors.primary
-                                             else MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+                // Mute / Unmute
+                ControlButton(
+                    icon      = if (uiState.isMuted) Icons.Outlined.MicOff else Icons.Outlined.Mic,
+                    label     = if (uiState.isMuted) "Sessiz" else "Mikrofon",
+                    tint      = if (uiState.isMuted) MaterialTheme.colorScheme.onSurfaceVariant
+                                else primary,
+                    highlight = !uiState.isMuted,
+                    onClick   = viewModel::onMicToggle
+                )
+
+                // Stop
+                ControlButton(
+                    icon      = Icons.Outlined.Stop,
+                    label     = "Durdur",
+                    tint      = MaterialTheme.colorScheme.onSurfaceVariant,
+                    highlight = false,
+                    onClick   = viewModel::onStop
+                )
+
+                // Screen control
+                ControlButton(
+                    icon      = Icons.Outlined.Tv,
+                    label     = "Ekran",
+                    tint      = if (uiState.isScreenCtrl) primary
+                                else MaterialTheme.colorScheme.onSurfaceVariant,
+                    highlight = uiState.isScreenCtrl,
+                    onClick   = viewModel::onScreenControlToggle
+                )
             }
         }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Round control button with label
+// ---------------------------------------------------------------------------
+@Composable
+private fun ControlButton(
+    icon     : ImageVector,
+    label    : String,
+    tint     : Color,
+    highlight: Boolean,
+    onClick  : () -> Unit
+) {
+    val primary = IrisTheme.colors.primary
+
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Surface(
+            onClick = onClick,
+            shape   = CircleShape,
+            color   = if (highlight) primary.copy(alpha = 0.15f)
+                      else MaterialTheme.colorScheme.surface,
+            shadowElevation = if (highlight) 0.dp else 2.dp,
+            modifier = Modifier.size(56.dp)
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(
+                    imageVector        = icon,
+                    contentDescription = label,
+                    tint               = tint,
+                    modifier           = Modifier.size(22.dp)
+                )
+            }
+        }
+        Spacer(Modifier.height(6.dp))
+        Text(
+            text  = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
