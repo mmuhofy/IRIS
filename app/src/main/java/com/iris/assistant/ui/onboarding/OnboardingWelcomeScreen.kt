@@ -1,6 +1,7 @@
 package com.iris.assistant.ui.onboarding
 
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -35,6 +36,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.iris.assistant.ui.components.IrisButtonPrimary
 import com.iris.assistant.ui.theme.IrisTheme
@@ -144,13 +146,13 @@ fun StepIndicator(currentStep: Int, totalSteps: Int) {
                     isCurrent -> IrisTheme.colors.primary
                     else -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f)
                 },
-                animationSpec = tween(300),
+                animationSpec = tween(durationMillis = 300),
                 label = "dotColor"
             )
 
             val dotSize by animateDpAsState(
                 targetValue = if (isCurrent) 10.dp else 8.dp,
-                animationSpec = tween(300),
+                animationSpec = tween<Dp>(durationMillis = 300),
                 label = "dotSize"
             )
 

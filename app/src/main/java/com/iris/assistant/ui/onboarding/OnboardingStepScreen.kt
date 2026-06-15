@@ -39,6 +39,7 @@ import com.iris.assistant.ui.components.IrisButtonPrimary
 import com.iris.assistant.ui.components.IrisButtonSecondary
 import com.iris.assistant.ui.theme.IrisTheme
 
+@Composable
 private fun OnboardingStepLayout(
     step: Int,
     icon: ImageVector,
