@@ -156,15 +156,18 @@ class GeminiRepository @Inject constructor(
         return contents
     }
 
+    /**
+     * Represents a function_call from Gemini.
+     * Stores the entire part object as received from the API, so that
+     * thought_signature (which lives at the part level, not inside functionCall)
+     * is preserved exactly as-is when sending back to Gemini.
+     */
     private data class FunctionCallInfo(
         val fnName: String,
         val args  : JSONObject,
-        val raw   : JSONObject  // full functionCall JSON from Gemini (includes thought_signature)
+        val part  : JSONObject  // the entire part (functionCall + thought_signature)
     ) {
-        fun toJson(): JSONObject {
-            return JSONObject()
-                .put("functionCall", raw)
-        }
+        fun toJson(): JSONObject = part
     }
 
     /**
@@ -192,7 +195,7 @@ class GeminiRepository @Inject constructor(
                     val fc = part.getJSONObject("functionCall")
                     val name = fc.getString("name")
                     val args = fc.optJSONObject("args") ?: JSONObject()
-                    functionCall = FunctionCallInfo(name, args, fc)
+                    functionCall = FunctionCallInfo(name, args, part)
                 }
             }
 
