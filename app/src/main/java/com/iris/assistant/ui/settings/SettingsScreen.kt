@@ -15,10 +15,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import com.phosphor.icons.PhIcons
 import com.phosphor.icons.regular.*
-import com.phosphor.icons.filled.*
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -38,6 +38,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -45,6 +46,7 @@ import com.iris.assistant.domain.model.TtsVoice
 import com.iris.assistant.ui.components.IrisButtonDestructive
 import com.iris.assistant.ui.theme.ColorSchemeOption
 import com.iris.assistant.ui.theme.IrisTheme
+import com.iris.assistant.util.Constants
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -99,16 +101,24 @@ fun SettingsScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 20.dp)
         ) {
+            Spacer(Modifier.height(8.dp))
+
             // --- Renk Teması ---
             SettingsSectionTitle("Renk Teması")
-            Spacer(Modifier.height(12.dp))
-            ColorSchemeSelector(
-                current  = uiState.colorScheme,
-                onChange = viewModel::onColorSchemeChange
-            )
+            Spacer(Modifier.height(10.dp))
+            Card(
+                shape  = RoundedCornerShape(Constants.CARD_CORNER_RADIUS.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    ColorSchemeSelector(
+                        current  = uiState.colorScheme,
+                        onChange = viewModel::onColorSchemeChange
+                    )
+                }
+            }
 
-            Spacer(Modifier.height(24.dp))
-            HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
             Spacer(Modifier.height(24.dp))
 
             // --- Ses Karakteri ---
@@ -119,38 +129,60 @@ fun SettingsScreen(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Spacer(Modifier.height(12.dp))
-            VoiceSelector(
-                current  = uiState.ttsVoice,
-                onChange = viewModel::onTtsVoiceChange
-            )
+            Spacer(Modifier.height(10.dp))
+            Card(
+                shape  = RoundedCornerShape(Constants.CARD_CORNER_RADIUS.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    VoiceSelector(
+                        current  = uiState.ttsVoice,
+                        onChange = viewModel::onTtsVoiceChange
+                    )
+                }
+            }
 
-            Spacer(Modifier.height(24.dp))
-            HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
             Spacer(Modifier.height(24.dp))
 
             // --- Arka Plan ---
             SettingsSectionTitle("Arka Plan")
-            Spacer(Modifier.height(8.dp))
-            SettingsToggleRow(
-                title    = "Arka planda dinle",
-                subtitle = "IRIS kapalıyken de \"Hey IRIS\" dinler",
-                checked  = uiState.backgroundListening,
-                onChange = viewModel::onBackgroundListeningChange
-            )
+            Spacer(Modifier.height(10.dp))
+            Card(
+                shape  = RoundedCornerShape(Constants.CARD_CORNER_RADIUS.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(4.dp)) {
+                    SettingsToggleRow(
+                        icon     = PhIcons.Regular.Headphones,
+                        title    = "Arka planda dinle",
+                        subtitle = "IRIS kapalıyken de \"Hey IRIS\" dinler",
+                        checked  = uiState.backgroundListening,
+                        onChange = viewModel::onBackgroundListeningChange
+                    )
+                }
+            }
 
-            Spacer(Modifier.height(24.dp))
-            HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
             Spacer(Modifier.height(24.dp))
 
             // --- Veri ---
             SettingsSectionTitle("Veri")
-            Spacer(Modifier.height(12.dp))
-            IrisButtonDestructive(
-                text     = "Sohbet Geçmişini Temizle",
-                onClick  = { showClearDialog = true },
+            Spacer(Modifier.height(10.dp))
+            Card(
+                shape  = RoundedCornerShape(Constants.CARD_CORNER_RADIUS.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                 modifier = Modifier.fillMaxWidth()
-            )
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    IrisButtonDestructive(
+                        text     = "Sohbet Geçmişini Temizle",
+                        onClick  = { showClearDialog = true },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
+
             Spacer(Modifier.height(32.dp))
         }
     }
@@ -164,7 +196,6 @@ private fun VoiceSelector(
     current : TtsVoice,
     onChange: (TtsVoice) -> Unit
 ) {
-    // Two items per row
     val voices = TtsVoice.entries
     val rows = voices.chunked(2)
 
@@ -182,7 +213,6 @@ private fun VoiceSelector(
                             .padding(bottom = 8.dp)
                     )
                 }
-                // If odd row with one item, fill remaining space
                 if (row.size == 1) Spacer(Modifier.weight(1f))
             }
         }
@@ -201,7 +231,7 @@ private fun VoiceChip(
         onClick      = onClick,
         shape        = RoundedCornerShape(12.dp),
         color        = if (isSelected) primary.copy(alpha = 0.15f)
-                       else MaterialTheme.colorScheme.surface,
+                       else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
         border       = BorderStroke(
             width = if (isSelected) 1.5.dp else 1.dp,
             color = if (isSelected) primary
@@ -257,24 +287,40 @@ private fun ColorSchemeSelector(
 }
 
 // ---------------------------------------------------------------------------
-// Reusable toggle row
+// Reusable toggle row with icon
 // ---------------------------------------------------------------------------
 @Composable
 private fun SettingsToggleRow(
+    icon    : ImageVector,
     title   : String,
     subtitle: String,
     checked : Boolean,
     onChange: (Boolean) -> Unit
 ) {
     Row(
-        modifier          = Modifier.fillMaxWidth(),
+        modifier          = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        Icon(
+            imageVector        = icon,
+            contentDescription = null,
+            modifier           = Modifier.size(22.dp),
+            tint               = IrisTheme.colors.primary
+        )
+        Spacer(Modifier.size(16.dp))
         Column(modifier = Modifier.weight(1f)) {
-            Text(title,    style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onBackground)
-            Text(subtitle, style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                text  = title,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+            Text(
+                text  = subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
         Switch(
             checked         = checked,
@@ -294,7 +340,7 @@ private fun SettingsToggleRow(
 private fun SettingsSectionTitle(text: String) {
     Text(
         text  = text,
-        style = MaterialTheme.typography.labelLarge,
+        style = MaterialTheme.typography.titleSmall,
         color = IrisTheme.colors.primary
     )
 }
