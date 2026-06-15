@@ -158,13 +158,12 @@ class GeminiRepository @Inject constructor(
 
     private data class FunctionCallInfo(
         val fnName: String,
-        val args  : JSONObject
+        val args  : JSONObject,
+        val raw   : JSONObject  // full functionCall JSON from Gemini (includes thought_signature)
     ) {
         fun toJson(): JSONObject {
             return JSONObject()
-                .put("functionCall", JSONObject()
-                    .put("name", fnName)
-                    .put("args", args))
+                .put("functionCall", raw)
         }
     }
 
@@ -193,7 +192,7 @@ class GeminiRepository @Inject constructor(
                     val fc = part.getJSONObject("functionCall")
                     val name = fc.getString("name")
                     val args = fc.optJSONObject("args") ?: JSONObject()
-                    functionCall = FunctionCallInfo(name, args)
+                    functionCall = FunctionCallInfo(name, args, fc)
                 }
             }
 
