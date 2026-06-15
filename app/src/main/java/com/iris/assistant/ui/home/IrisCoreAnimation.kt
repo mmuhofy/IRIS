@@ -64,8 +64,9 @@ fun IrisCoreAnimation(
     Canvas(modifier = modifier.size(coreSize)) {
         val cx = size.width / 2f
         val cy = size.height / 2f
-        val eyeRadius = minDimension * 0.44f
-        val spacing = minDimension / 28f
+        val minDim = size.minDimension
+        val eyeRadius = minDim * 0.44f
+        val spacing = minDim / 28f
         val gridSize = 15
 
         for (i in -gridSize..gridSize) {
