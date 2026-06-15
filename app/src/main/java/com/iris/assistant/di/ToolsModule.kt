@@ -1,5 +1,12 @@
 package com.iris.assistant.di
 
+import com.iris.assistant.data.tools.system.GetBatteryStatusTool
+import com.iris.assistant.data.tools.system.OpenAppTool
+import com.iris.assistant.data.tools.system.SetBrightnessTool
+import com.iris.assistant.data.tools.system.SetVolumeTool
+import com.iris.assistant.data.tools.system.ToggleBluetoothTool
+import com.iris.assistant.data.tools.system.ToggleFlashlightTool
+import com.iris.assistant.data.tools.system.ToggleWifiTool
 import com.iris.assistant.domain.tools.CalculateTool
 import com.iris.assistant.domain.tools.GetCurrentTimeTool
 import com.iris.assistant.domain.tools.JarvisTool
@@ -27,4 +34,27 @@ abstract class ToolsModule {
 
     @Binds @IntoSet
     abstract fun bindCalculateTool(impl: CalculateTool): JarvisTool
+
+    // --- System tools ---
+
+    @Binds @IntoSet
+    abstract fun bindOpenAppTool(impl: OpenAppTool): JarvisTool
+
+    @Binds @IntoSet
+    abstract fun bindSetVolumeTool(impl: SetVolumeTool): JarvisTool
+
+    @Binds @IntoSet
+    abstract fun bindSetBrightnessTool(impl: SetBrightnessTool): JarvisTool
+
+    @Binds @IntoSet
+    abstract fun bindToggleWifiTool(impl: ToggleWifiTool): JarvisTool
+
+    @Binds @IntoSet
+    abstract fun bindToggleBluetoothTool(impl: ToggleBluetoothTool): JarvisTool
+
+    @Binds @IntoSet
+    abstract fun bindToggleFlashlightTool(impl: ToggleFlashlightTool): JarvisTool
+
+    @Binds @IntoSet
+    abstract fun bindGetBatteryStatusTool(impl: GetBatteryStatusTool): JarvisTool
 }

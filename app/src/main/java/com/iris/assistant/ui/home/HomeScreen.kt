@@ -35,6 +35,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -123,17 +124,38 @@ fun HomeScreen(
             // --- Permission request dialog ---
             val permissionRequest = uiState.permissionRequest
             if (permissionRequest != null) {
+                val context = LocalContext.current
+                val isSpecialPerm = permissionRequest.permission == "android.permission.WRITE_SETTINGS"
+
                 val launcher = rememberLauncherForActivityResult(
-                    contract = ActivityResultContracts.RequestPermission()
+                    contract = if (isSpecialPerm) ActivityResultContracts.StartActivityForResult()
+                               else ActivityResultContracts.RequestPermission()
                 ) { granted ->
-                    viewModel.onPermissionResult(granted)
+                    val result = if (isSpecialPerm) {
+                        android.provider.Settings.System.canWrite(context)
+                    } else {
+                        granted as Boolean
+                    }
+                    viewModel.onPermissionResult(result)
                 }
+
                 AlertDialog(
                     onDismissRequest = { viewModel.onPermissionResult(false) },
                     title            = { Text("İzin Gerekli") },
                     text             = { Text(permissionRequest.rationale) },
                     confirmButton = {
-                        TextButton(onClick = { launcher.launch(permissionRequest.permission) }) {
+                        TextButton(onClick = {
+                            if (isSpecialPerm) {
+                                val intent = android.content.Intent(
+                                    android.provider.Settings.ACTION_MANAGE_WRITE_SETTINGS
+                                ).apply {
+                                    data = android.net.Uri.parse("package:${context.packageName}")
+                                }
+                                launcher.launch(intent)
+                            } else {
+                                launcher.launch(permissionRequest.permission)
+                            }
+                        }) {
                             Text("İzin Ver")
                         }
                     },
