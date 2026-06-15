@@ -25,11 +25,7 @@ class SendMessageUseCase @Inject constructor(
      * @throws IrisException on unrecoverable failure
      */
     suspend operator fun invoke(history: List<ChatMessage>): String {
-        return try {
-            primaryLlm.chat(history, SystemPrompt.v1)
-        } catch (e: IrisException.RateLimitException) {
-            // Gemini rate-limited — try Groq fallback
-            fallbackLlm.chat(history, SystemPrompt.v1)
-        }
+        // Phase 1: Gemini only. Groq fallback (Phase 2) not yet implemented.
+        return primaryLlm.chat(history, SystemPrompt.v1)
     }
 }
