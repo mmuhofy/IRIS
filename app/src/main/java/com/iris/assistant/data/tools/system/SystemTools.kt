@@ -80,44 +80,85 @@ class OpenAppTool @Inject constructor(
     override val requiredPermission: String? = null
 
     override suspend fun execute(args: JSONObject): ToolResult {
-        val appName = args.optString("appName").trim().lowercase()
+        val appName = args.optString("appName").trim()
         if (appName.isBlank()) return ToolResult.Error("Uygulama adı belirtilmedi.")
 
-        val packageName = resolvePackage(appName)
+        val appKey = appName.lowercase()
+            .removeSuffix("uygulaması").removeSuffix("uygulamasi")
+            .removeSuffix("'u").removeSuffix("'ü").removeSuffix("'ı").removeSuffix("'i")
+            .removeSuffix("u").removeSuffix("ü").removeSuffix("ı").removeSuffix("i")
+            .removeSuffix("'a").removeSuffix("'e")
+            .removeSuffix("a").removeSuffix("e")
+            .trim()
+
+        val packageName = resolvePackage(appKey)
             ?: return ToolResult.Error("'$appName' uygulaması bulunamadı.")
 
-        val intent = context.packageManager.getLaunchIntentForPackage(packageName)
-            ?: return ToolResult.Error("'$appName' uygulaması başlatılamıyor (launch intent yok).")
+        val intent = resolveLaunchIntent(packageName, appKey)
+            ?: return ToolResult.Error("'$appName' uygulaması başlatılamıyor.")
 
         return runCatching {
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             context.startActivity(intent)
-            ToolResult.Success("$appName uygulaması açılıyor.", data = mapOf("package" to packageName))
+            val displayName = APP_NAME_MAP.entries
+                .firstOrNull { it.value == packageName }?.key
+                ?: appName
+            ToolResult.Success("$displayName uygulaması açılıyor.", data = mapOf("package" to packageName))
         }.getOrElse { e ->
-            Log.e(TAG, "open_app failed", e)
-            ToolResult.Error("$appName açılamadı: ${e.message}")
+            Log.e(TAG, "open_app failed: package=$packageName", e)
+            if (e is SecurityException) {
+                ToolResult.Error("'$appName' açılırken izin hatası: ${e.message}")
+            } else {
+                ToolResult.Error("'$appName' açılamadı: ${e.message}")
+            }
         }
     }
 
     private fun resolvePackage(input: String): String? {
-        val inputClean = input.removeSuffix("uygulaması").removeSuffix("uygulamasi").trim()
+        val clean = input.trim().lowercase()
 
-        APP_NAME_MAP[inputClean]?.let { return it }
+        APP_NAME_MAP[clean]?.let { return it }
 
-        APP_NAME_MAP.entries.find { inputClean.contains(it.key) }?.value?.let { return it }
+        APP_NAME_MAP.entries.firstOrNull { clean == it.key }?.value?.let { return it }
 
         val installed = context.packageManager.getInstalledApplications(0)
-        var match: String? = null
+        val labelMap = mutableMapOf<String, String>()
+
         for (app in installed) {
-            val label = context.packageManager.getApplicationLabel(app).toString().lowercase()
-            if (label == inputClean || app.packageName.lowercase() == inputClean) {
-                return app.packageName
-            }
-            if (label.contains(inputClean) || inputClean.contains(label)) {
-                match = app.packageName
-            }
+            val pkg = app.packageName
+            val label = context.packageManager.getApplicationLabel(app)
+                ?.toString()?.lowercase()?.trim() ?: continue
+            labelMap[label] = pkg
+
+            if (label == clean) return pkg
+            if (pkg.lowercase() == clean) return pkg
         }
-        return match
+
+        val fuzzyLabel = labelMap.keys.firstOrNull { label ->
+            clean in label || label in clean
+        }
+        fuzzyLabel?.let { return labelMap[it] }
+
+        return null
+    }
+
+    private fun resolveLaunchIntent(packageName: String, appKey: String): Intent? {
+        context.packageManager.getLaunchIntentForPackage(packageName)?.let { return it }
+
+        val pm = context.packageManager
+        val intent = Intent(Intent.ACTION_MAIN).apply {
+            addCategory(Intent.CATEGORY_LAUNCHER)
+            `package` = packageName
+        }
+        pm.queryIntentActivities(intent, 0).firstOrNull()?.let { resolveInfo ->
+            return pm.getLaunchIntentForPackage(resolveInfo.activityInfo.packageName)
+        }
+
+        return Intent().apply {
+            action = Intent.ACTION_MAIN
+            addCategory(Intent.CATEGORY_LAUNCHER)
+            `package` = packageName
+        }
     }
 }
 
