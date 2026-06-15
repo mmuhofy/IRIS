@@ -151,20 +151,13 @@ fun ChatScreen(
             // --- Permission request dialog ---
             val permissionRequest = uiState.permissionRequest
             if (permissionRequest != null) {
-                val context = LocalContext.current
-                val isSpecialPerm = permissionRequest.permission == "android.permission.WRITE_SETTINGS"
+                val isWriteSettings = permissionRequest.permission == "android.permission.WRITE_SETTINGS"
 
-                val launcher = rememberLauncherForActivityResult(
-                    contract = if (isSpecialPerm) ActivityResultContracts.StartActivityForResult()
-                               else ActivityResultContracts.RequestPermission()
-                ) { granted ->
-                    val result = if (isSpecialPerm) {
-                        android.provider.Settings.System.canWrite(context)
-                    } else {
-                        granted as Boolean
-                    }
-                    viewModel.onPermissionResult(result)
-                }
+                val permLauncher = rememberLauncherForActivityResult(
+                    contract = ActivityResultContracts.RequestPermission()
+                ) { granted -> viewModel.onPermissionResult(granted) }
+
+                val context = LocalContext.current
 
                 AlertDialog(
                     onDismissRequest = { viewModel.onPermissionResult(false) },
@@ -172,15 +165,16 @@ fun ChatScreen(
                     text             = { Text(permissionRequest.rationale) },
                     confirmButton = {
                         TextButton(onClick = {
-                            if (isSpecialPerm) {
+                            if (isWriteSettings) {
                                 val intent = android.content.Intent(
                                     android.provider.Settings.ACTION_MANAGE_WRITE_SETTINGS
                                 ).apply {
                                     data = android.net.Uri.parse("package:${context.packageName}")
                                 }
-                                launcher.launch(intent)
+                                context.startActivity(intent)
+                                viewModel.onPermissionResult(true)
                             } else {
-                                launcher.launch(permissionRequest.permission)
+                                permLauncher.launch(permissionRequest.permission)
                             }
                         }) {
                             Text("İzin Ver")
