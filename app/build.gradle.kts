@@ -100,7 +100,9 @@ dependencies {
     implementation(libs.compose.ui.tooling.preview)
     implementation(libs.compose.material3)
     implementation(libs.compose.googlefonts)
-    implementation(libs.phosphoricon.compose)
+    implementation(libs.phosphoricons.core)
+    implementation(libs.phosphoricons.regular)
+    implementation(libs.phosphoricons.filled)
     debugImplementation(libs.compose.ui.tooling)
     debugImplementation(libs.compose.ui.test.manifest)
 

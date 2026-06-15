@@ -40,7 +40,7 @@ kotlinxSerialization    = "1.8.1"
 # Maven Central: xyz.rementia:openwakeword:0.1.5
 # Brings in onnxruntime-android:1.18.0 as a transitive dependency
 openwakeword            = "0.1.5"
-phosphoriconCompose     = "1.0.4"
+phosphoriconCompose     = "1.0.5"
 
 [libraries]
 # AndroidX Core
@@ -96,7 +96,9 @@ retrofit-core                   = { group = "com.squareup.retrofit2", name = "re
 kotlinx-serialization-json      = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinxSerialization" }
 
 # Icons — Phosphor Icons for Compose
-phosphoricon-compose            = { group = "io.github.dev778g-me", name = "phosphoricon-compose", version.ref = "phosphoriconCompose" }
+phosphoricons-core              = { group = "io.github.dev778g-me", name = "phosphoricons-core", version.ref = "phosphoriconCompose" }
+phosphoricons-regular           = { group = "io.github.dev778g-me", name = "phosphoricons-regular", version.ref = "phosphoriconCompose" }
+phosphoricons-filled            = { group = "io.github.dev778g-me", name = "phosphoricons-filled", version.ref = "phosphoriconCompose" }
 
 # Wake Word — openWakeWord via ONNX Runtime
 # Brings in onnxruntime-android:1.18.0 as a transitive dependency (no explicit entry needed)
