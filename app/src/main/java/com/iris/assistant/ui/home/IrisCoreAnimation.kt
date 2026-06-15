@@ -30,7 +30,7 @@ fun IrisCoreAnimation(
     state       : IrisCoreState = IrisCoreState.IDLE,
     amplitude   : Float         = 0f,
     ttsProgress : Float         = 0f,
-    size        : Dp            = Constants.IRIS_CORE_SIZE.dp
+    coreSize    : Dp            = Constants.IRIS_CORE_SIZE.dp
 ) {
     val primary     = IrisTheme.colors.primary
     val gradientEnd = IrisTheme.colors.gradientEnd
@@ -61,7 +61,7 @@ fun IrisCoreAnimation(
         }
     }
 
-    Canvas(modifier = modifier.size(size)) {
+    Canvas(modifier = modifier.size(coreSize)) {
         val cx = size.width / 2f
         val cy = size.height / 2f
         val eyeRadius = minDimension * 0.44f
