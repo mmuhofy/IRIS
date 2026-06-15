@@ -1,5 +1,7 @@
 package com.iris.assistant.ui.home
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,6 +19,7 @@ import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material.icons.outlined.MicOff
 import androidx.compose.material.icons.outlined.Stop
 import androidx.compose.material.icons.outlined.Tv
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -24,6 +27,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -113,6 +117,31 @@ fun HomeScreen(
                     style     = MaterialTheme.typography.bodyMedium,
                     color     = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center
+                )
+            }
+
+            // --- Permission request dialog ---
+            val permissionRequest = uiState.permissionRequest
+            if (permissionRequest != null) {
+                val launcher = rememberLauncherForActivityResult(
+                    contract = ActivityResultContracts.RequestPermission()
+                ) { granted ->
+                    viewModel.onPermissionResult(granted)
+                }
+                AlertDialog(
+                    onDismissRequest = { viewModel.onPermissionResult(false) },
+                    title            = { Text("İzin Gerekli") },
+                    text             = { Text(permissionRequest.rationale) },
+                    confirmButton = {
+                        TextButton(onClick = { launcher.launch(permissionRequest.permission) }) {
+                            Text("İzin Ver")
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { viewModel.onPermissionResult(false) }) {
+                            Text("Reddet")
+                        }
+                    }
                 )
             }
 

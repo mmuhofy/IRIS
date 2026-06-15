@@ -6,85 +6,85 @@
 
 ## Phase 0 — Project Setup
 
-- [ ] Create Android Studio project: package `com.iris.assistant`
-- [ ] Set Min SDK 26, Target/Compile SDK 36
-- [ ] Set up `gradle/libs.versions.toml` (Kotlin, Compose BOM, Hilt, Room, Coroutines, KSP — confirm exact versions)
-- [ ] Confirm Min SDK / Target SDK / Compile SDK ✅ (26 / 36 / 36)
-- [ ] Set up Clean Architecture folder skeleton: `ui/`, `domain/`, `data/`, `service/`, `di/`, `util/`
-- [ ] Create `util/Constants.kt` (placeholder)
-- [ ] Set up GitHub repository
-- [ ] Configure GitHub Secrets: `GEMINI_API_KEY`, `GROQ_API_KEY`, `HUGGINGFACE_API_KEY`, `PICOVOICE_ACCESS_KEY`
-- [ ] Create `local.properties.example` documenting required keys (no values)
-- [ ] Set up GitHub Actions CI (build + lint on push)
-- [ ] Create `memory-bank.md` and keep updated after every confirmed change
+- [x] Create Android Studio project: package `com.iris.assistant`
+- [x] Set Min SDK 26, Target/Compile SDK 36
+- [x] Set up `gradle/libs.versions.toml` (Kotlin, Compose BOM, Hilt, Room, Coroutines, KSP — confirm exact versions)
+- [x] Confirm Min SDK / Target SDK / Compile SDK ✅ (26 / 36 / 36)
+- [x] Set up Clean Architecture folder skeleton: `ui/`, `domain/`, `data/`, `service/`, `di/`, `util/`
+- [x] Create `util/Constants.kt` (placeholder)
+- [x] Set up GitHub repository
+- [x] Configure GitHub Secrets: `GEMINI_API_KEY`, `GROQ_API_KEY`, `HUGGINGFACE_API_KEY`, `PICOVOICE_ACCESS_KEY`
+- [x] Create `local.properties.example` documenting required keys (no values)
+- [x] Set up GitHub Actions CI (build + lint on push)
+- [x] Create `memory-bank.md` and keep updated after every confirmed change
 
 ---
 
 ## Phase 1 — MVP ("Çalışan IRIS")
 
 ### Theme & Design System
-- [ ] Define `Color.kt` for all 6 color schemes (Lavender, Sunset, Ocean, Forest, Rose, Monochrome)
-- [ ] Define `Type.kt` (typography, system font)
-- [ ] Define `Theme.kt` (dark mode default, scheme selection wiring)
-- [ ] Integrate Phosphor Icons dependency
-- [ ] Build base components: `IrisCard`, `IrisButton` (primary/secondary/destructive), gradient utilities
+- [x] Define `Color.kt` for all 6 color schemes (Lavender, Sunset, Ocean, Forest, Rose, Monochrome)
+- [x] Define `Type.kt` (typography, system font)
+- [x] Define `Theme.kt` (dark mode default, scheme selection wiring)
+- [x] Integrate Phosphor Icons dependency
+- [x] Build base components: `IrisCard`, `IrisButton` (primary/secondary/destructive), gradient utilities
 
 ### Onboarding
-- [ ] Screen 1: Welcome + name confirmation ("Muhofy")
-- [ ] Screen 2: Microphone permission request + explanation
-- [ ] Screen 3: Wake word ("Hey IRIS") test/confirmation
-- [ ] Screen 4: Quick demo command flow
-- [ ] Screen 5: Battery optimization whitelist request
-- [ ] Onboarding completion → navigate to Home (Voice Mode)
+- [x] Screen 1: Welcome + name confirmation ("Muhofy")
+- [x] Screen 2: Microphone permission request + explanation
+- [x] Screen 3: Wake word ("Hey IRIS") test/confirmation
+- [x] Screen 4: Quick demo command flow
+- [x] Screen 5: Battery optimization whitelist request
+- [x] Onboarding completion → navigate to Home (Voice Mode)
 
 ### Voice Pipeline
-- [ ] Integrate openWakeWord (ONNX Runtime) — start with prebuilt `hey_jarvis.onnx` (or manual mic-button trigger for true MVP)
-- [ ] `service/WakeWordService.kt` — foreground service, listens for wake word
-- [ ] Audio recording on wake word trigger (`MediaRecorder` or `AudioRecord`)
-- [ ] Voice Activity Detection (VAD) — auto-stop recording after silence (~1.5s)
-- [ ] `data/remote/WhisperApiClient.kt` — Groq Whisper-large-v3 STT (`language=tr`)
-- [ ] `data/remote/GeminiApiClient.kt` — Gemini 3.5 Flash chat (verify model string before use)
-- [ ] `data/remote/GroqLlmClient.kt` — fallback LLM (verify Groq model name)
-- [ ] `data/remote/tts/TtsProvider.kt` — common interface (`synthesize(text): AudioResult`)
-- [ ] `EdgeTtsClient` — default provider, `tr-TR-AhmetNeural`/`tr-TR-EmelNeural`
-- [ ] `XttsClient` — Coqui XTTS v2 (verify hosting approach: HF Space vs self-hosted)
-- [ ] `GeminiLiveTtsClient` — native audio option (verify model name + cost before enabling by default)
-- [ ] Settings: TTS provider selector + voice sub-selection (per provider)
-- [ ] Audio playback for TTS output
+- [x] Integrate openWakeWord (ONNX Runtime) — start with prebuilt `hey_jarvis.onnx` (or manual mic-button trigger for true MVP)
+- [x] `service/WakeWordService.kt` — foreground service, listens for wake word
+- [x] Audio recording on wake word trigger (`MediaRecorder` or `AudioRecord`)
+- [x] Voice Activity Detection (VAD) — auto-stop recording after silence (~1.5s)
+- [x] `data/remote/WhisperApiClient.kt` — Groq Whisper-large-v3 STT (`language=tr`)
+- [x] `data/remote/GeminiApiClient.kt` — Gemini 3.5 Flash chat (verify model string before use)
+- [x] `data/remote/GroqLlmClient.kt` — fallback LLM (verify Groq model name)
+- [x] `data/remote/tts/TtsProvider.kt` — common interface (`synthesize(text): AudioResult`)
+- [x] `EdgeTtsClient` — default provider, `tr-TR-AhmetNeural`/`tr-TR-EmelNeural`
+- [x] `XttsClient` — Coqui XTTS v2 (verify hosting approach: HF Space vs self-hosted)
+- [x] `GeminiLiveTtsClient` — native audio option (verify model name + cost before enabling by default)
+- [x] Settings: TTS provider selector + voice sub-selection (per provider)
+- [x] Audio playback for TTS output
 
 ### Home Screen (Voice Mode)
-- [ ] Iris Core animation: Canvas-based gradient ring (IDLE/LISTENING/THINKING/SPEAKING states)
-- [ ] Status text display
-- [ ] Bottom quick controls: Mic toggle, Screen-control toggle, Stop/interrupt
-- [ ] Top bar: menu, settings, chat-mode icons
+- [x] Iris Core animation: Canvas-based gradient ring (IDLE/LISTENING/THINKING/SPEAKING states)
+- [x] Status text display
+- [x] Bottom quick controls: Mic toggle, Screen-control toggle, Stop/interrupt
+- [x] Top bar: menu, settings, chat-mode icons
 
 ### Chat Mode
-- [ ] Chat screen UI (message list, input field)
-- [ ] Chat ↔ Voice mode switching
-- [ ] Shared ViewModel/backend between modes
+- [x] Chat screen UI (message list, input field)
+- [x] Chat ↔ Voice mode switching
+- [x] Shared ViewModel/backend between modes
 
 ### Local Storage
-- [ ] Room schema: conversation history (messages, timestamps, role)
-- [ ] DAO + Repository for conversation history
-- [ ] DataStore: user preferences (name, theme, autonomy level, etc.)
-- [ ] Settings screen: "Clear history" action
+- [x] Room schema: conversation history (messages, timestamps, role)
+- [x] DAO + Repository for conversation history
+- [x] DataStore: user preferences (name, theme, autonomy level, etc.)
+- [x] Settings screen: "Clear history" action
 
 ### Core LLM Loop
-- [ ] `domain/usecase/SendMessageUseCase.kt` — orchestrates STT → Gemini → TTS
-- [ ] System prompt v1 (IRIS personality, Turkish, emotion-awareness per text)
-- [ ] Error handling: no internet, API limit, STT failure (per System Instructions error rules)
-- [ ] Groq fallback trigger logic (on Gemini rate limit/error)
+- [x] `domain/usecase/SendMessageUseCase.kt` — orchestrates STT → Gemini → TTS
+- [x] System prompt v1 (IRIS personality, Turkish, emotion-awareness per text)
+- [x] Error handling: no internet, API limit, STT failure (per System Instructions error rules)
+- [x] Groq fallback trigger logic (on Gemini rate limit/error)
 
 ---
 
 ## Phase 2 — Tool-Enabled IRIS
 
 ### Tool Framework
-- [ ] `domain/tools/JarvisTool.kt` interface
-- [ ] `domain/tools/ToolResult.kt` sealed class (Success, Error, PermissionRequired, Cancelled)
-- [ ] `domain/tools/ToolRegistry.kt` — registration, lookup, Gemini function-declaration formatting
-- [ ] Gemini function-calling integration in `GeminiApiClient`
-- [ ] Permission-on-first-use flow (request when tool first triggered, with explanation dialog)
+- [x] `domain/tools/JarvisTool.kt` interface
+- [x] `domain/tools/ToolResult.kt` sealed class (Success, Error, PermissionRequired, Cancelled)
+- [x] `domain/tools/ToolRegistry.kt` — registration, lookup, Gemini function-declaration formatting
+- [x] Gemini function-calling integration in `GeminiApiClient` (data/remote/gemini/GeminiRepository.kt)
+- [x] Permission-on-first-use flow (request when tool first triggered, with explanation dialog)
 
 ### Communication Tools
 - [ ] `make_call(contact)`

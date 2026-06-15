@@ -23,4 +23,12 @@ sealed class IrisException(message: String, cause: Throwable? = null) : Exceptio
 
     /** API key missing or invalid */
     class AuthException(message: String, cause: Throwable? = null) : IrisException(message, cause)
+
+    /** Tool requires a permission that has not been granted */
+    class PermissionRequiredException(
+        val permission: String,
+        val rationale : String,
+        val toolName  : String,
+        cause: Throwable? = null
+    ) : IrisException("Permission required: $permission for tool $toolName", cause)
 }

@@ -19,11 +19,17 @@ import javax.inject.Inject
 // ---------------------------------------------------------------------------
 // UI State
 // ---------------------------------------------------------------------------
+data class PermissionRequest(
+    val permission: String,
+    val rationale : String
+)
+
 data class ChatUiState(
-    val messages    : List<ChatMessage> = emptyList(),
-    val inputText   : String            = "",
-    val isLoading   : Boolean           = false,
-    val errorMessage: String?           = null
+    val messages         : List<ChatMessage> = emptyList(),
+    val inputText        : String            = "",
+    val isLoading        : Boolean           = false,
+    val errorMessage     : String?           = null,
+    val permissionRequest: PermissionRequest? = null
 )
 
 // ---------------------------------------------------------------------------
@@ -39,8 +45,9 @@ class ChatViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(ChatUiState())
     val uiState: StateFlow<ChatUiState> = _uiState.asStateFlow()
 
-    private val history = mutableListOf<ChatMessage>()
-    private var sendJob: Job? = null
+    private val history      = mutableListOf<ChatMessage>()
+    private var sendJob      : Job? = null
+    private var pendingMessage: String? = null
 
     init {
         loadHistory()
@@ -79,9 +86,24 @@ class ChatViewModel @Inject constructor(
             _uiState.update { it.copy(messages = history.toList()) }
 
             // LLM
-            val reply = runCatching {
-                sendMessageUseCase(history.toList())
-            }.getOrElse { e ->
+            val reply: String
+            try {
+                reply = sendMessageUseCase(history.toList())
+            } catch (e: IrisException.PermissionRequiredException) {
+                history.removeLastOrNull()
+                pendingMessage = text
+                _uiState.update {
+                    it.copy(
+                        messages          = history.toList(),
+                        isLoading         = false,
+                        permissionRequest = PermissionRequest(
+                            permission = e.permission,
+                            rationale  = e.rationale
+                        )
+                    )
+                }
+                return@launch
+            } catch (e: Exception) {
                 history.removeLastOrNull()
                 _uiState.update {
                     it.copy(
@@ -101,6 +123,66 @@ class ChatViewModel @Inject constructor(
 
             // TTS — speak reply
             ttsProvider.speak(text = reply)
+        }
+    }
+
+    // ---------------------------------------------------------------------------
+    // Permission request result
+    // ---------------------------------------------------------------------------
+
+    fun onPermissionResult(granted: Boolean) {
+        _uiState.update { it.copy(permissionRequest = null) }
+
+        if (granted) {
+            val text = pendingMessage ?: return
+            pendingMessage = null
+            retrySend(text)
+        } else {
+            _uiState.update { it.copy(errorMessage = "İzin reddedildi") }
+        }
+    }
+
+    private fun retrySend(text: String) {
+        sendJob = viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+
+            val userMsg = ChatMessage(role = ChatMessage.Role.USER, content = text)
+            val userMsgId = conversationRepository.saveMessage(userMsg)
+            history.add(userMsg.copy(id = userMsgId))
+            _uiState.update { it.copy(messages = history.toList()) }
+
+            try {
+                val reply = sendMessageUseCase(history.toList())
+
+                val assistantMsg = ChatMessage(role = ChatMessage.Role.ASSISTANT, content = reply)
+                val assistantMsgId = conversationRepository.saveMessage(assistantMsg)
+                history.add(assistantMsg.copy(id = assistantMsgId))
+                _uiState.update { it.copy(messages = history.toList(), isLoading = false) }
+
+                ttsProvider.speak(text = reply)
+            } catch (e: IrisException.PermissionRequiredException) {
+                history.removeLastOrNull()
+                pendingMessage = text
+                _uiState.update {
+                    it.copy(
+                        messages          = history.toList(),
+                        isLoading         = false,
+                        permissionRequest = PermissionRequest(
+                            permission = e.permission,
+                            rationale  = e.rationale
+                        )
+                    )
+                }
+            } catch (e: Exception) {
+                history.removeLastOrNull()
+                _uiState.update {
+                    it.copy(
+                        messages     = history.toList(),
+                        isLoading    = false,
+                        errorMessage = mapError(e)
+                    )
+                }
+            }
         }
     }
 

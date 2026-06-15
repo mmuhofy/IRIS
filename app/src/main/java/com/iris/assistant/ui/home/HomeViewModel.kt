@@ -34,14 +34,20 @@ import javax.inject.Inject
 // ---------------------------------------------------------------------------
 // UI State
 // ---------------------------------------------------------------------------
+data class PermissionRequest(
+    val permission: String,
+    val rationale : String
+)
+
 data class HomeUiState(
-    val coreState   : IrisCoreState = IrisCoreState.IDLE,
-    val amplitude   : Float         = 0f,
-    val ttsProgress : Float         = 0f,
-    val isMuted     : Boolean       = false,
-    val isScreenCtrl: Boolean       = false,
-    val statusText  : String        = "Dinlemeye hazır",
-    val errorMessage: String?       = null
+    val coreState        : IrisCoreState      = IrisCoreState.IDLE,
+    val amplitude        : Float              = 0f,
+    val ttsProgress      : Float              = 0f,
+    val isMuted          : Boolean            = false,
+    val isScreenCtrl     : Boolean            = false,
+    val statusText       : String             = "Dinlemeye hazır",
+    val errorMessage     : String?            = null,
+    val permissionRequest: PermissionRequest? = null
 )
 
 // ---------------------------------------------------------------------------
@@ -65,8 +71,9 @@ class HomeViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
-    private val history     = mutableListOf<ChatMessage>()
-    private var pipelineJob : Job? = null
+    private val history         = mutableListOf<ChatMessage>()
+    private var pipelineJob     : Job? = null
+    private var pendingTranscript: String? = null
 
     // ---------------------------------------------------------------------------
     // Wake word BroadcastReceiver
@@ -248,9 +255,24 @@ class HomeViewModel @Inject constructor(
             _uiState.update { it.copy(statusText = "Düşünüyorum...") }
 
             // Step 8 — LLM via Gemini (Groq fallback handled inside use case)
-            val reply = runCatching {
-                sendMessageUseCase(history.toList())
-            }.getOrElse { e ->
+            val reply: String
+            try {
+                reply = sendMessageUseCase(history.toList())
+            } catch (e: IrisException.PermissionRequiredException) {
+                history.removeLastOrNull()
+                pendingTranscript = transcript
+                _uiState.update {
+                    it.copy(
+                        coreState         = IrisCoreState.IDLE,
+                        statusText        = "İzin gerekiyor",
+                        permissionRequest = PermissionRequest(
+                            permission = e.permission,
+                            rationale  = e.rationale
+                        )
+                    )
+                }
+                return@launch
+            } catch (e: Exception) {
                 history.removeLastOrNull()
                 handleError("Yanıt alınamadı", e)
                 resumeWakeWordService()
@@ -303,6 +325,79 @@ class HomeViewModel @Inject constructor(
             )
         }
         resumeWakeWordService()
+    }
+
+    // ---------------------------------------------------------------------------
+    // Permission request result
+    // ---------------------------------------------------------------------------
+
+    fun onPermissionResult(granted: Boolean) {
+        _uiState.update { it.copy(permissionRequest = null) }
+
+        if (granted) {
+            // Retry from LLM step with the pending transcript
+            val transcript = pendingTranscript ?: return
+            pendingTranscript = null
+            retryLlmStep(transcript)
+        } else {
+            _uiState.update { it.copy(statusText = "İzin reddedildi") }
+            resumeWakeWordService()
+        }
+    }
+
+    private fun retryLlmStep(transcript: String) {
+        pipelineJob = viewModelScope.launch {
+            _uiState.update { it.copy(statusText = "Düşünüyorum...") }
+
+            val userMsg = ChatMessage(role = ChatMessage.Role.USER, content = transcript)
+            val userMsgId = conversationRepository.saveMessage(userMsg)
+            history.add(userMsg.copy(id = userMsgId))
+
+            try {
+                val reply = sendMessageUseCase(history.toList())
+
+                val assistantMsg = ChatMessage(role = ChatMessage.Role.ASSISTANT, content = reply)
+                val assistantMsgId = conversationRepository.saveMessage(assistantMsg)
+                history.add(assistantMsg.copy(id = assistantMsgId))
+
+                _uiState.update {
+                    it.copy(coreState = IrisCoreState.SPEAKING, statusText = "Konuşuyorum...")
+                }
+
+                ttsProvider.speak(
+                    text       = reply,
+                    onProgress = { p -> _uiState.update { it.copy(ttsProgress = p.coerceIn(0f, 1f)) } },
+                    onDone     = {
+                        val muted = _uiState.value.isMuted
+                        _uiState.update {
+                            it.copy(
+                                coreState   = IrisCoreState.IDLE,
+                                ttsProgress = 0f,
+                                statusText  = if (muted) "Sessize alındı" else "Dinlemeye hazır"
+                            )
+                        }
+                        resumeWakeWordService()
+                    }
+                )
+            } catch (e: IrisException.PermissionRequiredException) {
+                history.removeLastOrNull()
+                pendingTranscript = transcript
+                _uiState.update {
+                    it.copy(
+                        coreState         = IrisCoreState.IDLE,
+                        statusText        = "İzin gerekiyor",
+                        permissionRequest = PermissionRequest(
+                            permission = e.permission,
+                            rationale  = e.rationale
+                        )
+                    )
+                }
+            } catch (e: Exception) {
+                history.removeLastOrNull()
+                handleError("Yanıt alınamadı", e)
+                resumeWakeWordService()
+            }
+        }
     }
 
     // ---------------------------------------------------------------------------

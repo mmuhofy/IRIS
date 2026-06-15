@@ -43,7 +43,7 @@
 
 | Function | Choice | Detail |
 |---|---|---|
-| LLM (primary) | Gemini | `gemini-3.5-flash` — verify at implementation time |
+| LLM (primary) | Gemini | `gemini-3.5-flash` — verify at implementation time. Function calling integrated. |
 | LLM (fallback) | Groq (Llama) | `llama-3.3-70b-versatile` — confirm via Groq docs |
 | STT | Groq Whisper | `whisper-large-v3`, `language=tr` |
 | TTS | See §3a | Multi-provider, user-selectable |
@@ -193,6 +193,8 @@ ToolResult (Success | Error | PermissionRequired | Cancelled)
 ## 8. Permissions & Privacy
 
 - Permissions requested on first use (except mic — onboarding).
+- Permission flow: tool returns `ToolResult.PermissionRequired` → GeminiRepository throws `IrisException.PermissionRequiredException` → ViewModel catches, shows dialog → `ActivityResultContracts.RequestPermission` → on grant, retry the message.
+- Permission rationale shown in AlertDialog before system permission dialog.
 - Audio: temporary only, deleted after STT.
 - Conversation history: local Room only.
 - API keys: GitHub Secrets + `local.properties` (never committed).
@@ -222,7 +224,7 @@ ToolResult (Success | Error | PermissionRequired | Cancelled)
 ## 11. Phase Roadmap
 
 - **Phase 1 (MVP)** ✅ COMPLETE: Wake word (manual mic), STT, Gemini chat, Android TTS, Iris Core UI, Chat mode, local history (Room), DataStore preferences, onboarding, theming, splash screen.
-- **Phase 2**: Tool system + TTS upgrade (XTTS v2 or Gemini Live) + background service + openWakeWord integration.
+- **Phase 2**: Tool system (framework ✅, function-calling integration ✅, permission-on-first-use ✅) + TTS upgrade (XTTS v2 or Gemini Live) + background service + openWakeWord integration.
 - **Phase 3**: Screen reading/control + Action Preview Overlay + Autonomy Levels.
 - **Phase 4**: Embedded Shell (Power Mode), macros, cross-app workflows, floating bubble, default-assistant.
 - **Phase 5**: Multi-language, proactive suggestions, notification filtering, light theme.

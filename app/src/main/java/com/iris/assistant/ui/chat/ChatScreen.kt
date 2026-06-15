@@ -1,5 +1,7 @@
 package com.iris.assistant.ui.chat
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -21,6 +23,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -32,6 +35,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -141,6 +145,31 @@ fun ChatScreen(
                         TypingIndicator()
                     }
                 }
+            }
+
+            // --- Permission request dialog ---
+            val permissionRequest = uiState.permissionRequest
+            if (permissionRequest != null) {
+                val launcher = rememberLauncherForActivityResult(
+                    contract = ActivityResultContracts.RequestPermission()
+                ) { granted ->
+                    viewModel.onPermissionResult(granted)
+                }
+                AlertDialog(
+                    onDismissRequest = { viewModel.onPermissionResult(false) },
+                    title            = { Text("İzin Gerekli") },
+                    text             = { Text(permissionRequest.rationale) },
+                    confirmButton = {
+                        TextButton(onClick = { launcher.launch(permissionRequest.permission) }) {
+                            Text("İzin Ver")
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { viewModel.onPermissionResult(false) }) {
+                            Text("Reddet")
+                        }
+                    }
+                )
             }
 
             // --- Input row ---
