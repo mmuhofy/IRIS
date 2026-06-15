@@ -2,7 +2,7 @@ package com.iris.assistant.ui.home
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.background
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -38,9 +38,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.blur
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
+
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -60,7 +58,6 @@ fun HomeScreen(
     val uiState           by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState =  remember { SnackbarHostState() }
     val primary           =  IrisTheme.colors.primary
-    val gradientEnd       =  IrisTheme.colors.gradientEnd
 
     DisposableEffect(Unit) {
         viewModel.registerWakeWordReceiver()
@@ -80,23 +77,6 @@ fun HomeScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-
-            // --- Ambient background glow behind animation ---
-            Box(
-                modifier = Modifier
-                    .size(320.dp)
-                    .align(Alignment.Center)
-                    .blur(80.dp)
-                    .background(
-                        brush = Brush.radialGradient(
-                            colors = listOf(
-                                primary.copy(alpha = 0.18f),
-                                gradientEnd.copy(alpha = 0.08f),
-                                Color.Transparent
-                            )
-                        )
-                    )
-            )
 
             // --- Top bar ---
             Row(
