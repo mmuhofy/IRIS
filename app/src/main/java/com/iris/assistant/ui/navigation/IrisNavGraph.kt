@@ -1,6 +1,9 @@
 package com.iris.assistant.ui.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -10,6 +13,7 @@ import com.iris.assistant.ui.home.HomeScreen
 import com.iris.assistant.ui.onboarding.OnboardingBatteryScreen
 import com.iris.assistant.ui.onboarding.OnboardingDemoScreen
 import com.iris.assistant.ui.onboarding.OnboardingMicScreen
+import com.iris.assistant.ui.onboarding.OnboardingViewModel
 import com.iris.assistant.ui.onboarding.OnboardingWakeWordScreen
 import com.iris.assistant.ui.onboarding.OnboardingWelcomeScreen
 import com.iris.assistant.ui.settings.SettingsScreen
@@ -19,14 +23,19 @@ fun IrisNavGraph(
     navController: NavHostController = rememberNavController(),
     startDestination: String = NavRoute.OnboardingWelcome.route
 ) {
+    val onboardingViewModel: OnboardingViewModel = hiltViewModel()
+
     NavHost(
         navController    = navController,
         startDestination = startDestination
     ) {
         // --- Onboarding ---
         composable(NavRoute.OnboardingWelcome.route) {
+            val userName by onboardingViewModel.userName.collectAsStateWithLifecycle()
             OnboardingWelcomeScreen(
-                onNext = { navController.navigate(NavRoute.OnboardingMic.route) }
+                userName        = userName,
+                onUserNameChange = onboardingViewModel::setUserName,
+                onNext           = { navController.navigate(NavRoute.OnboardingMic.route) }
             )
         }
         composable(NavRoute.OnboardingMic.route) {
@@ -48,10 +57,10 @@ fun IrisNavGraph(
             OnboardingBatteryScreen(
                 onFinish = {
                     navController.navigate(NavRoute.Home.route) {
-                        // Clear entire onboarding backstack
                         popUpTo(NavRoute.OnboardingWelcome.route) { inclusive = true }
                     }
-                }
+                },
+                viewModel = onboardingViewModel
             )
         }
 

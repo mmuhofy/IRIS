@@ -28,6 +28,7 @@ class PreferencesRepository @Inject constructor(
         val BACKGROUND_LISTENING = booleanPreferencesKey("background_listening")
         val ONBOARDING_COMPLETED = booleanPreferencesKey("onboarding_completed")
         val TTS_VOICE            = stringPreferencesKey("tts_voice")
+        val USER_NAME            = stringPreferencesKey("user_name")
     }
 
     val preferences: Flow<UserPreferences> = context.dataStore.data.map { prefs ->
@@ -39,7 +40,8 @@ class PreferencesRepository @Inject constructor(
             onboardingCompleted = prefs[Keys.ONBOARDING_COMPLETED] ?: false,
             ttsVoice            = prefs[Keys.TTS_VOICE]
                 ?.let { TtsVoice.fromApiName(it) }
-                ?: TtsVoice.DEFAULT
+                ?: TtsVoice.DEFAULT,
+            userName = prefs[Keys.USER_NAME] ?: Constants.USER_NAME
         )
     }
 
@@ -53,6 +55,10 @@ class PreferencesRepository @Inject constructor(
 
     suspend fun setOnboardingCompleted(completed: Boolean) {
         context.dataStore.edit { it[Keys.ONBOARDING_COMPLETED] = completed }
+    }
+
+    suspend fun setUserName(name: String) {
+        context.dataStore.edit { it[Keys.USER_NAME] = name }
     }
 
     suspend fun setTtsVoice(voice: TtsVoice) {

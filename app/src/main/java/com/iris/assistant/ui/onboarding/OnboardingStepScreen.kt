@@ -7,12 +7,20 @@ import android.os.PowerManager
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.BatteryChargingFull
+import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.VolumeUp
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -22,56 +30,88 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.content.getSystemService
-import androidx.hilt.navigation.compose.hiltViewModel
 import com.iris.assistant.ui.components.IrisButtonPrimary
 import com.iris.assistant.ui.components.IrisButtonSecondary
+import com.iris.assistant.ui.theme.IrisTheme
 
-// ---------------------------------------------------------------------------
-// Shared skeleton
-// ---------------------------------------------------------------------------
-@Composable
-private fun OnboardingStepScreen(
-    title      : String,
+private fun OnboardingStepLayout(
+    step: Int,
+    icon: ImageVector,
+    title: String,
     description: String,
     buttonLabel: String,
-    onNext     : () -> Unit,
+    onNext: () -> Unit,
+    buttonEnabled: Boolean = true,
     secondaryLabel: String? = null,
-    onSecondary   : (() -> Unit)? = null
+    onSecondary: (() -> Unit)? = null,
+    content: @Composable ColumnScope.() -> Unit = {}
 ) {
     Column(
-        modifier            = Modifier.fillMaxSize().padding(32.dp),
-        verticalArrangement = Arrangement.Center,
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        StepIndicator(currentStep = step, totalSteps = 5)
+
+        Spacer(Modifier.weight(1f))
+
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            modifier = Modifier.size(64.dp),
+            tint = IrisTheme.colors.primary
+        )
+
+        Spacer(Modifier.height(20.dp))
+
         Text(
-            text      = title,
-            style     = MaterialTheme.typography.headlineMedium,
-            color     = MaterialTheme.colorScheme.onBackground,
+            text = title,
+            style = MaterialTheme.typography.headlineMedium,
+            color = MaterialTheme.colorScheme.onBackground,
             textAlign = TextAlign.Center
         )
+
         Spacer(Modifier.height(12.dp))
+
         Text(
-            text      = description,
-            style     = MaterialTheme.typography.bodyLarge,
-            color     = MaterialTheme.colorScheme.onSurfaceVariant,
+            text = description,
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center
         )
-        Spacer(Modifier.height(48.dp))
-        IrisButtonPrimary(text = buttonLabel, onClick = onNext)
+
+        content()
+
+        Spacer(Modifier.weight(1f))
+
+        IrisButtonPrimary(
+            text = buttonLabel,
+            onClick = onNext,
+            enabled = buttonEnabled,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = if (secondaryLabel != null) 0.dp else 48.dp)
+        )
+
         if (secondaryLabel != null && onSecondary != null) {
             Spacer(Modifier.height(12.dp))
-            IrisButtonSecondary(text = secondaryLabel, onClick = onSecondary)
+            IrisButtonSecondary(
+                text = secondaryLabel,
+                onClick = onSecondary,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 48.dp)
+            )
         }
     }
 }
 
-// ---------------------------------------------------------------------------
-// Step 2 — Microphone permission
-// ---------------------------------------------------------------------------
 @Composable
 fun OnboardingMicScreen(onNext: () -> Unit) {
     var permissionDenied by remember { mutableStateOf(false) }
@@ -82,52 +122,49 @@ fun OnboardingMicScreen(onNext: () -> Unit) {
         if (granted) onNext() else permissionDenied = true
     }
 
-    OnboardingStepScreen(
-        title       = "Mikrofon İzni",
+    OnboardingStepLayout(
+        step = 2,
+        icon = Icons.Filled.Mic,
+        title = "Mikrofon İzni",
         description = if (permissionDenied)
-            "Mikrofon izni reddedildi. IRIS'in seni duyabilmesi için izin gerekli."
+            "Mikrofon izni reddedildi.\nIRIS'in seni duyabilmesi için izin gerekli."
         else
-            "IRIS'in seni duyabilmesi için mikrofon iznine ihtiyacımız var.",
+            "IRIS'in seni duyabilmesi için\nmikrofon iznine ihtiyacımız var.",
         buttonLabel = "İzin Ver",
-        onNext      = { launcher.launch(Manifest.permission.RECORD_AUDIO) },
+        onNext = { launcher.launch(Manifest.permission.RECORD_AUDIO) },
         secondaryLabel = if (permissionDenied) "Atla" else null,
-        onSecondary    = if (permissionDenied) onNext else null
+        onSecondary = if (permissionDenied) onNext else null
     )
 }
 
-// ---------------------------------------------------------------------------
-// Step 3 — Wake word test (placeholder — full impl Phase 2 wake word)
-// ---------------------------------------------------------------------------
 @Composable
 fun OnboardingWakeWordScreen(onNext: () -> Unit) {
-    OnboardingStepScreen(
-        title       = "\"Hey IRIS\"",
-        description = "Beni uyandırmak için \"Hey IRIS\" de. Wake word aktivasyonu Phase 2'de eklenecek.",
+    OnboardingStepLayout(
+        step = 3,
+        icon = Icons.Filled.VolumeUp,
+        title = "\"Hey IRIS\"",
+        description = "Beni uyandırmak için \"Hey IRIS\" de.\nWake word desteği yakında eklenecek.",
         buttonLabel = "Devam",
-        onNext      = onNext
+        onNext = onNext
     )
 }
 
-// ---------------------------------------------------------------------------
-// Step 4 — Quick demo
-// ---------------------------------------------------------------------------
 @Composable
 fun OnboardingDemoScreen(onNext: () -> Unit) {
-    OnboardingStepScreen(
-        title       = "Hazır!",
-        description = "Ana ekranda 🎤 butonuna bas ve bir şey sor. Örneğin: \"Bugün hava nasıl?\"",
+    OnboardingStepLayout(
+        step = 4,
+        icon = Icons.Filled.PlayArrow,
+        title = "Hazır!",
+        description = "Ana ekranda 🎤 butonuna bas ve bir şey sor.\nÖrneğin: \"Bugün hava nasıl?\"",
         buttonLabel = "Devam",
-        onNext      = onNext
+        onNext = onNext
     )
 }
 
-// ---------------------------------------------------------------------------
-// Step 5 — Battery optimization + onboarding complete
-// ---------------------------------------------------------------------------
 @Composable
 fun OnboardingBatteryScreen(
-    onFinish : () -> Unit,
-    viewModel: OnboardingViewModel = hiltViewModel()
+    onFinish: () -> Unit,
+    viewModel: OnboardingViewModel
 ) {
     val context = LocalContext.current
 
@@ -136,12 +173,14 @@ fun OnboardingBatteryScreen(
             ?.isIgnoringBatteryOptimizations(context.packageName) == true
     }
 
-    OnboardingStepScreen(
-        title       = "Arka Plan İzni",
+    OnboardingStepLayout(
+        step = 5,
+        icon = Icons.Filled.BatteryChargingFull,
+        title = "Arka Plan İzni",
         description = if (isIgnoringBatteryOptimizations)
-            "Pil optimizasyonu zaten devre dışı. Hazırsın!"
+            "Pil optimizasyonu zaten devre dışı.\nHazırsın!"
         else
-            "IRIS'in arka planda çalışabilmesi için pil optimizasyonunu devre dışı bırak.",
+            "IRIS'in arka planda çalışabilmesi için\npil optimizasyonunu devre dışı bırak.",
         buttonLabel = if (isIgnoringBatteryOptimizations) "Başla!" else "Ayarlara Git",
         onNext = {
             if (!isIgnoringBatteryOptimizations) {
@@ -154,7 +193,7 @@ fun OnboardingBatteryScreen(
             onFinish()
         },
         secondaryLabel = if (!isIgnoringBatteryOptimizations) "Atla" else null,
-        onSecondary    = if (!isIgnoringBatteryOptimizations) {
+        onSecondary = if (!isIgnoringBatteryOptimizations) {
             {
                 viewModel.onOnboardingCompleted()
                 onFinish()
