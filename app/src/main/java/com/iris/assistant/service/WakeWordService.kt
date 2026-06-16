@@ -80,13 +80,13 @@ class WakeWordService : Service() {
 
         Log.d(TAG, "startDetection: creating WakeWordEngine")
 
-        val models = listOf(
+        val models = Constants.WAKE_WORD_MODELS.map { entry ->
             WakeWordModel(
-                name      = Constants.WAKE_WORD_MODEL_NAME,
-                modelPath = Constants.WAKE_WORD_MODEL_FILE,
-                threshold = Constants.WAKE_WORD_THRESHOLD
+                name      = entry.name,
+                modelPath = entry.file,
+                threshold = entry.threshold,
             )
-        )
+        }
 
         engine = WakeWordEngine(
             context             = applicationContext,
