@@ -1,5 +1,10 @@
 package com.iris.assistant.ui.navigation
 
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -18,6 +23,8 @@ import com.iris.assistant.ui.onboarding.OnboardingWakeWordScreen
 import com.iris.assistant.ui.onboarding.OnboardingWelcomeScreen
 import com.iris.assistant.ui.settings.SettingsScreen
 
+private const val ANIM_DURATION = 300
+
 @Composable
 fun IrisNavGraph(
     navController: NavHostController = rememberNavController(),
@@ -30,36 +37,68 @@ fun IrisNavGraph(
         startDestination = startDestination
     ) {
         // --- Onboarding ---
-        composable(NavRoute.OnboardingWelcome.route) {
+        composable(
+            route          = NavRoute.OnboardingWelcome.route,
+            enterTransition = { fadeIn(tween(ANIM_DURATION)) + slideInHorizontally(tween(ANIM_DURATION)) },
+            exitTransition  = { fadeOut(tween(ANIM_DURATION)) + slideOutHorizontally(tween(ANIM_DURATION)) { -it / 4 } }
+        ) {
             val userName by onboardingViewModel.userName.collectAsStateWithLifecycle()
             OnboardingWelcomeScreen(
-                userName        = userName,
-                onUserNameChange = onboardingViewModel::setUserName,
-                onNext           = { navController.navigate(NavRoute.OnboardingMic.route) }
+                userName         = userName,
+                onUserNameChange  = onboardingViewModel::setUserName,
+                onNext            = { navController.navigate(NavRoute.OnboardingMic.route) }
             )
         }
-        composable(NavRoute.OnboardingMic.route) {
+        composable(
+            route            = NavRoute.OnboardingMic.route,
+            enterTransition  = { slideInHorizontally(tween(ANIM_DURATION)) + fadeIn(tween(ANIM_DURATION)) },
+            exitTransition   = { slideOutHorizontally(tween(ANIM_DURATION)) { -it / 4 } + fadeOut(tween(ANIM_DURATION)) },
+            popEnterTransition = { slideInHorizontally(tween(ANIM_DURATION)) { -it / 4 } + fadeIn(tween(ANIM_DURATION)) },
+            popExitTransition   = { slideOutHorizontally(tween(ANIM_DURATION)) + fadeOut(tween(ANIM_DURATION)) }
+        ) {
             OnboardingMicScreen(
-                onNext = { navController.navigate(NavRoute.OnboardingWakeWord.route) }
+                onNext   = { navController.navigate(NavRoute.OnboardingWakeWord.route) },
+                onBack   = { navController.popBackStack() }
             )
         }
-        composable(NavRoute.OnboardingWakeWord.route) {
+        composable(
+            route            = NavRoute.OnboardingWakeWord.route,
+            enterTransition  = { slideInHorizontally(tween(ANIM_DURATION)) + fadeIn(tween(ANIM_DURATION)) },
+            exitTransition   = { slideOutHorizontally(tween(ANIM_DURATION)) { -it / 4 } + fadeOut(tween(ANIM_DURATION)) },
+            popEnterTransition = { slideInHorizontally(tween(ANIM_DURATION)) { -it / 4 } + fadeIn(tween(ANIM_DURATION)) },
+            popExitTransition   = { slideOutHorizontally(tween(ANIM_DURATION)) + fadeOut(tween(ANIM_DURATION)) }
+        ) {
             OnboardingWakeWordScreen(
-                onNext = { navController.navigate(NavRoute.OnboardingDemo.route) }
+                onNext = { navController.navigate(NavRoute.OnboardingDemo.route) },
+                onBack = { navController.popBackStack() }
             )
         }
-        composable(NavRoute.OnboardingDemo.route) {
+        composable(
+            route            = NavRoute.OnboardingDemo.route,
+            enterTransition  = { slideInHorizontally(tween(ANIM_DURATION)) + fadeIn(tween(ANIM_DURATION)) },
+            exitTransition   = { slideOutHorizontally(tween(ANIM_DURATION)) { -it / 4 } + fadeOut(tween(ANIM_DURATION)) },
+            popEnterTransition = { slideInHorizontally(tween(ANIM_DURATION)) { -it / 4 } + fadeIn(tween(ANIM_DURATION)) },
+            popExitTransition   = { slideOutHorizontally(tween(ANIM_DURATION)) + fadeOut(tween(ANIM_DURATION)) }
+        ) {
             OnboardingDemoScreen(
-                onNext = { navController.navigate(NavRoute.OnboardingBattery.route) }
+                onNext = { navController.navigate(NavRoute.OnboardingBattery.route) },
+                onBack = { navController.popBackStack() }
             )
         }
-        composable(NavRoute.OnboardingBattery.route) {
+        composable(
+            route            = NavRoute.OnboardingBattery.route,
+            enterTransition  = { slideInHorizontally(tween(ANIM_DURATION)) + fadeIn(tween(ANIM_DURATION)) },
+            exitTransition   = { slideOutHorizontally(tween(ANIM_DURATION)) { -it / 4 } + fadeOut(tween(ANIM_DURATION)) },
+            popEnterTransition = { slideInHorizontally(tween(ANIM_DURATION)) { -it / 4 } + fadeIn(tween(ANIM_DURATION)) },
+            popExitTransition   = { slideOutHorizontally(tween(ANIM_DURATION)) + fadeOut(tween(ANIM_DURATION)) }
+        ) {
             OnboardingBatteryScreen(
                 onFinish = {
                     navController.navigate(NavRoute.Home.route) {
                         popUpTo(NavRoute.OnboardingWelcome.route) { inclusive = true }
                     }
                 },
+                onBack   = { navController.popBackStack() },
                 viewModel = onboardingViewModel
             )
         }

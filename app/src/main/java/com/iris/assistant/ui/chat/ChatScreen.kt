@@ -119,32 +119,60 @@ fun ChatScreen(
                 )
             )
         }
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .imePadding()
-        ) {
-            // --- Message list ---
-            LazyColumn(
-                modifier  = Modifier.weight(1f),
-                state     = listState
+        ) { innerPadding ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .imePadding()
             ) {
-                items(
-                    items = uiState.messages,
-                    key   = { it.id }
-                ) { message ->
-                    MessageBubble(message = message)
-                }
+                // --- Message list or empty state ---
+                if (uiState.messages.isEmpty() && !uiState.isLoading) {
+                    Box(
+                        modifier    = Modifier.weight(1f),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(
+                                imageVector        = PhIcons.Regular.ChatDots,
+                                contentDescription = null,
+                                modifier           = Modifier.size(64.dp),
+                                tint               = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                            )
+                            Spacer(Modifier.height(16.dp))
+                            Text(
+                                text  = "Henüz mesaj yok",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                            )
+                            Spacer(Modifier.height(4.dp))
+                            Text(
+                                text  = "Bir şey sorarak başla",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                            )
+                        }
+                    }
+                } else {
+                    LazyColumn(
+                        modifier  = Modifier.weight(1f),
+                        state     = listState
+                    ) {
+                        items(
+                            items = uiState.messages,
+                            key   = { it.id }
+                        ) { message ->
+                            MessageBubble(message = message)
+                        }
 
-                // Typing indicator
-                if (uiState.isLoading) {
-                    item {
-                        TypingIndicator()
+                        // Typing indicator
+                        if (uiState.isLoading) {
+                            item {
+                                TypingIndicator()
+                            }
+                        }
                     }
                 }
-            }
 
             // --- Permission request dialog ---
             val permissionRequest = uiState.permissionRequest

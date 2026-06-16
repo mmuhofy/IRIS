@@ -7,18 +7,22 @@ import android.os.PowerManager
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import com.phosphor.icons.PhIcons
 import com.phosphor.icons.regular.*
 import com.phosphor.icons.filled.*
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -45,6 +49,7 @@ private fun OnboardingStepLayout(
     description: String,
     buttonLabel: String,
     onNext: () -> Unit,
+    onBack: (() -> Unit)? = null,
     buttonEnabled: Boolean = true,
     secondaryLabel: String? = null,
     onSecondary: (() -> Unit)? = null,
@@ -56,7 +61,28 @@ private fun OnboardingStepLayout(
             .padding(horizontal = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        StepIndicator(currentStep = step, totalSteps = 5)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            if (onBack != null) {
+                IconButton(onClick = onBack) {
+                    Icon(
+                        imageVector = PhIcons.Regular.ArrowLeft,
+                        contentDescription = "Geri",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            } else {
+                Spacer(Modifier.size(48.dp))
+            }
+            Spacer(Modifier.weight(1f))
+            StepIndicator(currentStep = step, totalSteps = 5)
+            Spacer(Modifier.weight(1f))
+            Spacer(Modifier.size(48.dp))
+        }
 
         Spacer(Modifier.weight(1f))
 
@@ -112,7 +138,10 @@ private fun OnboardingStepLayout(
 }
 
 @Composable
-fun OnboardingMicScreen(onNext: () -> Unit) {
+fun OnboardingMicScreen(
+    onNext: () -> Unit,
+    onBack: () -> Unit
+) {
     var permissionDenied by remember { mutableStateOf(false) }
 
     val launcher = rememberLauncherForActivityResult(
@@ -131,38 +160,48 @@ fun OnboardingMicScreen(onNext: () -> Unit) {
             "IRIS'in seni duyabilmesi için\nmikrofon iznine ihtiyacımız var.",
         buttonLabel = "İzin Ver",
         onNext = { launcher.launch(Manifest.permission.RECORD_AUDIO) },
+        onBack = onBack,
         secondaryLabel = if (permissionDenied) "Atla" else null,
         onSecondary = if (permissionDenied) onNext else null
     )
 }
 
 @Composable
-fun OnboardingWakeWordScreen(onNext: () -> Unit) {
+fun OnboardingWakeWordScreen(
+    onNext: () -> Unit,
+    onBack: () -> Unit
+) {
     OnboardingStepLayout(
         step = 3,
         icon = PhIcons.Filled.SpeakerHighFill,
         title = "\"Hey IRIS\"",
         description = "Beni uyandırmak için \"Hey IRIS\" de.\nWake word desteği yakında eklenecek.",
         buttonLabel = "Devam",
-        onNext = onNext
+        onNext = onNext,
+        onBack = onBack
     )
 }
 
 @Composable
-fun OnboardingDemoScreen(onNext: () -> Unit) {
+fun OnboardingDemoScreen(
+    onNext: () -> Unit,
+    onBack: () -> Unit
+) {
     OnboardingStepLayout(
         step = 4,
         icon = PhIcons.Filled.PlayFill,
         title = "Hazır!",
         description = "Ana ekranda 🎤 butonuna bas ve bir şey sor.\nÖrneğin: \"Bugün hava nasıl?\"",
         buttonLabel = "Devam",
-        onNext = onNext
+        onNext = onNext,
+        onBack = onBack
     )
 }
 
 @Composable
 fun OnboardingBatteryScreen(
     onFinish: () -> Unit,
+    onBack: () -> Unit,
     viewModel: OnboardingViewModel
 ) {
     val context = LocalContext.current
@@ -191,6 +230,7 @@ fun OnboardingBatteryScreen(
             viewModel.onOnboardingCompleted()
             onFinish()
         },
+        onBack = onBack,
         secondaryLabel = if (!isIgnoringBatteryOptimizations) "Atla" else null,
         onSecondary = if (!isIgnoringBatteryOptimizations) {
             {
