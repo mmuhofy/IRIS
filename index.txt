@@ -1,8 +1,9 @@
 # Project Index & History: Iris
-> Generated at Commit/Time: 8efee54
+> Generated at Commit/Time: d37afda
 
 ## Recent Commit History
 ```text
+d37afda feat(wakeword): load both hey_jarvis and hey_iris models for testing
 8efee54 fix(wakeword): prevent service crash and retune model training params
 1d95494 feat(wakeword): add scustom trained wake-word
 fe2075c fix(tools): rewrite train_hey_iris.ipynb with working 2026 pipeline
@@ -12,139 +13,138 @@ a0039d2 feat(wakeword): fix service bugs, rename model to hey_iris, add onboardi
 b45b1a0 feat(ui): add onboarding animations, back nav, and chat empty state
 b741c93 fix(domain): remove groq fallback stub from send message use case
 8106f17 refactor(ui): enlarge iris core to 320dp and modernize settings screen
-b01b9a7 feat(ui): migrate from material-icons-extended to Phosphor Icons
 ```
 
 ## .github/
 
-https://raw.githubusercontent.com/mmuhofy/Iris/main/.github/workflows/ci.yml?v=8efee54
+https://raw.githubusercontent.com/mmuhofy/Iris/main/.github/workflows/ci.yml?v=d37afda
 
 ## app/
 
-https://raw.githubusercontent.com/mmuhofy/Iris/main/app/build.gradle.kts?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/app/proguard-rules.pro?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/AndroidManifest.xml?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/assets/embedding_model.onnx?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/assets/hey_iris.onnx?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/assets/hey_jarvis.onnx?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/assets/melspectrogram.onnx?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/IrisApplication.kt?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/data/audio/AudioRecorder.kt?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/data/local/datastore/.gitkeep?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/data/local/datastore/PreferencesRepository.kt?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/data/local/datastore/UserPreferences.kt?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/data/local/db/.gitkeep?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/data/local/db/ConversationRepositoryImpl.kt?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/data/local/db/IrisDatabase.kt?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/data/local/db/MessageEntity.kt?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/data/local/db/dao/MessageDao.kt?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/data/remote/gemini/.gitkeep?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/data/remote/gemini/GeminiRepository.kt?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/data/remote/groq/.gitkeep?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/data/remote/groq/GroqLlmRepository.kt?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/data/remote/groq/WhisperRepository.kt?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/data/remote/tts/.gitkeep?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/data/remote/tts/AndroidTtsClient.kt?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/data/remote/tts/GeminiTtsClient.kt?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/data/remote/tts/TtsProvider.kt?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/data/tools/system/SystemTools.kt?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/di/.gitkeep?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/di/DatabaseModule.kt?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/di/LlmQualifiers.kt?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/di/NetworkModule.kt?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/di/RepositoryModule.kt?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/di/ToolsModule.kt?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/di/TtsModule.kt?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/domain/model/.gitkeep?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/domain/model/ChatMessage.kt?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/domain/model/IrisException.kt?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/domain/model/SystemPrompt.kt?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/domain/model/TtsVoice.kt?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/domain/repository/.gitkeep?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/domain/repository/ConversationRepository.kt?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/domain/repository/LlmRepository.kt?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/domain/repository/SttRepository.kt?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/domain/tools/.gitkeep?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/domain/tools/BuiltinTools.kt?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/domain/tools/JarvisTool.kt?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/domain/tools/ToolRegistry.kt?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/domain/tools/ToolResult.kt?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/domain/usecase/.gitkeep?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/domain/usecase/SendMessageUseCase.kt?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/domain/usecase/TranscribeAudioUseCase.kt?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/service/.gitkeep?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/service/WakeWordService.kt?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/ui/IrisApp.kt?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/ui/MainActivity.kt?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/ui/chat/.gitkeep?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/ui/chat/ChatScreen.kt?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/ui/chat/ChatViewModel.kt?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/ui/chat/MessageBubble.kt?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/ui/components/.gitkeep?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/ui/components/IrisButton.kt?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/ui/components/IrisCard.kt?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/ui/home/.gitkeep?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/ui/home/HomeScreen.kt?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/ui/home/HomeViewModel.kt?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/ui/home/IrisCoreAnimation.kt?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/ui/home/IrisCoreState.kt?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/ui/navigation/IrisNavGraph.kt?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/ui/navigation/NavRoute.kt?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/ui/onboarding/.gitkeep?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/ui/onboarding/OnboardingStepScreen.kt?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/ui/onboarding/OnboardingViewModel.kt?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/ui/onboarding/OnboardingWelcomeScreen.kt?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/ui/settings/.gitkeep?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/ui/settings/SettingsScreen.kt?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/ui/settings/SettingsViewModel.kt?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/ui/theme/Color.kt?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/ui/theme/Theme.kt?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/ui/theme/Type.kt?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/util/Constants.kt?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/res/drawable-v24/ic_launcher_foreground.xml?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/res/drawable/ic_launcher_background.xml?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/res/mipmap-hdpi/ic_launcher.webp?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/res/mipmap-hdpi/ic_launcher_round.webp?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/res/mipmap-mdpi/ic_launcher.webp?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/res/mipmap-mdpi/ic_launcher_round.webp?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/res/mipmap-xhdpi/ic_launcher.webp?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/res/mipmap-xhdpi/ic_launcher_round.webp?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/res/mipmap-xxhdpi/ic_launcher.webp?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/res/mipmap-xxhdpi/ic_launcher_round.webp?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/res/mipmap-xxxhdpi/ic_launcher.webp?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.webp?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/res/values/colors.xml?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/res/values/strings.xml?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/res/values/themes.xml?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/res/xml/backup_rules.xml?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/res/xml/data_extraction_rules.xml?v=8efee54
+https://raw.githubusercontent.com/mmuhofy/Iris/main/app/build.gradle.kts?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/app/proguard-rules.pro?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/AndroidManifest.xml?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/assets/embedding_model.onnx?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/assets/hey_iris.onnx?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/assets/hey_jarvis.onnx?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/assets/melspectrogram.onnx?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/IrisApplication.kt?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/data/audio/AudioRecorder.kt?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/data/local/datastore/.gitkeep?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/data/local/datastore/PreferencesRepository.kt?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/data/local/datastore/UserPreferences.kt?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/data/local/db/.gitkeep?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/data/local/db/ConversationRepositoryImpl.kt?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/data/local/db/IrisDatabase.kt?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/data/local/db/MessageEntity.kt?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/data/local/db/dao/MessageDao.kt?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/data/remote/gemini/.gitkeep?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/data/remote/gemini/GeminiRepository.kt?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/data/remote/groq/.gitkeep?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/data/remote/groq/GroqLlmRepository.kt?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/data/remote/groq/WhisperRepository.kt?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/data/remote/tts/.gitkeep?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/data/remote/tts/AndroidTtsClient.kt?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/data/remote/tts/GeminiTtsClient.kt?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/data/remote/tts/TtsProvider.kt?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/data/tools/system/SystemTools.kt?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/di/.gitkeep?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/di/DatabaseModule.kt?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/di/LlmQualifiers.kt?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/di/NetworkModule.kt?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/di/RepositoryModule.kt?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/di/ToolsModule.kt?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/di/TtsModule.kt?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/domain/model/.gitkeep?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/domain/model/ChatMessage.kt?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/domain/model/IrisException.kt?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/domain/model/SystemPrompt.kt?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/domain/model/TtsVoice.kt?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/domain/repository/.gitkeep?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/domain/repository/ConversationRepository.kt?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/domain/repository/LlmRepository.kt?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/domain/repository/SttRepository.kt?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/domain/tools/.gitkeep?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/domain/tools/BuiltinTools.kt?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/domain/tools/JarvisTool.kt?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/domain/tools/ToolRegistry.kt?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/domain/tools/ToolResult.kt?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/domain/usecase/.gitkeep?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/domain/usecase/SendMessageUseCase.kt?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/domain/usecase/TranscribeAudioUseCase.kt?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/service/.gitkeep?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/service/WakeWordService.kt?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/ui/IrisApp.kt?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/ui/MainActivity.kt?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/ui/chat/.gitkeep?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/ui/chat/ChatScreen.kt?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/ui/chat/ChatViewModel.kt?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/ui/chat/MessageBubble.kt?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/ui/components/.gitkeep?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/ui/components/IrisButton.kt?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/ui/components/IrisCard.kt?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/ui/home/.gitkeep?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/ui/home/HomeScreen.kt?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/ui/home/HomeViewModel.kt?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/ui/home/IrisCoreAnimation.kt?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/ui/home/IrisCoreState.kt?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/ui/navigation/IrisNavGraph.kt?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/ui/navigation/NavRoute.kt?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/ui/onboarding/.gitkeep?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/ui/onboarding/OnboardingStepScreen.kt?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/ui/onboarding/OnboardingViewModel.kt?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/ui/onboarding/OnboardingWelcomeScreen.kt?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/ui/settings/.gitkeep?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/ui/settings/SettingsScreen.kt?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/ui/settings/SettingsViewModel.kt?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/ui/theme/Color.kt?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/ui/theme/Theme.kt?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/ui/theme/Type.kt?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/java/com/iris/assistant/util/Constants.kt?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/res/drawable-v24/ic_launcher_foreground.xml?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/res/drawable/ic_launcher_background.xml?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/res/mipmap-hdpi/ic_launcher.webp?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/res/mipmap-hdpi/ic_launcher_round.webp?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/res/mipmap-mdpi/ic_launcher.webp?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/res/mipmap-mdpi/ic_launcher_round.webp?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/res/mipmap-xhdpi/ic_launcher.webp?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/res/mipmap-xhdpi/ic_launcher_round.webp?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/res/mipmap-xxhdpi/ic_launcher.webp?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/res/mipmap-xxhdpi/ic_launcher_round.webp?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/res/mipmap-xxxhdpi/ic_launcher.webp?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.webp?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/res/values/colors.xml?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/res/values/strings.xml?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/res/values/themes.xml?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/res/xml/backup_rules.xml?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/app/src/main/res/xml/data_extraction_rules.xml?v=d37afda
 
 ## docs/
 
-https://raw.githubusercontent.com/mmuhofy/Iris/main/docs/AGENT.md?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/docs/MEMORYBANK.md?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/docs/TODO.md?v=8efee54
+https://raw.githubusercontent.com/mmuhofy/Iris/main/docs/AGENT.md?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/docs/MEMORYBANK.md?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/docs/TODO.md?v=d37afda
 
 ## gradle/
 
-https://raw.githubusercontent.com/mmuhofy/Iris/main/gradle/libs.versions.toml?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/gradle/wrapper/gradle-wrapper.jar?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/gradle/wrapper/gradle-wrapper.properties?v=8efee54
+https://raw.githubusercontent.com/mmuhofy/Iris/main/gradle/libs.versions.toml?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/gradle/wrapper/gradle-wrapper.jar?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/gradle/wrapper/gradle-wrapper.properties?v=d37afda
 
 ## root/
 
-https://raw.githubusercontent.com/mmuhofy/Iris/main/.gitignore?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/build.gradle.kts?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/gradle.properties?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/gradlew?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/gradlew.bat?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/settings.gradle.kts?v=8efee54
+https://raw.githubusercontent.com/mmuhofy/Iris/main/.gitignore?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/build.gradle.kts?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/gradle.properties?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/gradlew?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/gradlew.bat?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/settings.gradle.kts?v=d37afda
 
 ## tools/
 
-https://raw.githubusercontent.com/mmuhofy/Iris/main/tools/Concept.html?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/tools/IrisAnimConceptsPreview.html?v=8efee54
-https://raw.githubusercontent.com/mmuhofy/Iris/main/tools/train_hey_iris.ipynb?v=8efee54
+https://raw.githubusercontent.com/mmuhofy/Iris/main/tools/Concept.html?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/tools/IrisAnimConceptsPreview.html?v=d37afda
+https://raw.githubusercontent.com/mmuhofy/Iris/main/tools/train_hey_iris.ipynb?v=d37afda
 
