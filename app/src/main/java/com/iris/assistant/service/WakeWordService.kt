@@ -42,6 +42,7 @@ class WakeWordService : Service() {
     private var detectionJob: Job? = null
     private var engine: WakeWordEngine? = null
     private var restartAttempts = 0
+    private var isShuttingDown = false
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -104,14 +105,14 @@ class WakeWordService : Service() {
                 }
             } catch (e: Exception) {
                 Log.w(TAG, "detectionJob failed: ${e.message}")
-                // Release the crashed engine before nulling ref
+                if (isShuttingDown) return@launch
                 currentEngine.release()
                 engine = null
                 restartAttempts++
                 if (restartAttempts <= MAX_RESTART_ATTEMPTS) {
                     Log.d(TAG, "restarting in 500ms (attempt $restartAttempts/$MAX_RESTART_ATTEMPTS)")
                     delay(500L)
-                    if (engine == null) {
+                    if (!isShuttingDown && engine == null) {
                         startDetection()
                     }
                 } else {
@@ -124,8 +125,18 @@ class WakeWordService : Service() {
     }
 
     private fun pauseDetection() {
+        isShuttingDown = true
+
         detectionJob?.cancel()
         detectionJob = null
+
+        // Wait briefly for any in-flight ONNX inference to finish
+        // before closing the session. The library's internal audio
+        // processing runs in the same coroutine chain as our Flow
+        // collection; without this delay, release() closes the
+        // OrtSession while a predictWakeWord call may still be in
+        // progress, causing an IllegalStateException crash.
+        try { Thread.sleep(100) } catch (_: InterruptedException) {}
 
         engine?.release()
         engine = null

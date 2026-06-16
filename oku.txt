@@ -1,0 +1,93 @@
+--------- beginning of main
+06-17 00:00:41.478 23753 23812 D WakeWordEngine: hey_iris - Score: 0,00012, Threshold: 0,30000
+06-17 00:00:41.628 23753 23812 D WakeWordEngine: hey_iris - Score: 0,00009, Threshold: 0,30000
+06-17 00:00:41.765 23753 23856 D WakeWordEngine: hey_iris - Score: 0,00009, Threshold: 0,30000
+06-17 00:00:41.933 23753 23812 D WakeWordEngine: hey_iris - Score: 0,00009, Threshold: 0,30000
+06-17 00:00:42.066 23753 23856 D WakeWordEngine: hey_iris - Score: 0,00009, Threshold: 0,30000
+06-17 00:00:42.170 23753 23856 D WakeWordEngine: hey_iris - Score: 0,00013, Threshold: 0,30000
+06-17 00:00:42.287 23753 23812 D WakeWordEngine: hey_iris - Score: 0,00032, Threshold: 0,30000
+06-17 00:00:42.420 23753 23812 D WakeWordEngine: hey_iris - Score: 0,00048, Threshold: 0,30000
+06-17 00:00:42.536 23753 23812 D WakeWordEngine: hey_iris - Score: 0,00041, Threshold: 0,30000
+06-17 00:00:42.680 23753 23812 D WakeWordEngine: hey_iris - Score: 0,00020, Threshold: 0,30000
+06-17 00:00:42.797 23753 23856 D WakeWordEngine: hey_iris - Score: 0,00016, Threshold: 0,30000
+06-17 00:00:42.921 23753 23811 D WakeWordEngine: hey_iris - Score: 0,00023, Threshold: 0,30000
+06-17 00:00:43.043 23753 23812 D WakeWordEngine: hey_iris - Score: 0,00029, Threshold: 0,30000
+06-17 00:00:43.148 23753 23812 D WakeWordEngine: hey_iris - Score: 0,00012, Threshold: 0,30000
+06-17 00:00:43.265 23753 23856 D WakeWordEngine: hey_iris - Score: 0,00021, Threshold: 0,30000
+06-17 00:00:43.368 23753 23812 D WakeWordEngine: hey_iris - Score: 0,00027, Threshold: 0,30000
+06-17 00:00:43.467 23753 23812 D WakeWordEngine: hey_iris - Score: 0,00022, Threshold: 0,30000
+06-17 00:00:43.586 23753 23812 D WakeWordEngine: hey_iris - Score: 0,00025, Threshold: 0,30000
+06-17 00:00:43.688 23753 23812 D WakeWordEngine: hey_iris - Score: 0,00022, Threshold: 0,30000
+06-17 00:00:43.788 23753 23811 D WakeWordEngine: hey_iris - Score: 0,00009, Threshold: 0,30000
+06-17 00:00:43.887 23753 23812 D WakeWordEngine: hey_iris - Score: 0,00008, Threshold: 0,30000
+06-17 00:00:44.013 23753 23812 D WakeWordEngine: hey_iris - Score: 0,00007, Threshold: 0,30000
+06-17 00:00:44.115 23753 23812 D WakeWordEngine: hey_iris - Score: 0,00006, Threshold: 0,30000
+06-17 00:00:44.208 23753 23812 D WakeWordEngine: hey_iris - Score: 0,00006, Threshold: 0,30000
+06-17 00:00:44.316 23753 23856 D WakeWordEngine: hey_iris - Score: 0,00006, Threshold: 0,30000
+06-17 00:00:44.417 23753 23812 D WakeWordEngine: hey_iris - Score: 0,00005, Threshold: 0,30000
+06-17 00:00:44.530 23753 23812 D WakeWordEngine: hey_iris - Score: 0,00006, Threshold: 0,30000
+06-17 00:00:44.693 23753 23812 D WakeWordEngine: hey_iris - Score: 0,00008, Threshold: 0,30000
+06-17 00:00:44.850 23753 23812 D WakeWordEngine: hey_iris - Score: 0,00008, Threshold: 0,30000
+06-17 00:00:45.083 23753 23812 D WakeWordEngine: hey_iris - Score: 0,00007, Threshold: 0,30000
+06-17 00:00:45.225 23753 23811 D WakeWordEngine: hey_iris - Score: 0,00006, Threshold: 0,30000
+06-17 00:00:45.387 23753 23856 D WakeWordEngine: hey_iris - Score: 0,00006, Threshold: 0,30000
+06-17 00:00:45.631 23753 23856 D WakeWordEngine: hey_iris - Score: 0,00007, Threshold: 0,30000
+06-17 00:00:45.818 23753 23856 D WakeWordEngine: hey_iris - Score: 0,00008, Threshold: 0,30000
+06-17 00:00:45.990 23753 23856 D WakeWordEngine: hey_iris - Score: 0,00007, Threshold: 0,30000
+06-17 00:00:46.072 23753 23856 D WakeWordEngine: hey_iris - Score: 0,00005, Threshold: 0,30000
+06-17 00:00:46.168 23753 23811 D WakeWordEngine: hey_iris - Score: 0,00006, Threshold: 0,30000
+06-17 00:00:46.238 23753 23856 D WakeWordEngine: hey_iris - Score: 0,00006, Threshold: 0,30000
+06-17 00:00:46.314 23753 23811 D WakeWordEngine: hey_iris - Score: 0,00007, Threshold: 0,30000
+06-17 00:00:46.399 23753 23811 D WakeWordEngine: hey_iris - Score: 0,00008, Threshold: 0,30000
+06-17 00:00:46.484 23753 23811 D WakeWordEngine: hey_iris - Score: 0,00009, Threshold: 0,30000
+06-17 00:00:46.568 23753 23856 D WakeWordEngine: hey_iris - Score: 0,00009, Threshold: 0,30000
+06-17 00:00:46.645 23753 23811 D WakeWordEngine: hey_iris - Score: 0,00007, Threshold: 0,30000
+06-17 00:00:46.720 23753 23811 D WakeWordEngine: hey_iris - Score: 0,00007, Threshold: 0,30000
+06-17 00:00:46.804 23753 23856 D WakeWordEngine: hey_iris - Score: 0,00007, Threshold: 0,30000
+06-17 00:00:46.902 23753 23811 D WakeWordEngine: hey_iris - Score: 0,00010, Threshold: 0,30000
+06-17 00:00:46.979 23753 23811 D WakeWordEngine: hey_iris - Score: 0,00018, Threshold: 0,30000
+06-17 00:00:47.059 23753 23811 D WakeWordEngine: hey_iris - Score: 0,00016, Threshold: 0,30000
+06-17 00:00:47.139 23753 23811 D WakeWordEngine: hey_iris - Score: 0,00011, Threshold: 0,30000
+06-17 00:00:47.226 23753 23811 D WakeWordEngine: hey_iris - Score: 0,00008, Threshold: 0,30000
+06-17 00:00:47.305 23753 23811 D WakeWordEngine: hey_iris - Score: 0,00006, Threshold: 0,30000
+06-17 00:00:47.385 23753 23812 D WakeWordEngine: hey_iris - Score: 0,00008, Threshold: 0,30000
+06-17 00:00:47.466 23753 23811 D WakeWordEngine: hey_iris - Score: 0,00012, Threshold: 0,30000
+06-17 00:00:47.548 23753 23856 D WakeWordEngine: hey_iris - Score: 0,00010, Threshold: 0,30000
+06-17 00:00:47.646 23753 23811 D WakeWordEngine: hey_iris - Score: 0,00009, Threshold: 0,30000
+06-17 00:00:47.724 23753 23856 D WakeWordEngine: hey_iris - Score: 0,00006, Threshold: 0,30000
+06-17 00:00:47.806 23753 23856 D WakeWordEngine: hey_iris - Score: 0,00006, Threshold: 0,30000
+06-17 00:00:47.901 23753 23812 D WakeWordEngine: hey_iris - Score: 0,00005, Threshold: 0,30000
+06-17 00:00:47.985 23753 23811 D WakeWordEngine: hey_iris - Score: 0,00006, Threshold: 0,30000
+06-17 00:00:48.061 23753 23812 D WakeWordEngine: hey_iris - Score: 0,00007, Threshold: 0,30000
+06-17 00:00:48.138 23753 23811 D WakeWordEngine: hey_iris - Score: 0,00007, Threshold: 0,30000
+06-17 00:00:48.223 23753 23811 D WakeWordEngine: hey_iris - Score: 0,00007, Threshold: 0,30000
+06-17 00:00:48.313 23753 23811 D WakeWordEngine: hey_iris - Score: 0,00007, Threshold: 0,30000
+06-17 00:00:48.425 23753 23812 D WakeWordEngine: hey_iris - Score: 0,00007, Threshold: 0,30000
+06-17 00:00:48.537 23753 23812 D WakeWordEngine: hey_iris - Score: 0,00007, Threshold: 0,30000
+06-17 00:00:48.643 23753 23811 D WakeWordEngine: hey_iris - Score: 0,00006, Threshold: 0,30000
+06-17 00:00:48.729 23753 23812 D WakeWordEngine: hey_iris - Score: 0,00005, Threshold: 0,30000
+06-17 00:00:48.832 23753 23811 D WakeWordEngine: hey_iris - Score: 0,00005, Threshold: 0,30000
+06-17 00:00:48.938 23753 23811 D WakeWordEngine: hey_iris - Score: 0,00006, Threshold: 0,30000
+06-17 00:00:49.042 23753 23812 D WakeWordEngine: hey_iris - Score: 0,00006, Threshold: 0,30000
+06-17 00:00:49.157 23753 23812 D WakeWordEngine: hey_iris - Score: 0,00006, Threshold: 0,30000
+06-17 00:00:49.329 23753 23812 D WakeWordEngine: hey_iris - Score: 0,00006, Threshold: 0,30000
+
+
+bu arada hazıra geldiğinde devama basınca uygulama çöküyor böyle hata:
+
+06-17 00:01:09.143 23753 23812 E WakeWordEngine: Error processing model hey_iris
+06-17 00:01:09.143 23753 23812 E WakeWordEngine: java.lang.RuntimeException: Failed to run inference
+06-17 00:01:09.143 23753 23812 E WakeWordEngine:    at com.rementia.openwakeword.lib.ml.OnnxModelRunner.predictWakeWord(OnnxModelRunner.kt:57)
+06-17 00:01:09.143 23753 23812 E WakeWordEngine:    at com.rementia.openwakeword.lib.audio.AudioProcessor.predictWakeWord(AudioProcessor.kt:55)
+06-17 00:01:09.143 23753 23812 E WakeWordEngine:    at com.rementia.openwakeword.lib.WakeWordEngine$ModelProcessor.process(WakeWordEngine.kt:337)
+06-17 00:01:09.143 23753 23812 E WakeWordEngine:    at com.rementia.openwakeword.lib.WakeWordEngine$start$2$1$detectionResults$1$1.invokeSuspend(WakeWordEngine.kt:191)
+06-17 00:01:09.143 23753 23812 E WakeWordEngine:    at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:34)
+06-17 00:01:09.143 23753 23812 E WakeWordEngine:    at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:100)
+06-17 00:01:09.143 23753 23812 E WakeWordEngine:    at kotlinx.coroutines.scheduling.CoroutineScheduler.runSafely(CoroutineScheduler.kt:586)
+06-17 00:01:09.143 23753 23812 E WakeWordEngine:    at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.executeTask(CoroutineScheduler.kt:829)
+06-17 00:01:09.143 23753 23812 E WakeWordEngine:    at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.runWorker(CoroutineScheduler.kt:717)
+06-17 00:01:09.143 23753 23812 E WakeWordEngine:    at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.run(CoroutineScheduler.kt:704)
+06-17 00:01:09.143 23753 23812 E WakeWordEngine: Caused by: java.lang.IllegalStateException: Asking for inputs from a closed OrtSession.
+06-17 00:01:09.143 23753 23812 E WakeWordEngine:    at ai.onnxruntime.OrtSession.getInputNames(OrtSession.java:152)
+06-17 00:01:09.143 23753 23812 E WakeWordEngine:    at com.rementia.openwakeword.lib.ml.OnnxModelRunner.predictWakeWord(OnnxModelRunner.kt:50)
+06-17 00:01:09.143 23753 23812 E WakeWordEngine:    ... 9 more
