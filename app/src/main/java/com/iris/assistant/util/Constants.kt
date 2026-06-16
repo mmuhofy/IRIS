@@ -60,8 +60,8 @@ object Constants {
     // 150ms is conservative; tune down if latency is noticeable.
     const val WAKE_WORD_PAUSE_DELAY_MS = 150L
 
-    const val WAKE_WORD_MODEL_NAME    = "hey_jarvis"
-    const val WAKE_WORD_MODEL_FILE    = "hey_jarvis.onnx"
+    const val WAKE_WORD_MODEL_NAME    = "hey_iris"
+    const val WAKE_WORD_MODEL_FILE    = "hey_iris.onnx"
     const val WAKE_WORD_THRESHOLD     = 0.3f
     const val WAKE_WORD_COOLDOWN_MS   = 1500L
 

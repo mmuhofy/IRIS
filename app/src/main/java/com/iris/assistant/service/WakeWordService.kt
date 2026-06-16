@@ -21,68 +21,27 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-/**
- * Foreground service for continuous wake word detection using openWakeWord.
- *
- * Library: xyz.rementia:openwakeword:0.1.5
- * Source verified: https://github.com/Re-MENTIA/openwakeword-android-kt
- *
- * Verified imports:
- *   WakeWordEngine   → com.rementia.openwakeword.lib.WakeWordEngine
- *   WakeWordModel    → com.rementia.openwakeword.lib.model.WakeWordModel
- *   DetectionMode    → com.rementia.openwakeword.lib.model.DetectionMode
- *
- * Verified API:
- *   WakeWordModel(name, modelPath, threshold)
- *   WakeWordEngine(context, models, detectionMode, detectionCooldownMs)
- *   engine.start()    — opens AudioRecord, begins detection
- *   engine.release()  — stops AudioRecord, frees resources
- *   engine.detections — SharedFlow<WakeWordDetection>
- *   detection.model.name, detection.score
- *
- * Mic lifecycle — prevents dual AudioRecord conflict:
- *   ACTION_PAUSE  → cancels detectionJob + releases engine (frees AudioRecord)
- *   ACTION_RESUME → recreates engine + starts new detectionJob
- *
- * Bug fixes vs previous version:
- *   1. detectionJob tracked separately — cancelled on PAUSE, prevents stale collect loops
- *   2. START_NOT_STICKY used — prevents zombie restart after PAUSE-induced stop
- *      (START_STICKY would restart with null intent → no-op → engine never restarts)
- *   3. engine null-check in startDetection() guards against double-start
- */
 @AndroidEntryPoint
 class WakeWordService : Service() {
 
     companion object {
         private const val TAG = "WakeWordService"
+        private const val MAX_RESTART_ATTEMPTS = 3
 
         const val ACTION_WAKE_WORD_DETECTED = "com.iris.assistant.WAKE_WORD_DETECTED"
         const val ACTION_START              = "com.iris.assistant.wake_word.START"
         const val ACTION_STOP               = "com.iris.assistant.wake_word.STOP"
-
-        /**
-         * Pause detection — cancels collection job and releases AudioRecord.
-         * Voice pipeline calls this before opening its own AudioRecorder.
-         */
         const val ACTION_PAUSE              = "com.iris.assistant.wake_word.PAUSE"
-
-        /**
-         * Resume detection — recreates engine and starts fresh collection job.
-         * Voice pipeline calls this after TTS completes and AudioRecorder is released.
-         */
         const val ACTION_RESUME             = "com.iris.assistant.wake_word.RESUME"
     }
 
-    // Service-lifetime scope — cancelled only in onDestroy()
     private val serviceScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
-
-    // Detection collection job — cancelled on PAUSE, replaced on RESUME
-    // Tracked separately so cancel() only stops collection, not the whole serviceScope
     private var detectionJob: Job? = null
-
     private var engine: WakeWordEngine? = null
+    private var restartAttempts = 0
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -98,28 +57,21 @@ class WakeWordService : Service() {
         when (intent?.action) {
             ACTION_START  -> startDetection()
             ACTION_PAUSE  -> pauseDetection()
-            ACTION_RESUME -> startDetection() // same as START — engine always fully recreated
+            ACTION_RESUME -> startDetection()
             ACTION_STOP   -> stopSelf()
-            else          -> Log.w(TAG, "onStartCommand: unknown or null action — ignoring")
+            else          -> Log.w(TAG, "onStartCommand: unknown action — ignoring")
         }
-        // NOT_STICKY: if killed by system while paused, do not auto-restart.
-        // HomeViewModel will restart explicitly when needed via ACTION_START/ACTION_RESUME.
         return START_NOT_STICKY
     }
 
     override fun onDestroy() {
-        pauseDetection() // cancel job + release engine
+        pauseDetection()
         serviceScope.cancel()
         Log.d(TAG, "onDestroy")
         super.onDestroy()
     }
 
-    // ---------------------------------------------------------------------------
-    // Detection lifecycle
-    // ---------------------------------------------------------------------------
-
     private fun startDetection() {
-        // Guard: do not create a second engine if already running
         if (engine != null) {
             Log.w(TAG, "startDetection: engine already running — ignoring")
             return
@@ -140,23 +92,30 @@ class WakeWordService : Service() {
             models              = models,
             detectionMode       = DetectionMode.SINGLE_BEST,
             detectionCooldownMs = Constants.WAKE_WORD_COOLDOWN_MS
-        )
+        ).also { it.start() }
 
-        engine?.start()
+        val currentEngine = engine ?: return
 
-        // Launch a new detection job — previous job (if any) was already cancelled in pauseDetection()
         detectionJob = serviceScope.launch {
             try {
-                engine?.detections?.collect { detection ->
+                currentEngine.detections.collect { detection ->
                     Log.d(TAG, "Detected: ${detection.model.name} score=${detection.score}")
                     broadcastDetected()
                 }
             } catch (e: Exception) {
-                Log.w(TAG, "detectionJob: ended (${e.message}) — restarting in 500ms")
+                Log.w(TAG, "detectionJob failed: ${e.message}")
+                // Release the crashed engine before nulling ref
+                currentEngine.release()
                 engine = null
-                kotlinx.coroutines.delay(500L)
-                if (engine == null) {
-                    startDetection()
+                restartAttempts++
+                if (restartAttempts <= MAX_RESTART_ATTEMPTS) {
+                    Log.d(TAG, "restarting in 500ms (attempt $restartAttempts/$MAX_RESTART_ATTEMPTS)")
+                    delay(500L)
+                    if (engine == null) {
+                        startDetection()
+                    }
+                } else {
+                    Log.e(TAG, "max restart attempts ($MAX_RESTART_ATTEMPTS) reached — giving up")
                 }
             }
         }
@@ -164,11 +123,6 @@ class WakeWordService : Service() {
         Log.d(TAG, "startDetection: engine started, detectionJob active")
     }
 
-    /**
-     * Cancels the detection job and releases the engine.
-     * After this call, AudioRecord is fully released and available to AudioRecorder.
-     * Safe to call multiple times (idempotent).
-     */
     private fun pauseDetection() {
         detectionJob?.cancel()
         detectionJob = null
@@ -176,18 +130,16 @@ class WakeWordService : Service() {
         engine?.release()
         engine = null
 
-        Log.d(TAG, "pauseDetection: detectionJob cancelled, engine released")
+        restartAttempts = 0
+
+        Log.d(TAG, "pauseDetection: engine released")
     }
 
     private fun broadcastDetected() {
         sendBroadcast(Intent(ACTION_WAKE_WORD_DETECTED).apply {
-            setPackage(packageName) // local only — package-scoped
+            setPackage(packageName)
         })
     }
-
-    // ---------------------------------------------------------------------------
-    // Notification
-    // ---------------------------------------------------------------------------
 
     private fun createNotificationChannel() {
         val channel = NotificationChannel(

@@ -1,12 +1,21 @@
 package com.iris.assistant.ui.onboarding
 
 import android.Manifest
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.net.Uri
 import android.os.PowerManager
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -18,6 +27,21 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.core.content.getSystemService
 import com.phosphor.icons.PhIcons
 import com.phosphor.icons.regular.*
 import com.phosphor.icons.filled.*
@@ -25,18 +49,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
-import androidx.core.content.getSystemService
+import com.iris.assistant.service.WakeWordService
 import com.iris.assistant.ui.components.IrisButtonPrimary
 import com.iris.assistant.ui.components.IrisButtonSecondary
 import com.iris.assistant.ui.theme.IrisTheme
@@ -166,20 +179,119 @@ fun OnboardingMicScreen(
     )
 }
 
+private enum class WakeWordTestState { IDLE, LISTENING, DETECTED }
+
 @Composable
 fun OnboardingWakeWordScreen(
     onNext: () -> Unit,
     onBack: () -> Unit
 ) {
+    val context = LocalContext.current
+    var testState by remember { mutableStateOf(WakeWordTestState.IDLE) }
+
+    val receiver = remember {
+        object : BroadcastReceiver() {
+            override fun onReceive(context: Context, intent: Intent) {
+                if (intent.action == WakeWordService.ACTION_WAKE_WORD_DETECTED) {
+                    testState = WakeWordTestState.DETECTED
+                }
+            }
+        }
+    }
+
+    val currentOnNext by rememberUpdatedState(onNext)
+
+    DisposableEffect(Unit) {
+        val filter = IntentFilter(WakeWordService.ACTION_WAKE_WORD_DETECTED)
+        context.registerReceiver(receiver, filter, Context.RECEIVER_NOT_EXPORTED)
+        onDispose {
+            context.unregisterReceiver(receiver)
+            context.stopService(Intent(context, WakeWordService::class.java))
+        }
+    }
+
+    val buttonLabel = when (testState) {
+        WakeWordTestState.IDLE      -> "Test Et"
+        WakeWordTestState.LISTENING -> "Dinleniyor..."
+        WakeWordTestState.DETECTED  -> "\u2705 Algılandı!"
+    }
+
     OnboardingStepLayout(
         step = 3,
         icon = PhIcons.Filled.SpeakerHighFill,
         title = "\"Hey IRIS\"",
-        description = "Beni uyandırmak için \"Hey IRIS\" de.\nWake word desteği yakında eklenecek.",
-        buttonLabel = "Devam",
-        onNext = onNext,
-        onBack = onBack
+        description = when (testState) {
+            WakeWordTestState.IDLE      -> "Beni uyandırmak için \"Hey IRIS\" de.\nAşağıdaki butona bas ve \"Hey IRIS\" söyle."
+            WakeWordTestState.LISTENING -> "\uD83D\uDC42 \"Hey IRIS\" diyerek beni uyandırmayı dene..."
+            WakeWordTestState.DETECTED  -> "Harika! Seni duydum \uD83D\uDC4D"
+        },
+        buttonLabel = buttonLabel,
+        buttonEnabled = testState != WakeWordTestState.LISTENING,
+        onNext = {
+            when (testState) {
+                WakeWordTestState.IDLE -> {
+                    testState = WakeWordTestState.LISTENING
+                    context.startForegroundService(Intent(context, WakeWordService::class.java).apply {
+                        action = WakeWordService.ACTION_START
+                    })
+                }
+                WakeWordTestState.LISTENING -> { /* disabled, no-op */ }
+                WakeWordTestState.DETECTED -> {
+                    context.stopService(Intent(context, WakeWordService::class.java))
+                    currentOnNext()
+                }
+            }
+        },
+        onBack = onBack,
+        secondaryLabel = if (testState == WakeWordTestState.LISTENING) "Atla" else null,
+        onSecondary = if (testState == WakeWordTestState.LISTENING) {
+            {
+                context.stopService(Intent(context, WakeWordService::class.java))
+                testState = WakeWordTestState.IDLE
+                currentOnNext()
+            }
+        } else null
+    ) {
+        Spacer(Modifier.height(12.dp))
+        WakeWordListeningIndicator(state = testState)
+    }
+}
+
+@Composable
+private fun WakeWordListeningIndicator(state: WakeWordTestState) {
+    val infiniteTransition = rememberInfiniteTransition(label = "pulse")
+    val pulseAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.3f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 800, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "pulseAlpha"
     )
+
+    val alpha = if (state == WakeWordTestState.LISTENING) pulseAlpha else 1f
+
+    Box(
+        modifier = Modifier
+            .size(48.dp)
+            .alpha(alpha),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = when (state) {
+                WakeWordTestState.DETECTED -> PhIcons.Filled.CheckCircleFill
+                else -> PhIcons.Regular.Microphone
+            },
+            contentDescription = null,
+            modifier = Modifier.size(32.dp),
+            tint = when (state) {
+                WakeWordTestState.DETECTED -> IrisTheme.colors.primary
+                WakeWordTestState.LISTENING -> IrisTheme.colors.primary
+                else -> MaterialTheme.colorScheme.onSurfaceVariant
+            }
+        )
+    }
 }
 
 @Composable
@@ -191,7 +303,7 @@ fun OnboardingDemoScreen(
         step = 4,
         icon = PhIcons.Filled.PlayFill,
         title = "Hazır!",
-        description = "Ana ekranda 🎤 butonuna bas ve bir şey sor.\nÖrneğin: \"Bugün hava nasıl?\"",
+        description = "Ana ekranda \uD83C\uDFA4 butonuna bas ve bir şey sor.\nÖrneğin: \"Bugün hava nasıl?\"",
         buttonLabel = "Devam",
         onNext = onNext,
         onBack = onBack
