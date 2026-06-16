@@ -1,0 +1,22 @@
+--------- beginning of main
+06-17 01:51:41.482 24176 24176 D WakeWordService: onCreate
+06-17 01:51:41.483 24176 24176 D WakeWordService: onStartCommand: action=com.iris.assistant.wake_word.START
+06-17 01:51:41.484 24176 24176 D WakeWordService: startDetection: creating WakeWordEngine
+06-17 01:51:43.486 24176 24176 D WakeWordService: startDetection: engine started, detectionJob active
+06-17 01:51:50.547 24176 24241 W WakeWordService: detectionJob failed: StandaloneCoroutine was cancelled
+06-17 01:51:50.664 24176 24176 D WakeWordService: pauseDetection: engine released
+06-17 01:51:50.665 24176 24176 D WakeWordService: onDestroy
+06-17 01:51:54.336 24176 24176 D WakeWordService: onCreate
+06-17 01:51:54.337 24176 24176 D WakeWordService: onStartCommand: action=com.iris.assistant.wake_word.START
+06-17 01:51:54.338 24176 24176 D WakeWordService: startDetection: creating WakeWordEngine
+06-17 01:51:56.102 24176 24176 D WakeWordService: startDetection: engine started, detectionJob active
+06-17 01:51:57.445 24176 24176 D WakeWordService: onStartCommand: action=com.iris.assistant.wake_word.START
+06-17 01:51:57.445 24176 24176 W WakeWordService: startDetection: engine already running — ignoring
+--------- beginning of main
+06-17 02:06:56.220 18555 18555 D WakeWordService: onCreate
+06-17 02:06:56.220 18555 18555 D WakeWordService: onStartCommand: action=com.iris.assistant.wake_word.START
+06-17 02:06:56.220 18555 18555 D WakeWordService: startDetection: creating WakeWordEngine
+06-17 02:06:57.442 18555 18555 D WakeWordService: startDetection: engine started, detectionJob active
+06-17 02:07:04.676 18555 18805 D WakeWordService: Detected: hey_jarvis score=0.01727596
+06-17 02:07:06.256 18555 19349 D WakeWordService: Detected: hey_jarvis score=0.7719293
+06-17 02:07:10.206 18555 18805 D WakeWordService: Detected: hey_jarvis score=0.05094874

@@ -47,7 +47,7 @@
 | LLM (fallback) | Groq (Llama) | `llama-3.3-70b-versatile` — confirm via Groq docs |
 | STT | Groq Whisper | `whisper-large-v3`, `language=tr` |
 | TTS | See §3a | Multi-provider, user-selectable |
-| Wake Word | openWakeWord (ONNX) | Custom-trained `hey_iris.onnx` via Colab notebook (`tools/train_hey_iris.ipynb`), trained on Piper-LibriTTS positive clips + ACAV100M negatives. Hand-rolled trainer with 3-stage curriculum. |
+| Wake Word | openWakeWord (ONNX) | Two models loaded simultaneously: prebuilt `hey_jarvis.onnx` + custom-trained `hey_iris.onnx` via Colab. Custom training tuned: max_negative_weight 50, batch 64/32/32. Threshold lowered to 0.01 for debugging. |
 | Icons | Phosphor Icons | Regular weight default, Fill for active states |
 
 ### Backend
