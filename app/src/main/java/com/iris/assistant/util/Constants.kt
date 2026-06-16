@@ -6,7 +6,7 @@ object Constants {
     const val BUTTON_HEIGHT        = 52
     const val CARD_CORNER_RADIUS   = 18
     const val BUTTON_CORNER_RADIUS = 16
-    const val IRIS_CORE_SIZE       = 320
+    const val IRIS_CORE_SIZE       = 400
 
     // --- User ---
     const val USER_NAME = "Muhofy"
@@ -29,7 +29,7 @@ object Constants {
     const val GEMINI_TTS_MODEL           = "gemini-3.1-flash-tts-preview"
     const val GEMINI_TTS_BASE_URL        = "https://generativelanguage.googleapis.com/v1beta/models"
     const val GEMINI_TTS_SAMPLE_RATE     = 24000   // Hz, per Gemini TTS spec
-    const val GEMINI_TTS_MIN_BUFFER_SIZE = 8192    // bytes, safety floor for AudioTrack buffer
+    const val GEMINI_TTS_MIN_BUFFER_SIZE = 4096    // bytes, safety floor for AudioTrack buffer
     const val GEMINI_TTS_DEFAULT_VOICE   = "Aoede" // fallback if preference not yet set
     const val GEMINI_TTS_MAX_RETRIES     = 3
     const val GEMINI_TTS_RETRY_DELAY_MS  = 1000L
