@@ -1,8 +1,14 @@
 package com.iris.assistant.di
 
+import com.iris.assistant.data.tools.communication.MakeCallTool
+import com.iris.assistant.data.tools.communication.PostNotificationTool
+import com.iris.assistant.data.tools.communication.SendSmsTool
 import com.iris.assistant.data.tools.info.GetNewsTool
 import com.iris.assistant.data.tools.info.GetWeatherTool
 import com.iris.assistant.data.tools.info.WebSearchTool
+import com.iris.assistant.data.tools.productivity.AddCalendarEventTool
+import com.iris.assistant.data.tools.productivity.AddReminderTool
+import com.iris.assistant.data.tools.productivity.SetAlarmTool
 import com.iris.assistant.data.tools.system.GetBatteryStatusTool
 import com.iris.assistant.data.tools.system.OpenAppTool
 import com.iris.assistant.data.tools.system.SetBrightnessTool
@@ -19,18 +25,11 @@ import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import dagger.multibindings.IntoSet
 
-/**
- * Hilt module that registers all JarvisTool implementations into a Set<JarvisTool>.
- * ToolRegistry receives this set via constructor injection.
- *
- * To add a new tool:
- *   1. Create the tool class implementing JarvisTool
- *   2. Add a @Binds @IntoSet entry here
- *   3. That's it — ToolRegistry picks it up automatically
- */
 @Module
 @InstallIn(SingletonComponent::class)
 abstract class ToolsModule {
+
+    // --- Built-in ---
 
     @Binds @IntoSet
     abstract fun bindGetCurrentTimeTool(impl: GetCurrentTimeTool): JarvisTool
@@ -38,7 +37,7 @@ abstract class ToolsModule {
     @Binds @IntoSet
     abstract fun bindCalculateTool(impl: CalculateTool): JarvisTool
 
-    // --- System tools ---
+    // --- System ---
 
     @Binds @IntoSet
     abstract fun bindOpenAppTool(impl: OpenAppTool): JarvisTool
@@ -61,7 +60,7 @@ abstract class ToolsModule {
     @Binds @IntoSet
     abstract fun bindGetBatteryStatusTool(impl: GetBatteryStatusTool): JarvisTool
 
-    // --- Info tools ---
+    // --- Info ---
 
     @Binds @IntoSet
     abstract fun bindGetWeatherTool(impl: GetWeatherTool): JarvisTool
@@ -71,4 +70,26 @@ abstract class ToolsModule {
 
     @Binds @IntoSet
     abstract fun bindGetNewsTool(impl: GetNewsTool): JarvisTool
+
+    // --- Communication ---
+
+    @Binds @IntoSet
+    abstract fun bindMakeCallTool(impl: MakeCallTool): JarvisTool
+
+    @Binds @IntoSet
+    abstract fun bindSendSmsTool(impl: SendSmsTool): JarvisTool
+
+    @Binds @IntoSet
+    abstract fun bindPostNotificationTool(impl: PostNotificationTool): JarvisTool
+
+    // --- Productivity ---
+
+    @Binds @IntoSet
+    abstract fun bindSetAlarmTool(impl: SetAlarmTool): JarvisTool
+
+    @Binds @IntoSet
+    abstract fun bindAddReminderTool(impl: AddReminderTool): JarvisTool
+
+    @Binds @IntoSet
+    abstract fun bindAddCalendarEventTool(impl: AddCalendarEventTool): JarvisTool
 }
