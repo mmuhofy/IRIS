@@ -21,7 +21,9 @@ data class SettingsUiState(
     val ttsVoice           : TtsVoice           = TtsVoice.DEFAULT,
     val llmProvider        : String             = Constants.LLM_PROVIDER_GEMINI,
     val llmModel           : String             = Constants.GEMINI_MODEL,
-    val historyCleared     : Boolean            = false
+    val historyCleared     : Boolean            = false,
+    val localModelName     : String             = "",
+    val localModelPath     : String             = ""
 )
 
 @HiltViewModel
@@ -37,7 +39,9 @@ class SettingsViewModel @Inject constructor(
                 backgroundListening = prefs.backgroundListening,
                 ttsVoice            = prefs.ttsVoice,
                 llmProvider         = prefs.llmProvider,
-                llmModel            = prefs.llmModel
+                llmModel            = prefs.llmModel,
+                localModelName      = prefs.localModelName,
+                localModelPath      = prefs.localModelPath
             )
         }
         .stateIn(

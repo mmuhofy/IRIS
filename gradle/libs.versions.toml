@@ -41,6 +41,7 @@ kotlinxSerialization    = "1.8.1"
 # Brings in onnxruntime-android:1.18.0 as a transitive dependency
 openwakeword            = "0.1.5"
 phosphoriconCompose     = "1.0.5"
+llamakotlin             = "0.1.4"
 
 [libraries]
 # AndroidX Core
@@ -103,6 +104,9 @@ phosphoricons-filled            = { group = "io.github.dev778g-me", name = "phos
 # Wake Word — openWakeWord via ONNX Runtime
 # Brings in onnxruntime-android:1.18.0 as a transitive dependency (no explicit entry needed)
 openwakeword                    = { group = "xyz.rementia", name = "openwakeword", version.ref = "openwakeword" }
+
+# Local LLM — llama.cpp via JNI
+llama-kotlin-android            = { group = "org.codeshipping", name = "llama-kotlin-android", version.ref = "llamakotlin" }
 
 [plugins]
 android-application     = { id = "com.android.application",                    version.ref = "agp" }

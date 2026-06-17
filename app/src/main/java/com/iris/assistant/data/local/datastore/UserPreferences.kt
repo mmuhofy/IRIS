@@ -13,5 +13,7 @@ data class UserPreferences(
     val userName            : String            = Constants.USER_NAME,
     val llmProvider         : String            = Constants.LLM_PROVIDER_GEMINI,
     val llmModel            : String            = Constants.GEMINI_MODEL,
-    val autonomyLevel       : AutonomyLevel     = AutonomyLevel.SAFE
+    val autonomyLevel       : AutonomyLevel     = AutonomyLevel.SAFE,
+    val localModelName      : String            = "",
+    val localModelPath      : String            = ""
 )

@@ -3,6 +3,7 @@ package com.iris.assistant.data.remote.router
 import com.iris.assistant.data.local.datastore.PreferencesRepository
 import com.iris.assistant.data.remote.gemini.GeminiRepository
 import com.iris.assistant.data.remote.groq.GroqLlmRepository
+import com.iris.assistant.data.remote.local.LocalLlmRepository
 import com.iris.assistant.domain.model.ChatMessage
 import com.iris.assistant.domain.repository.LlmRepository
 import com.iris.assistant.util.Constants
@@ -15,6 +16,7 @@ import javax.inject.Singleton
 class LlmProviderRouter @Inject constructor(
     private val geminiRepository: GeminiRepository,
     private val groqLlmRepository: GroqLlmRepository,
+    private val localLlmRepository: LocalLlmRepository,
     private val preferencesRepository: PreferencesRepository
 ) : LlmRepository {
 
@@ -26,10 +28,10 @@ class LlmProviderRouter @Inject constructor(
             .map { it.llmProvider }
             .first()
 
-        return if (provider == Constants.LLM_PROVIDER_GROQ) {
-            groqLlmRepository.chat(history, systemPrompt)
-        } else {
-            geminiRepository.chat(history, systemPrompt)
+        return when (provider) {
+            Constants.LLM_PROVIDER_GROQ  -> groqLlmRepository.chat(history, systemPrompt)
+            Constants.LLM_PROVIDER_LOCAL -> localLlmRepository.chat(history, systemPrompt)
+            else                         -> geminiRepository.chat(history, systemPrompt)
         }
     }
 }

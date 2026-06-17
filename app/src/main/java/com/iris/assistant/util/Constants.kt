@@ -30,15 +30,18 @@ object Constants {
 
     val LLM_PROVIDER_GEMINI = "gemini"
     val LLM_PROVIDER_GROQ   = "groq"
+    val LLM_PROVIDER_LOCAL  = "local"
 
     val LLM_PROVIDERS = listOf(
         LLM_PROVIDER_GEMINI,
         LLM_PROVIDER_GROQ,
+        LLM_PROVIDER_LOCAL,
     )
 
     fun providerDisplayName(provider: String): String = when (provider) {
         LLM_PROVIDER_GEMINI -> "Gemini"
         LLM_PROVIDER_GROQ   -> "Groq"
+        LLM_PROVIDER_LOCAL  -> "Yerel"
         else                -> provider
     }
 

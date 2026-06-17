@@ -149,6 +149,9 @@ dependencies {
     // onnxruntime-android:1.18.0 comes in as a transitive dependency
     implementation(libs.openwakeword)
 
+    // Local LLM — llama.cpp via JNI (GGUF models)
+    implementation(libs.llama.kotlin.android)
+
     // Testing
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.2.1")

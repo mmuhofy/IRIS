@@ -61,8 +61,9 @@ import com.phosphor.icons.regular.*
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
-    onBack   : () -> Unit,
-    viewModel: SettingsViewModel = hiltViewModel()
+    onBack            : () -> Unit,
+    onOpenLocalModels : () -> Unit = {},
+    viewModel        : SettingsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var showClearDialog by remember { mutableStateOf(false) }
@@ -139,12 +140,22 @@ fun SettingsScreen(
                     current  = uiState.llmProvider,
                     onChange = viewModel::onLlmProviderChange,
                 )
-                SettingsGroupDivider()
-                ModelSelector(
-                    current       = uiState.llmModel,
-                    provider      = uiState.llmProvider,
-                    onChange      = viewModel::onLlmModelChange,
-                )
+                if (uiState.llmProvider != Constants.LLM_PROVIDER_LOCAL) {
+                    SettingsGroupDivider()
+                    ModelSelector(
+                        current       = uiState.llmModel,
+                        provider      = uiState.llmProvider,
+                        onChange      = viewModel::onLlmModelChange,
+                    )
+                } else {
+                    SettingsGroupDivider()
+                    SettingsTappableRow(
+                        icon = PhIcons.Regular.Download,
+                        label = "Yerel Model",
+                        description = uiState.localModelName.ifBlank { "Henüz seçilmedi" },
+                        onClick = onOpenLocalModels,
+                    )
+                }
             }
 
             // ── Görünüm ────────────────────────────────────────────────────────

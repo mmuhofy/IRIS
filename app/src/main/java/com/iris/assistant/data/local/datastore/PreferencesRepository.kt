@@ -33,6 +33,8 @@ class PreferencesRepository @Inject constructor(
         val LLM_PROVIDER         = stringPreferencesKey("llm_provider")
         val LLM_MODEL            = stringPreferencesKey("llm_model")
         val AUTONOMY_LEVEL       = stringPreferencesKey("autonomy_level")
+        val LOCAL_MODEL_NAME     = stringPreferencesKey("local_model_name")
+        val LOCAL_MODEL_PATH     = stringPreferencesKey("local_model_path")
     }
 
     val preferences: Flow<UserPreferences> = context.dataStore.data.map { prefs ->
@@ -50,7 +52,9 @@ class PreferencesRepository @Inject constructor(
             llmModel = prefs[Keys.LLM_MODEL] ?: Constants.GEMINI_MODEL,
             autonomyLevel = prefs[Keys.AUTONOMY_LEVEL]
                 ?.let { runCatching { AutonomyLevel.valueOf(it) }.getOrDefault(AutonomyLevel.SAFE) }
-                ?: AutonomyLevel.SAFE
+                ?: AutonomyLevel.SAFE,
+            localModelName = prefs[Keys.LOCAL_MODEL_NAME] ?: "",
+            localModelPath = prefs[Keys.LOCAL_MODEL_PATH] ?: ""
         )
     }
 
@@ -84,5 +88,13 @@ class PreferencesRepository @Inject constructor(
 
     suspend fun setAutonomyLevel(level: AutonomyLevel) {
         context.dataStore.edit { it[Keys.AUTONOMY_LEVEL] = level.name }
+    }
+
+    suspend fun setLocalModelName(name: String) {
+        context.dataStore.edit { it[Keys.LOCAL_MODEL_NAME] = name }
+    }
+
+    suspend fun setLocalModelPath(path: String) {
+        context.dataStore.edit { it[Keys.LOCAL_MODEL_PATH] = path }
     }
 }

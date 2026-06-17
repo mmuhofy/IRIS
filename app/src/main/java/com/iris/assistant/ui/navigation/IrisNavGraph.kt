@@ -21,6 +21,7 @@ import com.iris.assistant.ui.onboarding.OnboardingMicScreen
 import com.iris.assistant.ui.onboarding.OnboardingViewModel
 import com.iris.assistant.ui.onboarding.OnboardingWakeWordScreen
 import com.iris.assistant.ui.onboarding.OnboardingWelcomeScreen
+import com.iris.assistant.ui.settings.LocalModelScreen
 import com.iris.assistant.ui.settings.SettingsScreen
 
 private const val ANIM_DURATION = 300
@@ -118,6 +119,12 @@ fun IrisNavGraph(
         }
         composable(NavRoute.Settings.route) {
             SettingsScreen(
+                onBack            = { navController.popBackStack() },
+                onOpenLocalModels = { navController.navigate(NavRoute.LocalModels.route) }
+            )
+        }
+        composable(NavRoute.LocalModels.route) {
+            LocalModelScreen(
                 onBack = { navController.popBackStack() }
             )
         }
