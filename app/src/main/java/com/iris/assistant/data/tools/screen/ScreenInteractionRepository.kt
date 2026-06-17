@@ -96,6 +96,11 @@ class ScreenInteractionRepository @Inject constructor() {
         return focused?.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, args) ?: false
     }
 
+    fun findFocusedNode(): AccessibilityNodeInfo? {
+        val root = rootNode ?: return null
+        return findFocusedNode(root)
+    }
+
     private fun findFocusedNode(node: AccessibilityNodeInfo): AccessibilityNodeInfo? {
         if (node.isFocused && node.isVisibleToUser) return node
         for (i in 0 until node.childCount) {

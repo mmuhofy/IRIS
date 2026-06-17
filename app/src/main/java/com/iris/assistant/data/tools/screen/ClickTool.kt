@@ -1,6 +1,5 @@
 package com.iris.assistant.data.tools.screen
 
-import com.iris.assistant.data.tools.screen.ScreenInteractionRepository
 import com.iris.assistant.domain.tools.JarvisTool
 import com.iris.assistant.domain.tools.ToolResult
 import com.iris.assistant.service.overlay.ScreenActionGate
@@ -27,15 +26,61 @@ class ClickTool @Inject constructor(
     override val requiredPermission: String? = null
 
     override suspend fun execute(args: JSONObject): ToolResult {
-        val approval = actionGate.awaitApproval("Tıklama işlemi")
-        if (approval is ToolResult.Cancelled) return approval
-
         val text = args.optString("text", "")
         val description = args.optString("description", "")
         val x = args.optInt("x", -1)
         val y = args.optInt("y", -1)
 
-        // Try text match first
+        val targetRect = findTargetRect(text, description, x, y)
+        val label = buildLabel(text, description, x, y)
+        val highlightX = targetRect?.centerX()
+        val highlightY = targetRect?.centerY()
+
+        val approval = actionGate.awaitApproval(label, x = highlightX, y = highlightY)
+        if (approval is ToolResult.Cancelled) return approval
+
+        return performClick(text, description, x, y)
+    }
+
+    private fun findTargetRect(
+        text: String, description: String, x: Int, y: Int
+    ): android.graphics.Rect? {
+        if (text.isNotBlank()) {
+            val node = screenRepository.findNodeByText(text)
+            if (node != null) {
+                val rect = android.graphics.Rect()
+                node.getBoundsInScreen(rect)
+                return rect
+            }
+        }
+        if (description.isNotBlank()) {
+            val node = screenRepository.findNodeByText(description)
+            if (node != null) {
+                val rect = android.graphics.Rect()
+                node.getBoundsInScreen(rect)
+                return rect
+            }
+        }
+        if (x >= 0 && y >= 0) {
+            return android.graphics.Rect(x - 50, y - 50, x + 50, y + 50)
+        }
+        return null
+    }
+
+    private fun buildLabel(
+        text: String, description: String, x: Int, y: Int
+    ): String {
+        return when {
+            text.isNotBlank() -> "Tıklama: '$text'"
+            description.isNotBlank() -> "Tıklama: '$description'"
+            x >= 0 && y >= 0 -> "Tıklama: ($x, $y)"
+            else -> "Tıklama"
+        }
+    }
+
+    private suspend fun performClick(
+        text: String, description: String, x: Int, y: Int
+    ): ToolResult {
         if (text.isNotBlank()) {
             val node = screenRepository.findNodeByText(text)
             if (node != null) {
@@ -45,7 +90,6 @@ class ClickTool @Inject constructor(
             }
         }
 
-        // Try description match
         if (description.isNotBlank()) {
             val node = screenRepository.findNodeByText(description)
             if (node != null) {
@@ -55,7 +99,6 @@ class ClickTool @Inject constructor(
             }
         }
 
-        // Try coordinate-based click
         if (x >= 0 && y >= 0) {
             val service = com.iris.assistant.service.accessibility.IrisAccessibilityService.instance
             if (service != null) {

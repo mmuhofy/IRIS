@@ -23,15 +23,20 @@ class ScrollTool @Inject constructor(
     override val requiredPermission: String? = null
 
     override suspend fun execute(args: JSONObject): ToolResult {
-        val approval = actionGate.awaitApproval("Kaydırma işlemi")
-        if (approval is ToolResult.Cancelled) return approval
-
         val direction = args.optString("direction", "")
-        val action = when (direction) {
-            "down" -> android.view.accessibility.AccessibilityEvent.TYPE_VIEW_SCROLLED to true
-            "up" -> android.view.accessibility.AccessibilityEvent.TYPE_VIEW_SCROLLED to false
+
+        val label = when (direction) {
+            "down" -> "Aşağı kaydır"
+            "up" -> "Yukarı kaydır"
             else -> return ToolResult.Error("Geçersiz yön: '$direction'. 'down' veya 'up' kullan.")
         }
+
+        val startX = 500
+        val startY = if (direction == "down") 800 else 200
+        val endY = if (direction == "down") 200 else 800
+
+        val approval = actionGate.awaitApproval(label, x = startX, y = startY)
+        if (approval is ToolResult.Cancelled) return approval
 
         val service = IrisAccessibilityService.instance
         if (service == null) {
@@ -39,13 +44,8 @@ class ScrollTool @Inject constructor(
         }
 
         val path = android.graphics.Path().apply {
-            if (direction == "down") {
-                moveTo(500f, 800f)
-                lineTo(500f, 200f)
-            } else {
-                moveTo(500f, 200f)
-                lineTo(500f, 800f)
-            }
+            moveTo(startX.toFloat(), startY.toFloat())
+            lineTo(startX.toFloat(), endY.toFloat())
         }
         val gesture = android.accessibilityservice.GestureDescription.Builder()
             .addStroke(android.accessibilityservice.GestureDescription.StrokeDescription(path, 0, 200))

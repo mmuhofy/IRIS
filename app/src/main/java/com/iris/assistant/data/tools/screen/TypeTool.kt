@@ -1,6 +1,5 @@
 package com.iris.assistant.data.tools.screen
 
-import com.iris.assistant.data.tools.screen.ScreenInteractionRepository
 import com.iris.assistant.domain.tools.JarvisTool
 import com.iris.assistant.domain.tools.ToolResult
 import com.iris.assistant.service.overlay.ScreenActionGate
@@ -24,11 +23,19 @@ class TypeTool @Inject constructor(
     override val requiredPermission: String? = null
 
     override suspend fun execute(args: JSONObject): ToolResult {
-        val approval = actionGate.awaitApproval("Yazma işlemi")
-        if (approval is ToolResult.Cancelled) return approval
-
         val text = args.optString("text", "")
         if (text.isBlank()) return ToolResult.Error("Yazılacak metin boş.")
+
+        val focusedNode = screenRepository.findFocusedNode()
+        val hx = focusedNode?.let {
+            val r = android.graphics.Rect(); it.getBoundsInScreen(r); r.centerX()
+        }
+        val hy = focusedNode?.let {
+            val r = android.graphics.Rect(); it.getBoundsInScreen(r); r.centerY()
+        }
+
+        val approval = actionGate.awaitApproval("Yazma: '$text'", x = hx, y = hy)
+        if (approval is ToolResult.Cancelled) return approval
 
         val success = screenRepository.typeText(text)
         return if (success) ToolResult.Success("Metin kutusuna '$text' yazıldı.")
