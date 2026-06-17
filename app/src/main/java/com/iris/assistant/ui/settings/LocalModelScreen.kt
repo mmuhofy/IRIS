@@ -179,7 +179,7 @@ private fun ModelCard(
                 when (val dlState = modelState.downloadState) {
                     is DownloadState.Downloading -> {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            if (dlState.progress >= 0f) {
+                            if (dlState.progress >= 1f) {
                                 LinearProgressIndicator(
                                     progress = { dlState.progress / 100f },
                                     modifier = Modifier.width(80.dp),
@@ -193,12 +193,19 @@ private fun ModelCard(
                                 )
                             } else {
                                 LinearProgressIndicator(
+                                    progress = {
+                                        if (dlState.contentLength > 0) {
+                                            (dlState.bytesDownloaded.toFloat() / dlState.contentLength).coerceIn(0f, 1f)
+                                        } else {
+                                            0f
+                                        }
+                                    },
                                     modifier = Modifier.width(80.dp),
                                     color = IrisTheme.colors.primary,
                                 )
                                 Spacer(Modifier.height(4.dp))
                                 Text(
-                                    text = formatBytes(dlState.bytesDownloaded),
+                                    text = "${formatBytes(dlState.bytesDownloaded)} / ${formatBytes(dlState.contentLength.coerceAtLeast(0))}",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = ColorTextSecondary,
                                 )

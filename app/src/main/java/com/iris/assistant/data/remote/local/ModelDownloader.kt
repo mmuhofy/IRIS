@@ -136,11 +136,12 @@ class ModelDownloader @Inject constructor(
                     outputStream.write(buffer, 0, read)
                     bytesRead += read
 
+                    val bytesSinceLastReport = bytesRead - lastReportedBytes
                     val shouldReport = if (contentLength > 0) {
                         val pct = (bytesRead * 100 / contentLength).toInt()
-                        pct > lastReportedPct
+                        pct > lastReportedPct || bytesSinceLastReport >= PROGRESS_INTERVAL_BYTES
                     } else {
-                        (bytesRead - lastReportedBytes) >= PROGRESS_INTERVAL_BYTES
+                        bytesSinceLastReport >= PROGRESS_INTERVAL_BYTES
                     }
 
                     if (shouldReport) {
