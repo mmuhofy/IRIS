@@ -11,7 +11,6 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import org.codeshipping.llamakotlin.LlamaModel
-import org.codeshipping.llamakotlin.LlamaNative
 import org.codeshipping.llamakotlin.exception.LlamaException
 import org.json.JSONArray
 import org.json.JSONObject
@@ -121,8 +120,6 @@ class LocalLlmRepository @Inject constructor(
         closeModel()
         Log.d(TAG, "Loading model: $modelPath")
 
-        preloadNativeLibrary()
-
         try {
             llamaModel = LlamaModel.load(modelPath) {
                 contextSize = 2048
@@ -142,20 +139,19 @@ class LocalLlmRepository @Inject constructor(
             Log.e(TAG, "Native library not found", e)
             loadedModelPath = null
             throw com.iris.assistant.domain.model.IrisException.LlmException(
-                "Yerel kütüphane (libllama-android.so) yüklenemedi. APK'da arm64-v8a .so dosyası eksik olabilir."
+                "Yerel kütüphane (libllama-android.so) yüklenemedi. APK'da arm64-v8a .so eksik olabilir."
             )
         } catch (e: LlamaException.ModelLoadError) {
             Log.e(TAG, "Model load error", e)
             loadedModelPath = null
-            val nativeError = getNativeError()
             throw com.iris.assistant.domain.model.IrisException.LlmException(
-                "Model yüklenemedi: ${e.message ?: "GGUF model uyumsuz olabilir"}$nativeError"
+                "Model yüklenemedi: ${e.message ?: "GGUF mimarisi uyumsuz (ör. qwen2.5). Llama modeli dene."}"
             )
         } catch (e: LlamaException.NativeError) {
             Log.e(TAG, "Native library error", e)
             loadedModelPath = null
             throw com.iris.assistant.domain.model.IrisException.LlmException(
-                "Yerel kütüphane hatası: ${e.message ?: "llama.cpp sürüm uyumsuzluğu"}"
+                "Yerel kütüphane hatası: ${e.message ?: "llama.cpp uyumsuz"}"
             )
         } catch (e: Exception) {
             Log.e(TAG, "Failed to load model", e)
@@ -163,28 +159,6 @@ class LocalLlmRepository @Inject constructor(
             throw com.iris.assistant.domain.model.IrisException.LlmException(
                 "Model yüklenemedi: ${e.message ?: "Bilinmeyen hata"}"
             )
-        }
-    }
-
-    private fun preloadNativeLibrary() {
-        try {
-            if (!LlamaNative.isLoaded) {
-                Log.d(TAG, "Preloading native library...")
-                LlamaNative.ensureLoaded()
-                Log.d(TAG, "Native library version: ${LlamaNative.nativeGetVersion()}")
-            }
-        } catch (e: UnsatisfiedLinkError) {
-            Log.e(TAG, "Failed to preload native library", e)
-            throw e
-        }
-    }
-
-    private fun getNativeError(): String {
-        return try {
-            val err = LlamaNative.nativeGetLastError()
-            if (err.isNullOrBlank()) "" else " | Native: $err"
-        } catch (_: Exception) {
-            ""
         }
     }
 
@@ -202,9 +176,8 @@ class LocalLlmRepository @Inject constructor(
             model.generate(prompt)
         } catch (e: LlamaException.GenerationError) {
             Log.e(TAG, "Generation error", e)
-            val nativeError = getNativeError()
             throw com.iris.assistant.domain.model.IrisException.LlmException(
-                "Metin oluşturma hatası: ${e.message ?: "Bilinmeyen"}$nativeError"
+                "Metin oluşturma hatası: ${e.message ?: "Bilinmeyen"}"
             )
         } catch (e: Exception) {
             Log.e(TAG, "Generate error", e)
