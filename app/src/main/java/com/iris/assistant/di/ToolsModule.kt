@@ -1,6 +1,8 @@
 package com.iris.assistant.di
 
+import com.iris.assistant.data.tools.info.GetNewsTool
 import com.iris.assistant.data.tools.info.GetWeatherTool
+import com.iris.assistant.data.tools.info.WebSearchTool
 import com.iris.assistant.data.tools.system.GetBatteryStatusTool
 import com.iris.assistant.data.tools.system.OpenAppTool
 import com.iris.assistant.data.tools.system.SetBrightnessTool
@@ -63,4 +65,10 @@ abstract class ToolsModule {
 
     @Binds @IntoSet
     abstract fun bindGetWeatherTool(impl: GetWeatherTool): JarvisTool
+
+    @Binds @IntoSet
+    abstract fun bindWebSearchTool(impl: WebSearchTool): JarvisTool
+
+    @Binds @IntoSet
+    abstract fun bindGetNewsTool(impl: GetNewsTool): JarvisTool
 }

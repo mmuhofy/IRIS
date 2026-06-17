@@ -39,6 +39,12 @@ object Constants {
     const val GEMINI_TTS_MAX_RETRIES     = 3
     const val GEMINI_TTS_RETRY_DELAY_MS  = 1000L
 
+    // --- Info Tools ---
+    const val GOOGLE_CSE_ENDPOINT = "https://www.googleapis.com/customsearch/v1"
+    const val NEWS_API_ENDPOINT   = "https://newsapi.org/v2"
+    const val NEWS_API_COUNTRY    = "tr"
+    const val NEWS_API_PAGE_SIZE  = 5
+
     // --- VAD ---
     const val VAD_SILENCE_THRESHOLD_MS = 1500L
 
