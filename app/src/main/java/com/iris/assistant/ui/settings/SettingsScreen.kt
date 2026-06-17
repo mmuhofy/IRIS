@@ -1,6 +1,9 @@
 package com.iris.assistant.ui.settings
 
-import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -16,17 +19,13 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
@@ -40,16 +39,18 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.TextUnit
+import androidx.compose.ui.unit.TextUnitType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.iris.assistant.domain.model.TtsVoice
 import com.iris.assistant.ui.components.IrisButtonDestructive
 import com.iris.assistant.ui.theme.ColorSchemeOption
-import com.iris.assistant.ui.theme.ColorSurface
 import com.iris.assistant.ui.theme.ColorTextPrimary
 import com.iris.assistant.ui.theme.ColorTextSecondary
 import com.iris.assistant.ui.theme.IrisTheme
@@ -87,7 +88,13 @@ fun SettingsScreen(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
-                title = { Text("Ayarlar", style = MaterialTheme.typography.titleLarge) },
+                title = {
+                    Text(
+                        text = "Ayarlar",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
@@ -98,284 +105,364 @@ fun SettingsScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background
-                )
+                    containerColor = MaterialTheme.colorScheme.background,
+                ),
             )
-        }
+        },
     ) { innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp)
+                .padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(24.dp),
         ) {
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(4.dp))
 
-            // --- Ses Karakteri ---
-            SectionHeader(title = "Ses Karakteri", subtitle = "IRIS'in sesi için bir karakter seç")
-            Spacer(Modifier.height(10.dp))
-            SettingsCard {
-                VoiceSelector(
-                    current  = uiState.ttsVoice,
-                    onChange = viewModel::onTtsVoiceChange
-                )
+            // ── Ses ────────────────────────────────────────────────────────────
+            SettingsGroup(title = "Ses") {
+                SettingsRowWithContent(
+                    icon = PhIcons.Regular.Waveform,
+                    label = "Ses karakteri",
+                    description = uiState.ttsVoice.displayName,
+                ) {
+                    VoiceSelector(
+                        current  = uiState.ttsVoice,
+                        onChange = viewModel::onTtsVoiceChange,
+                    )
+                }
             }
 
-            Spacer(Modifier.height(24.dp))
-
-            // --- Yapay Zeka Modeli ---
-            SectionHeader(title = "Yapay Zeka Modeli", subtitle = "IRIS'in kullandığı dil modeli ve sağlayıcı")
-            Spacer(Modifier.height(10.dp))
-            SettingsCard {
+            // ── Model ──────────────────────────────────────────────────────────
+            SettingsGroup(title = "Model") {
                 ProviderSelector(
                     current  = uiState.llmProvider,
-                    onChange = viewModel::onLlmProviderChange
+                    onChange = viewModel::onLlmProviderChange,
                 )
-                HorizontalDivider(
-                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 4.dp),
-                    color = ColorTextSecondary.copy(alpha = 0.2f)
-                )
+                SettingsGroupDivider()
                 ModelSelector(
                     current       = uiState.llmModel,
                     provider      = uiState.llmProvider,
-                    onChange      = viewModel::onLlmModelChange
+                    onChange      = viewModel::onLlmModelChange,
                 )
             }
 
-            Spacer(Modifier.height(24.dp))
+            // ── Görünüm ────────────────────────────────────────────────────────
+            SettingsGroup(title = "Görünüm") {
+                SettingsRowWithContent(
+                    icon = PhIcons.Regular.Palette,
+                    label = "Renk teması",
+                ) {
+                    ColorSchemeSelector(
+                        current  = uiState.colorScheme,
+                        onChange = viewModel::onColorSchemeChange,
+                    )
+                }
+            }
 
-            // --- Renk Teması ---
-            SectionHeader(title = "Renk Teması", subtitle = "IRIS'in görünümünü kişiselleştir")
-            Spacer(Modifier.height(10.dp))
-            SettingsCard {
-                ColorSchemeSelector(
-                    current  = uiState.colorScheme,
-                    onChange = viewModel::onColorSchemeChange
+            // ── Arka Plan ──────────────────────────────────────────────────────
+            SettingsGroup(title = "Arka Plan") {
+                SettingsSwitchRow(
+                    icon = PhIcons.Regular.Headphones,
+                    label = "Arka planda dinle",
+                    description = "IRIS kapalıyken de \"Hey IRIS\" dinler",
+                    checked = uiState.backgroundListening,
+                    onCheckedChange = viewModel::onBackgroundListeningChange,
                 )
             }
 
-            Spacer(Modifier.height(24.dp))
-
-            // --- Arka Plan ---
-            SectionHeader(title = "Arka Plan", subtitle = "Uygulama kapalıyken davranış")
-            Spacer(Modifier.height(10.dp))
-            SettingsCard {
-                SettingsToggleRow(
-                    icon     = PhIcons.Regular.Headphones,
-                    title    = "Arka planda dinle",
-                    subtitle = "IRIS kapalıyken de \"Hey IRIS\" dinler",
-                    checked  = uiState.backgroundListening,
-                    onChange = viewModel::onBackgroundListeningChange
+            // ── Veri ───────────────────────────────────────────────────────────
+            SettingsGroup(title = "Veri") {
+                SettingsTappableRow(
+                    icon = PhIcons.Regular.Trash,
+                    label = "Sohbet geçmişini temizle",
+                    description = "Tüm konuşmalar silinir, geri alınamaz",
+                    tint = MaterialTheme.colorScheme.error,
+                    onClick = { showClearDialog = true },
                 )
             }
 
-            Spacer(Modifier.height(24.dp))
-
-            // --- Veri ---
-            SectionHeader(title = "Veri", subtitle = "Depolanan sohbet geçmişini yönet")
-            Spacer(Modifier.height(10.dp))
-            SettingsCard {
-                IrisButtonDestructive(
-                    text     = "Sohbet Geçmişini Temizle",
-                    onClick  = { showClearDialog = true },
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-
-            Spacer(Modifier.height(32.dp))
+            Spacer(Modifier.height(16.dp))
         }
     }
 }
 
-// ---------------------------------------------------------------------------
-// Section header — Apple-style with optional subtitle
-// ---------------------------------------------------------------------------
+// ── Group card ────────────────────────────────────────────────────────────────
+
 @Composable
-private fun SectionHeader(
-    title   : String,
-    subtitle: String? = null
-) {
-    Column(modifier = Modifier.padding(start = 4.dp)) {
+private fun SettingsGroup(title: String, content: @Composable () -> Unit) {
+    Column {
         Text(
-            text  = title.uppercase(),
-            style = MaterialTheme.typography.labelLarge,
+            text = title.uppercase(),
+            style = MaterialTheme.typography.labelSmall,
             color = IrisTheme.colors.primary,
-            fontWeight = FontWeight.SemiBold
+            letterSpacing = TextUnit(value = 1.2f, type = TextUnitType.Sp),
+            modifier = Modifier.padding(start = 4.dp, bottom = 8.dp),
         )
-        if (subtitle != null) {
-            Spacer(Modifier.height(2.dp))
-            Text(
-                text  = subtitle,
-                style = MaterialTheme.typography.bodySmall,
-                color = ColorTextSecondary
-            )
-        }
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(16.dp))
+                .background(MaterialTheme.colorScheme.surface),
+        ) { content() }
     }
 }
 
-// ---------------------------------------------------------------------------
-// Settings card — Apple-style grouped card
-// ---------------------------------------------------------------------------
+// ── Divider ───────────────────────────────────────────────────────────────────
+
 @Composable
-private fun SettingsCard(
-    content: @Composable () -> Unit
+private fun SettingsGroupDivider() {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 52.dp)
+            .height(0.5.dp)
+            .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
+    )
+}
+
+// ── Row: icon + label + end slot ─────────────────────────────────────────────
+
+@Composable
+private fun SettingsRowWithContent(
+    icon: ImageVector,
+    label: String,
+    description: String? = null,
+    content: @Composable () -> Unit,
 ) {
-    Card(
-        shape  = RoundedCornerShape(Constants.CARD_CORNER_RADIUS.dp),
-        colors = CardDefaults.cardColors(containerColor = ColorSurface),
-        modifier = Modifier.fillMaxWidth()
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(modifier = Modifier.padding(16.dp)) {
-            content()
+        SettingsIcon(icon)
+        Spacer(Modifier.width(12.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(text = label, style = MaterialTheme.typography.bodyLarge, color = ColorTextPrimary)
+            if (description != null) {
+                Text(
+                    text = description,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = ColorTextSecondary,
+                )
+            }
         }
+        Spacer(Modifier.width(12.dp))
+        content()
     }
 }
 
-// ---------------------------------------------------------------------------
-// Voice selector — grid of selectable voice chips
-// ---------------------------------------------------------------------------
+// ── Row: switch ───────────────────────────────────────────────────────────────
+
+@Composable
+private fun SettingsSwitchRow(
+    icon: ImageVector,
+    label: String,
+    description: String? = null,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        SettingsIcon(icon)
+        Spacer(Modifier.width(12.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(text = label, style = MaterialTheme.typography.bodyLarge, color = ColorTextPrimary)
+            if (description != null) {
+                Text(
+                    text = description,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = ColorTextSecondary,
+                )
+            }
+        }
+        Switch(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = MaterialTheme.colorScheme.background,
+                checkedTrackColor = IrisTheme.colors.primary,
+            ),
+        )
+    }
+}
+
+// ── Row: tappable ─────────────────────────────────────────────────────────────
+
+@Composable
+private fun SettingsTappableRow(
+    icon: ImageVector,
+    label: String,
+    description: String? = null,
+    tint: Color = IrisTheme.colors.primary,
+    onClick: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        SettingsIcon(icon, tint = tint)
+        Spacer(Modifier.width(12.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(text = label, style = MaterialTheme.typography.bodyLarge, color = ColorTextPrimary)
+            if (description != null) {
+                Text(
+                    text = description,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = ColorTextSecondary,
+                )
+            }
+        }
+        Icon(
+            imageVector = PhIcons.Regular.CaretRight,
+            contentDescription = null,
+            tint = ColorTextSecondary,
+            modifier = Modifier.size(16.dp),
+        )
+    }
+}
+
+// ── Icon circle ───────────────────────────────────────────────────────────────
+
+@Composable
+private fun SettingsIcon(
+    icon: ImageVector,
+    tint: Color = IrisTheme.colors.primary,
+) {
+    Box(
+        modifier = Modifier
+            .size(34.dp)
+            .clip(CircleShape)
+            .background(IrisTheme.colors.primary.copy(alpha = 0.12f)),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = tint,
+            modifier = Modifier.size(16.dp),
+        )
+    }
+}
+
+// ── Voice selector ───────────────────────────────────────────────────────────
+
 @Composable
 private fun VoiceSelector(
     current : TtsVoice,
-    onChange: (TtsVoice) -> Unit
+    onChange: (TtsVoice) -> Unit,
 ) {
-    val voices = TtsVoice.entries
-    val rows = voices.chunked(2)
-
-    Column(modifier = Modifier.fillMaxWidth()) {
-        rows.forEach { row ->
-            Row(modifier = Modifier.fillMaxWidth()) {
-                row.forEach { voice ->
-                    VoiceChip(
-                        voice      = voice,
-                        isSelected = voice == current,
-                        onClick    = { onChange(voice) },
-                        modifier   = Modifier
-                            .weight(1f)
-                            .padding(end = if (voice == row.last()) 0.dp else 8.dp)
-                            .padding(bottom = 8.dp)
+    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        TtsVoice.entries.forEach { voice ->
+            val selected = voice == current
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(
+                        if (selected) IrisTheme.colors.primary
+                        else MaterialTheme.colorScheme.surfaceVariant
                     )
-                }
-                if (row.size == 1) Spacer(Modifier.weight(1f))
+                    .clickable { onChange(voice) }
+                    .padding(horizontal = 10.dp, vertical = 6.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = voice.displayName,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = if (selected) MaterialTheme.colorScheme.background
+                            else ColorTextPrimary,
+                    fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+                )
             }
         }
     }
 }
 
-@Composable
-private fun VoiceChip(
-    voice     : TtsVoice,
-    isSelected: Boolean,
-    onClick   : () -> Unit,
-    modifier  : Modifier = Modifier
-) {
-    val primary = IrisTheme.colors.primary
-    Surface(
-        onClick      = onClick,
-        shape        = RoundedCornerShape(12.dp),
-        color        = if (isSelected) primary.copy(alpha = 0.15f)
-                       else Color.Transparent,
-        border       = BorderStroke(
-            width = if (isSelected) 1.5.dp else 1.dp,
-            color = if (isSelected) primary
-                    else ColorTextSecondary.copy(alpha = 0.3f)
-        ),
-        modifier     = modifier
-    ) {
-        Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
-            Text(
-                text  = voice.displayName,
-                style = MaterialTheme.typography.bodyMedium,
-                color = if (isSelected) primary
-                        else ColorTextPrimary
-            )
-            Text(
-                text  = voice.description,
-                style = MaterialTheme.typography.bodySmall,
-                color = ColorTextSecondary
-            )
-        }
-    }
-}
+// ── Color scheme selector ────────────────────────────────────────────────────
 
-// ---------------------------------------------------------------------------
-// Color scheme selector — row of colored circles
-// ---------------------------------------------------------------------------
 @Composable
 private fun ColorSchemeSelector(
     current : ColorSchemeOption,
-    onChange: (ColorSchemeOption) -> Unit
+    onChange: (ColorSchemeOption) -> Unit,
 ) {
-    val schemes = ColorSchemeOption.entries
-    Row(
-        modifier          = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        schemes.forEach { scheme ->
+    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        ColorSchemeOption.entries.forEach { scheme ->
             val irisColors = scheme.toIrisColorScheme()
-            val isSelected = scheme == current
-            Surface(
-                onClick  = { onChange(scheme) },
-                shape    = CircleShape,
-                color    = irisColors.primary,
+            val selected = scheme == current
+            Box(
                 modifier = Modifier
-                    .padding(end = 10.dp)
-                    .size(if (isSelected) 38.dp else 30.dp),
-                border   = if (isSelected)
-                    BorderStroke(2.dp, Color.White)
-                else null
-            ) {}
+                    .size(28.dp)
+                    .clip(CircleShape)
+                    .background(irisColors.primary)
+                    .then(
+                        if (selected) Modifier.border(2.dp, Color.White, CircleShape)
+                        else Modifier
+                    ),
+            )
         }
     }
 }
 
-// ---------------------------------------------------------------------------
-// Provider selector — two pill buttons
-// ---------------------------------------------------------------------------
+// ── Provider selector ────────────────────────────────────────────────────────
+
 @Composable
 private fun ProviderSelector(
     current : String,
-    onChange: (String) -> Unit
+    onChange: (String) -> Unit,
 ) {
-    Row(modifier = Modifier.fillMaxWidth()) {
-        Constants.LLM_PROVIDERS.forEachIndexed { index, provider ->
-            val isSelected = provider == current
-            Surface(
-                onClick  = { onChange(provider) },
-                shape    = RoundedCornerShape(12.dp),
-                color    = if (isSelected) IrisTheme.colors.primary
-                           else Color.Transparent,
-                border   = BorderStroke(
-                    width = 1.dp,
-                    color = if (isSelected) IrisTheme.colors.primary
-                            else ColorTextSecondary.copy(alpha = 0.3f)
-                ),
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(
-                        start = if (index == 0) 0.dp else 6.dp,
-                        end  = if (index == Constants.LLM_PROVIDERS.lastIndex) 0.dp else 6.dp
-                    )
-            ) {
-                Row(
-                    modifier          = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(34.dp)
+                .clip(CircleShape)
+                .background(IrisTheme.colors.primary.copy(alpha = 0.12f)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = PhIcons.Regular.Cpu,
+                contentDescription = null,
+                tint = IrisTheme.colors.primary,
+                modifier = Modifier.size(16.dp),
+            )
+        }
+        Spacer(Modifier.width(12.dp))
+        Row(
+            modifier = Modifier.weight(1f),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Constants.LLM_PROVIDERS.forEach { provider ->
+                val selected = provider == current
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(
+                            if (selected) IrisTheme.colors.primary
+                            else MaterialTheme.colorScheme.surfaceVariant
+                        )
+                        .clickable { onChange(provider) }
+                        .padding(horizontal = 10.dp, vertical = 6.dp),
+                    contentAlignment = Alignment.Center,
                 ) {
-                    Icon(
-                        imageVector        = PhIcons.Regular.Circle,
-                        contentDescription = null,
-                        modifier           = Modifier.size(12.dp),
-                        tint               = if (isSelected) Color.White
-                                              else ColorTextSecondary
-                    )
-                    Spacer(Modifier.width(8.dp))
                     Text(
-                        text  = Constants.providerDisplayName(provider),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = if (isSelected) Color.White
+                        text = Constants.providerDisplayName(provider),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (selected) MaterialTheme.colorScheme.background
                                 else ColorTextPrimary,
-                        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
+                        fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
                     )
                 }
             }
@@ -383,141 +470,70 @@ private fun ProviderSelector(
     }
 }
 
-// ---------------------------------------------------------------------------
-// Model selector — dropdown filtered by provider
-// ---------------------------------------------------------------------------
+// ── Model selector ───────────────────────────────────────────────────────────
+
 @Composable
 private fun ModelSelector(
     current : String,
     provider: String,
-    onChange: (String) -> Unit
+    onChange: (String) -> Unit,
 ) {
     var expanded by remember { mutableStateOf(false) }
     val models = Constants.modelsForProvider(provider)
-
     val selectedModel = models.find { it.apiName == current }
 
-    Box {
-        Surface(
-            onClick  = { expanded = true },
-            shape    = RoundedCornerShape(12.dp),
-            color    = Color.Transparent,
-            border   = BorderStroke(1.dp, ColorTextSecondary.copy(alpha = 0.3f)),
-            modifier = Modifier.fillMaxWidth()
+    Box(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { expanded = true }
+                .padding(horizontal = 16.dp, vertical = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Row(
-                modifier          = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text  = "Model",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = ColorTextSecondary
-                    )
-                    Spacer(Modifier.height(2.dp))
-                    Text(
-                        text  = selectedModel?.displayName ?: current,
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = IrisTheme.colors.primary,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
-                Icon(
-                    imageVector        = PhIcons.Regular.CaretDown,
-                    contentDescription = null,
-                    tint               = ColorTextSecondary,
-                    modifier           = Modifier.size(18.dp)
+            Spacer(Modifier.width(46.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Model",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = ColorTextSecondary,
+                )
+                Text(
+                    text = selectedModel?.displayName ?: current,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = ColorTextPrimary,
                 )
             }
+            Icon(
+                imageVector = PhIcons.Regular.CaretDown,
+                contentDescription = null,
+                tint = ColorTextSecondary,
+                modifier = Modifier.size(16.dp),
+            )
         }
 
         DropdownMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false },
-            modifier = Modifier.fillMaxWidth(0.85f)
+            modifier = Modifier.fillMaxWidth(0.85f),
         ) {
             models.forEach { model ->
                 DropdownMenuItem(
                     text = {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            if (model.apiName == current) {
-                                Icon(
-                                    imageVector        = PhIcons.Regular.Check,
-                                    contentDescription = null,
-                                    modifier           = Modifier.size(16.dp),
-                                    tint               = IrisTheme.colors.primary
-                                )
-                                Spacer(Modifier.width(8.dp))
-                            }
-                            Column {
-                                Text(
-                                    text  = model.displayName,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = if (model.apiName == current) IrisTheme.colors.primary
-                                            else ColorTextPrimary,
-                                    fontWeight = if (model.apiName == current) FontWeight.Medium
-                                                 else FontWeight.Normal
-                                )
-                                Text(
-                                    text  = model.apiName,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = ColorTextSecondary
-                                )
+                            Text(
+                                text = model.displayName,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = if (model.apiName == current) IrisTheme.colors.primary
+                                        else ColorTextPrimary,
+                            )
                         }
-                    }
-                },
+                    },
                     onClick = {
                         onChange(model.apiName)
                         expanded = false
-                    }
+                    },
                 )
             }
         }
-    }
-}
-
-// ---------------------------------------------------------------------------
-// Reusable toggle row with icon
-// ---------------------------------------------------------------------------
-@Composable
-private fun SettingsToggleRow(
-    icon    : ImageVector,
-    title   : String,
-    subtitle: String,
-    checked : Boolean,
-    onChange: (Boolean) -> Unit
-) {
-    Row(
-        modifier          = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(
-            imageVector        = icon,
-            contentDescription = null,
-            modifier           = Modifier.size(22.dp),
-            tint               = IrisTheme.colors.primary
-        )
-        Spacer(Modifier.size(16.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text  = title,
-                style = MaterialTheme.typography.bodyLarge,
-                color = ColorTextPrimary
-            )
-            Text(
-                text  = subtitle,
-                style = MaterialTheme.typography.bodySmall,
-                color = ColorTextSecondary
-            )
-        }
-        Switch(
-            checked         = checked,
-            onCheckedChange = onChange,
-            colors          = SwitchDefaults.colors(
-                checkedThumbColor = MaterialTheme.colorScheme.background,
-                checkedTrackColor = IrisTheme.colors.primary
-            )
-        )
     }
 }
