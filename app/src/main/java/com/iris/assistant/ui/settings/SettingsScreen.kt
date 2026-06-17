@@ -55,6 +55,7 @@ import com.iris.assistant.ui.theme.ColorTextSecondary
 import com.iris.assistant.ui.theme.IrisTheme
 import com.iris.assistant.util.Constants
 import com.phosphor.icons.PhIcons
+import com.phosphor.icons.regular.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
