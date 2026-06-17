@@ -54,11 +54,7 @@ import com.iris.assistant.ui.theme.ColorTextPrimary
 import com.iris.assistant.ui.theme.ColorTextSecondary
 import com.iris.assistant.ui.theme.IrisTheme
 import com.iris.assistant.util.Constants
-import com.phosphor.icons.regular.ArrowLeft
-import com.phosphor.icons.regular.CaretDown
-import com.phosphor.icons.regular.Check
-import com.phosphor.icons.regular.Circle
-import com.phosphor.icons.regular.Headphones
+import com.phosphor.icons.PhIcons
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
