@@ -4,8 +4,10 @@ import com.iris.assistant.BuildConfig
 import com.iris.assistant.domain.tools.JarvisTool
 import com.iris.assistant.domain.tools.ToolResult
 import com.iris.assistant.util.Constants
+import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -139,18 +141,22 @@ class WebSearchTool @Inject constructor(
             ?: return ToolResult.Error("Arama sorgusu belirtilmedi.")
         val count = args.optInt("count", 3).coerceIn(1, 10)
 
-        val apiKey = BuildConfig.BRAVE_SEARCH_API_KEY
-        if (apiKey.isBlank()) return ToolResult.Error("BRAVE_SEARCH_API_KEY eksik.")
+        val apiKey = BuildConfig.TAVILY_API_KEY
+        if (apiKey.isBlank()) return ToolResult.Error("TAVILY_API_KEY eksik.")
 
         return runCatching {
-            val url = "${Constants.BRAVE_SEARCH_ENDPOINT}" +
-                "?q=${java.net.URLEncoder.encode(query, "UTF-8")}&count=$count"
+            val requestBody = JSONObject()
+                .put("api_key", apiKey)
+                .put("query", query)
+                .put("search_depth", "basic")
+                .put("include_answer", false)
+                .put("max_results", count)
+                .toString()
+                .toRequestBody("application/json".toMediaType())
 
             val request = Request.Builder()
-                .url(url)
-                .header("Accept", "application/json")
-                .header("X-Subscription-Token", apiKey)
-                .get()
+                .url(Constants.TAVILY_SEARCH_ENDPOINT)
+                .post(requestBody)
                 .build()
 
             val response = okHttpClient.newCall(request).execute()
@@ -165,8 +171,7 @@ class WebSearchTool @Inject constructor(
             }
 
             val json = JSONObject(body)
-            val web = json.optJSONObject("web")
-            val results = web?.optJSONArray("results")
+            val results = json.optJSONArray("results")
 
             if (results == null || results.length() == 0) {
                 return@runCatching ToolResult.Success("Sonuç bulunamadı.", data = emptyMap())
@@ -177,8 +182,8 @@ class WebSearchTool @Inject constructor(
                 val item = results.getJSONObject(i)
                 val title = item.optString("title", "")
                 val link = item.optString("url", "")
-                val desc = item.optString("description", "")
-                items.add("${i + 1}. $title\n$desc\n$link")
+                val content = item.optString("content", "")
+                items.add("${i + 1}. $title\n$content\n$link")
             }
 
             ToolResult.Success(

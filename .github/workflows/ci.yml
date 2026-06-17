@@ -27,7 +27,7 @@ jobs:
           echo "GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}"   >> local.properties
           echo "GROQ_API_KEY=${{ secrets.GROQ_API_KEY }}"       >> local.properties
           echo "WEATHER_API_KEY=${{ secrets.WEATHER_API_KEY }}"     >> local.properties
-          echo "BRAVE_SEARCH_API_KEY=${{ secrets.BRAVE_SEARCH_API_KEY }}" >> local.properties
+          echo "TAVILY_API_KEY=${{ secrets.TAVILY_API_KEY }}"                >> local.properties
           echo "NEWS_API_KEY=${{ secrets.NEWS_API_KEY }}"                >> local.properties
 
       - name: Grant Gradle wrapper execute permission
