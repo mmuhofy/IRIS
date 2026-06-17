@@ -578,6 +578,7 @@ private fun ModelSelector(
                             onChange(model.apiName)
                             expanded = false
                         },
+                        shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.padding(horizontal = 4.dp),
                     )
                     if (index < models.lastIndex) {
