@@ -10,6 +10,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
+import org.codeshipping.llamakotlin.LlamaModel
 import org.json.JSONArray
 import org.json.JSONObject
 import javax.inject.Inject
@@ -26,7 +27,6 @@ class LocalLlmRepository @Inject constructor(
         private const val TAG = "LocalLlmRepository"
         private const val MAX_TOOL_ROUNDS = 5
 
-        // Regex to detect tool call JSON in model output
         private val TOOL_CALL_PATTERN = Regex(
             """(\{[^}]*"tool"\s*:\s*"[^"]*"[^}]*\})""",
             RegexOption.DOT_MATCHES_ALL
@@ -34,7 +34,7 @@ class LocalLlmRepository @Inject constructor(
     }
 
     private var loadedModelPath: String? = null
-    private var llamaModel: Any? = null // LlamaModel instance
+    private var llamaModel: LlamaModel? = null
 
     override suspend fun chat(
         history: List<ChatMessage>,
@@ -58,45 +58,34 @@ class LocalLlmRepository @Inject constructor(
             return@withContext "Model dosyası bulunamadı: $modelPath"
         }
 
-        // Find model info from manifest for chat template
         val modelInfo = LocalModelManifest.models.find { it.id == modelName }
 
-        // Build tool descriptions for prompt injection
         val toolDescriptions = buildToolDescriptions()
-
-        // Inject tool instructions into system prompt
         val fullSystemPrompt = buildLocalSystemPrompt(systemPrompt, toolDescriptions)
 
-        // Build formatted prompt with chat template
         val formattedPrompt = formatConversation(
             systemPrompt = fullSystemPrompt,
             history = history,
             chatTemplate = modelInfo?.chatTemplate ?: "qwen"
         )
 
-        // Load model if not loaded or path changed
         ensureModelLoaded(modelPath)
 
-        // Multi-turn tool calling loop
         var currentPrompt = formattedPrompt
         for (round in 0 until MAX_TOOL_ROUNDS) {
-
             val rawOutput = generateText(currentPrompt)
             val output = rawOutput.trim()
 
             Log.d(TAG, "round=$round output=${output.take(200)}")
 
-            // Check for tool call JSON
             val toolCall = parseToolCall(output)
 
             if (toolCall == null) {
-                // No tool call — this is the final answer
                 return@withContext cleanOutput(output)
             }
 
             Log.d(TAG, "round=$round: toolCall=${toolCall.first} args=${toolCall.second}")
 
-            // Execute tool
             val toolResult = toolRegistry.execute(toolCall.first, toolCall.second)
 
             if (toolResult is ToolResult.PermissionRequired) {
@@ -116,7 +105,6 @@ class LocalLlmRepository @Inject constructor(
                 else -> "Unknown result"
             }
 
-            // Append result and continue
             currentPrompt = buildContinuationPrompt(currentPrompt, output, resultText)
         }
 
@@ -131,87 +119,47 @@ class LocalLlmRepository @Inject constructor(
         closeModel()
         Log.d(TAG, "Loading model: $modelPath")
 
-        // Try multiple known API shapes in order of likelihood
-        val model = loadModelFirstAvailable(modelPath)
-        if (model != null) {
-            llamaModel = model
+        try {
+            llamaModel = LlamaModel.load(modelPath) {
+                contextSize = 2048
+                threads = 4
+                temperature = 0.7f
+                topP = 0.9f
+                topK = 40
+                repeatPenalty = 1.1f
+                maxTokens = 512
+                useMmap = true
+                useMlock = false
+                gpuLayers = 0
+            }
             loadedModelPath = modelPath
             Log.d(TAG, "Model loaded successfully")
-        } else {
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to load model", e)
             loadedModelPath = null
             throw com.iris.assistant.domain.model.IrisException.LlmException(
-                "Model yüklenemedi. Kütüphane API'si uyumsuz olabilir."
+                "Model yüklenemedi: ${e.message ?: "Bilinmeyen hata"}"
             )
         }
     }
 
-    private suspend fun loadModelFirstAvailable(modelPath: String): Any? {
-        try { return loadModelDirect(modelPath) } catch (_: Exception) {}
-        try { return loadModelReflective("org.codeshipping.llama.LlamaModel", modelPath) } catch (_: Exception) {}
-        try { return loadModelReflective("com.suhel.llamabro.sdk.LlamaEngine", modelPath) } catch (_: Exception) {}
-        try { return loadModelReflective("com.dark.gguf_lib.GGMLEngine", modelPath) } catch (_: Exception) {}
-        return null
-    }
-
-    private suspend fun loadModelDirect(modelPath: String): Any? {
-        // If the library exposes a known static factory, we use it here.
-        // org.codeshipping.llama.LlamaModel.load(path) returns LlamaModel
-        try {
-            val llamaClass = Class.forName("org.codeshipping.llama.LlamaModel$Companion")
-            val loadMethod = llamaClass.getMethod("load", String::class.java)
-            return loadMethod.invoke(null, modelPath)
-        } catch (_: NoClassDefFoundError) {}
-        catch (_: ClassNotFoundException) {}
-
-        try {
-            val llamaClass = Class.forName("org.codeshipping.llama.LlamaModel")
-            val loadMethod = llamaClass.getMethod("load", String::class.java)
-            return loadMethod.invoke(null, modelPath)
-        } catch (_: Exception) {}
-        return null
-    }
-
-    private suspend fun loadModelReflective(className: String, modelPath: String): Any? {
-        return try {
-            val clazz = Class.forName(className)
-            val methods = clazz.methods
-            val loadMethod = methods.find { it.name == "load" && it.parameterCount == 1 }
-            if (loadMethod != null) {
-                loadMethod.invoke(null, modelPath)
-            } else null
-        } catch (_: Exception) { null }
-    }
-
     private fun closeModel() {
-        if (llamaModel != null) {
-            try {
-                val closeMethod = llamaModel!!.javaClass.methods
-                    .find { it.name == "close" || it.name == "closeModel" || it.name == "release" }
-                if (closeMethod != null) {
-                    closeMethod.invoke(llamaModel)
-                }
-            } catch (_: Exception) {}
-            llamaModel = null
-            loadedModelPath = null
-        }
+        try {
+            llamaModel?.close()
+        } catch (_: Exception) {}
+        llamaModel = null
+        loadedModelPath = null
     }
 
     private suspend fun generateText(prompt: String): String {
-        if (llamaModel == null) return ""
-
+        val model = llamaModel ?: return ""
         return try {
-            val obj = llamaModel!!
-            val methods = obj.javaClass.methods
-            val genMethod = methods.find { it.name == "generate" && it.parameterTypes.any { it == String::class.java } }
-            if (genMethod != null) {
-                genMethod.invoke(obj, prompt)?.toString() ?: ""
-            } else {
-                Log.e(TAG, "No generate(String) method found on ${obj.javaClass.name}")
-                ""
-            }
+            model.generate(prompt)
         } catch (e: Exception) {
             Log.e(TAG, "Generate error", e)
-            ""
+            throw com.iris.assistant.domain.model.IrisException.LlmException(
+                "Metin oluşturma hatası: ${e.message}"
+            )
         }
     }
 
@@ -309,20 +257,15 @@ RULES:
         modelOutput: String,
         toolResult: String
     ): String {
-        // Append the model's tool call and the function result
         val sb = StringBuilder(previousPrompt)
         sb.appendLine()
         sb.appendLine(modelOutput)
-
-        // Add function result as a system/user message
-        // Qwen format:
         sb.appendLine("<|im_end|>")
         sb.appendLine("<|im_start|>user")
         sb.appendLine("Function result: $toolResult")
         sb.appendLine("Based on this result, respond to the user naturally.")
         sb.appendLine("<|im_end|>")
         sb.append("<|im_start|>assistant")
-
         return sb.toString()
     }
 
@@ -342,7 +285,6 @@ RULES:
     }
 
     private fun cleanOutput(output: String): String {
-        // Remove any tool call JSON remnants
         return output.replace(TOOL_CALL_PATTERN, "").trim()
     }
 }
