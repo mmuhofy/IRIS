@@ -179,33 +179,27 @@ private fun ModelCard(
                 when (val dlState = modelState.downloadState) {
                     is DownloadState.Downloading -> {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            val total = dlState.totalBytes.coerceAtLeast(0L)
+                            val frac = if (total > 0L) (dlState.bytesDownloaded.toFloat() / total).coerceIn(0f, 1f) else 0f
+                            LinearProgressIndicator(
+                                progress = { frac },
+                                modifier = Modifier.width(80.dp),
+                                color = IrisTheme.colors.primary,
+                            )
+                            Spacer(Modifier.height(4.dp))
                             if (dlState.progress >= 1f) {
-                                LinearProgressIndicator(
-                                    progress = { dlState.progress / 100f },
-                                    modifier = Modifier.width(80.dp),
-                                    color = IrisTheme.colors.primary,
-                                )
-                                Spacer(Modifier.height(4.dp))
                                 Text(
                                     text = "${dlState.progress.toInt()}%",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = ColorTextSecondary,
                                 )
                             } else {
-                                LinearProgressIndicator(
-                                    progress = {
-                                        if (dlState.totalBytes > 0L) {
-                                            (dlState.bytesDownloaded.toFloat() / dlState.totalBytes).coerceIn(0f, 1f)
-                                        } else {
-                                            0f
-                                        }
-                                    },
-                                    modifier = Modifier.width(80.dp),
-                                    color = IrisTheme.colors.primary,
-                                )
-                                Spacer(Modifier.height(4.dp))
                                 Text(
-                                    text = "${formatBytes(dlState.bytesDownloaded)} / ${formatBytes(dlState.totalBytes.coerceAtLeast(0L))}",
+                                    text = if (total > 0L) {
+                                        "${formatBytes(dlState.bytesDownloaded)} / ${formatBytes(total)}"
+                                    } else {
+                                        formatBytes(dlState.bytesDownloaded)
+                                    },
                                     style = MaterialTheme.typography.labelSmall,
                                     color = ColorTextSecondary,
                                 )

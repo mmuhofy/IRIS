@@ -31,18 +31,19 @@ class ModelDownloader @Inject constructor(
     companion object {
         private const val TAG = "ModelDownloader"
         private const val MODELS_DIR = "iris_models"
-        private const val TIMEOUT_SECONDS = 300L
-        private const val PROGRESS_INTERVAL_BYTES = 50_000L // report progress every ~50KB
+        private const val TIMEOUT_CONNECT_SECONDS = 60L
+        private const val TIMEOUT_READ_SECONDS = 120L
         private const val USER_AGENT = "IRIS-Android/1.0"
     }
 
     private val downloadClient: OkHttpClient = okHttpClient.newBuilder()
-        .connectTimeout(TIMEOUT_SECONDS, TimeUnit.SECONDS)
-        .readTimeout(TIMEOUT_SECONDS, TimeUnit.SECONDS)
-        .writeTimeout(TIMEOUT_SECONDS, TimeUnit.SECONDS)
+        .connectTimeout(TIMEOUT_CONNECT_SECONDS, TimeUnit.SECONDS)
+        .readTimeout(TIMEOUT_READ_SECONDS, TimeUnit.SECONDS)
+        .writeTimeout(TIMEOUT_CONNECT_SECONDS, TimeUnit.SECONDS)
+        .followRedirects(true)
+        .followSslRedirects(true)
         .build()
 
-    // Application-scoped — survives ViewModel lifecycle
     private val downloadScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     private val activeJobs = mutableMapOf<String, Job>()
@@ -66,7 +67,13 @@ class ModelDownloader @Inject constructor(
         val model = LocalModelManifest.models.find { it.id == modelId } ?: return
         if (activeJobs[modelId]?.isActive == true) return
 
-        _downloadStates.update { it + (modelId to DownloadState.Downloading(0f, 0, 0)) }
+        _downloadStates.update {
+            it + (modelId to DownloadState.Downloading(
+                progress = 0f,
+                bytesDownloaded = 0,
+                totalBytes = model.sizeMb * 1_000_000L
+            ))
+        }
 
         val job = downloadScope.launch {
             download(model) { state ->
@@ -95,7 +102,8 @@ class ModelDownloader @Inject constructor(
         }
 
         val downloadUrl = "https://huggingface.co/${model.hfRepoId}/resolve/main/${model.hfFilename}"
-        Log.d(TAG, "Downloading: $downloadUrl")
+        val estimatedTotalBytes = model.sizeMb * 1_000_000L
+        Log.d(TAG, "Downloading: $downloadUrl (estimated: ${estimatedTotalBytes}B)")
 
         val request = Request.Builder()
             .url(downloadUrl)
@@ -105,18 +113,28 @@ class ModelDownloader @Inject constructor(
         try {
             val response = downloadClient.newCall(request).execute()
             if (!response.isSuccessful) {
-                val error = "HTTP ${response.code}: ${response.message}"
-                Log.e(TAG, error)
+                val errorBody = try {
+                    response.body?.string()?.take(200) ?: ""
+                } catch (_: Exception) { "" }
+                val error = "HTTP ${response.code}: ${response.message}. $errorBody"
+                Log.e(TAG, "Download error: $error")
                 onProgress(DownloadState.Error(error))
                 return
             }
 
             val body = response.body ?: run {
-                onProgress(DownloadState.Error("Empty response body"))
+                onProgress(DownloadState.Error("Sunucudan boş yanıt alındı"))
                 return
             }
 
             val contentLength = body.contentLength()
+            val actualTotalBytes = if (contentLength > 0L) contentLength else estimatedTotalBytes
+            if (contentLength > 0L) {
+                Log.d(TAG, "Content-Length: $contentLength bytes (${contentLength / 1_000_000} MB)")
+            } else {
+                Log.d(TAG, "Content-Length unknown, using estimate: ${estimatedTotalBytes}B")
+            }
+
             val inputStream = body.byteStream()
             val outputStream = targetFile.outputStream()
 
@@ -124,11 +142,13 @@ class ModelDownloader @Inject constructor(
             var bytesRead: Long = 0
             var lastReportedPct = -1
             var lastReportedBytes: Long = 0
+            var lastReportedTimeMs = 0L
 
             try {
                 var read: Int
                 while (inputStream.read(buffer).also { read = it } != -1) {
                     if (!currentCoroutineContext().isActive) {
+                        targetFile.delete()
                         Log.d(TAG, "Download cancelled for ${model.id}")
                         return
                     }
@@ -136,44 +156,45 @@ class ModelDownloader @Inject constructor(
                     outputStream.write(buffer, 0, read)
                     bytesRead += read
 
-                    val bytesSinceLastReport = bytesRead - lastReportedBytes
-                    val shouldReport = if (contentLength > 0) {
-                        val pct = (bytesRead * 100 / contentLength).toInt()
-                        pct > lastReportedPct || bytesSinceLastReport >= PROGRESS_INTERVAL_BYTES
-                    } else {
-                        bytesSinceLastReport >= PROGRESS_INTERVAL_BYTES
-                    }
+                    val now = System.currentTimeMillis()
+                    val bytesSinceReport = bytesRead - lastReportedBytes
+                    val timeSinceReport = now - lastReportedTimeMs
+
+                    val pct = (bytesRead * 100 / actualTotalBytes).toInt()
+                    val shouldReport = pct > lastReportedPct
+                        || bytesSinceReport >= 8_192
+                        || timeSinceReport >= 250L
 
                     if (shouldReport) {
-                        if (contentLength > 0) {
-                            lastReportedPct = (bytesRead * 100 / contentLength).toInt()
-                        }
+                        lastReportedPct = pct
                         lastReportedBytes = bytesRead
+                        lastReportedTimeMs = now
+                        val progress = (bytesRead.toFloat() / actualTotalBytes * 100f)
+                            .coerceAtMost(100f)
                         onProgress(
                             DownloadState.Downloading(
-                                if (contentLength > 0) (bytesRead.toFloat() / contentLength * 100f).coerceAtMost(100f)
-                                else -1f,
-                                bytesRead,
-                                contentLength
+                                progress = progress,
+                                bytesDownloaded = bytesRead,
+                                totalBytes = actualTotalBytes
                             )
                         )
                     }
                 }
                 outputStream.flush()
-                Log.d(TAG, "Download complete: ${targetFile.absolutePath}")
+                Log.d(TAG, "Download complete: ${targetFile.absolutePath} (${bytesRead} bytes)")
                 onProgress(DownloadState.Ready)
             } catch (e: IOException) {
                 targetFile.delete()
-                Log.e(TAG, "Download error", e)
-                onProgress(DownloadState.Error(e.message ?: "Download interrupted"))
+                Log.e(TAG, "Download error during transfer", e)
+                onProgress(DownloadState.Error(e.message ?: "İndirme sırasında hata oluştu"))
             } finally {
-                inputStream.close()
-                outputStream.close()
+                try { inputStream.close() } catch (_: Exception) {}
+                try { outputStream.close() } catch (_: Exception) {}
             }
         } catch (e: IOException) {
             targetFile.delete()
-            Log.e(TAG, "Download error", e)
-            onProgress(DownloadState.Error(e.message ?: "Download failed"))
+            Log.e(TAG, "Download error (network)", e)
+            onProgress(DownloadState.Error(e.message ?: "İndirme başlatılamadı"))
         }
     }
 
