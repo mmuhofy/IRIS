@@ -78,6 +78,12 @@ android {
         }
     }
 
+    packaging {
+        jniLibs {
+            pickFirsts += setOf("libc++_shared.so")
+        }
+    }
+
     buildFeatures {
         compose     = true
         buildConfig = true

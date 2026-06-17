@@ -41,7 +41,7 @@ kotlinxSerialization    = "1.8.1"
 # Brings in onnxruntime-android:1.18.0 as a transitive dependency
 openwakeword            = "0.1.5"
 phosphoriconCompose     = "1.0.5"
-llamakotlin             = "0.1.4"
+llamakotlin             = "0.1.5"
 
 [libraries]
 # AndroidX Core
