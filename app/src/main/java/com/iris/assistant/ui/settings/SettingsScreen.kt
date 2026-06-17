@@ -1,6 +1,7 @@
 package com.iris.assistant.ui.settings
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -46,6 +47,9 @@ import com.iris.assistant.domain.model.TtsVoice
 import com.iris.assistant.ui.components.IrisButtonDestructive
 import com.iris.assistant.ui.theme.ColorSchemeOption
 import com.iris.assistant.ui.theme.IrisTheme
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import com.iris.assistant.util.Constants
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -139,6 +143,30 @@ fun SettingsScreen(
                     VoiceSelector(
                         current  = uiState.ttsVoice,
                         onChange = viewModel::onTtsVoiceChange
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(24.dp))
+
+            // --- Model Seçimi ---
+            SettingsSectionTitle("Yapay Zeka Modeli")
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text  = "IRIS'in kullandığı dil modeli",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(Modifier.height(10.dp))
+            Card(
+                shape  = RoundedCornerShape(Constants.CARD_CORNER_RADIUS.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    ModelSelector(
+                        current  = uiState.llmModel,
+                        onChange = viewModel::onLlmModelChange
                     )
                 }
             }
@@ -343,4 +371,63 @@ private fun SettingsSectionTitle(text: String) {
         style = MaterialTheme.typography.titleSmall,
         color = IrisTheme.colors.primary
     )
+}
+
+@Composable
+private fun ModelSelector(
+    current : String,
+    onChange: (String) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Box {
+        Surface(
+            onClick  = { expanded = true },
+            shape    = RoundedCornerShape(12.dp),
+            color    = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+            border   = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Row(
+                modifier          = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text  = current,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = IrisTheme.colors.primary,
+                    modifier = Modifier.weight(1f)
+                )
+                Icon(
+                    imageVector        = PhIcons.Regular.CaretDown,
+                    contentDescription = null,
+                    tint               = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier           = Modifier.size(18.dp)
+                )
+            }
+        }
+
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            modifier = Modifier.widthIn(min = 200.dp)
+        ) {
+            Constants.LLM_MODELS.forEach { model ->
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            text  = model,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = if (model == current) IrisTheme.colors.primary
+                                    else MaterialTheme.colorScheme.onSurface
+                        )
+                    },
+                    onClick = {
+                        onChange(model)
+                        expanded = false
+                    }
+                )
+            }
+        }
+    }
 }

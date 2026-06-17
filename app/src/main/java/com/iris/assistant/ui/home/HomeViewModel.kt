@@ -1,11 +1,14 @@
 package com.iris.assistant.ui.home
 
+import android.Manifest
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.pm.PackageManager
 import android.os.Build
 import android.util.Log
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.iris.assistant.data.audio.AudioRecorder
@@ -198,6 +201,21 @@ class HomeViewModel @Inject constructor(
 
     private fun startVoicePipeline() {
         pipelineJob = viewModelScope.launch {
+
+            // Step 0 — Check mic permission
+            if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO)
+                != PackageManager.PERMISSION_GRANTED
+            ) {
+                _uiState.update {
+                    it.copy(
+                        permissionRequest = PermissionRequest(
+                            permission = Manifest.permission.RECORD_AUDIO,
+                            rationale  = "IRIS sesinizi duyabilmek için mikrofon iznine ihtiyaç duyar."
+                        )
+                    )
+                }
+                return@launch
+            }
 
             // Step 1 — Pause WakeWordService BEFORE opening mic.
             // WakeWordEngine's AudioRecord must be released before AudioRecorder can open.

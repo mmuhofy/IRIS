@@ -17,9 +17,14 @@ object Constants {
     const val GROQ_STT_LANGUAGE = "tr"
 
     // --- LLM ---
-    const val GEMINI_MODEL    = "gemini-3.5-flash"
-    const val GEMINI_ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models"
-    const val GROQ_LLM_MODEL  = "llama-3.3-70b-versatile" // TODO: confirm at implementation time
+    const val GEMINI_MODEL       = "gemini-3.5-flash"
+    const val GEMINI_ENDPOINT    = "https://generativelanguage.googleapis.com/v1beta/models"
+    const val GROQ_LLM_MODEL     = "llama-3.3-70b-versatile" // TODO: confirm at implementation time
+
+    val LLM_MODELS = listOf(
+        "gemini-3.5-flash",
+        "gemini-2.5-flash",
+    )
 
     // --- TTS — Gemini ---
     // Model: gemini-3.1-flash-tts-preview (current stable TTS model, verified 2026-05)

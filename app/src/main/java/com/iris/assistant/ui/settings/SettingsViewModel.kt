@@ -6,6 +6,7 @@ import com.iris.assistant.data.local.datastore.PreferencesRepository
 import com.iris.assistant.domain.model.TtsVoice
 import com.iris.assistant.domain.repository.ConversationRepository
 import com.iris.assistant.ui.theme.ColorSchemeOption
+import com.iris.assistant.util.Constants
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -18,6 +19,7 @@ data class SettingsUiState(
     val colorScheme        : ColorSchemeOption = ColorSchemeOption.LAVENDER,
     val backgroundListening: Boolean           = true,
     val ttsVoice           : TtsVoice          = TtsVoice.DEFAULT,
+    val llmModel           : String            = Constants.GEMINI_MODEL,
     val historyCleared     : Boolean           = false
 )
 
@@ -32,7 +34,8 @@ class SettingsViewModel @Inject constructor(
             SettingsUiState(
                 colorScheme         = prefs.colorScheme,
                 backgroundListening = prefs.backgroundListening,
-                ttsVoice            = prefs.ttsVoice
+                ttsVoice            = prefs.ttsVoice,
+                llmModel            = prefs.llmModel
             )
         }
         .stateIn(
@@ -51,6 +54,10 @@ class SettingsViewModel @Inject constructor(
 
     fun onTtsVoiceChange(voice: TtsVoice) {
         viewModelScope.launch { preferencesRepository.setTtsVoice(voice) }
+    }
+
+    fun onLlmModelChange(model: String) {
+        viewModelScope.launch { preferencesRepository.setLlmModel(model) }
     }
 
     fun onClearHistory() {

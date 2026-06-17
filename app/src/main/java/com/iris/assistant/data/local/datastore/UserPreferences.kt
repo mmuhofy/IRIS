@@ -9,5 +9,6 @@ data class UserPreferences(
     val backgroundListening : Boolean           = true,
     val onboardingCompleted : Boolean           = false,
     val ttsVoice            : TtsVoice          = TtsVoice.DEFAULT,
-    val userName            : String            = Constants.USER_NAME
+    val userName            : String            = Constants.USER_NAME,
+    val llmModel            : String            = Constants.GEMINI_MODEL
 )

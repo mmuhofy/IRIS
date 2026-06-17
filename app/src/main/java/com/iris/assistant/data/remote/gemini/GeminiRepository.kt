@@ -2,6 +2,7 @@ package com.iris.assistant.data.remote.gemini
 
 import android.util.Log
 import com.iris.assistant.BuildConfig
+import com.iris.assistant.data.local.datastore.PreferencesRepository
 import com.iris.assistant.domain.model.ChatMessage
 import com.iris.assistant.domain.model.IrisException
 import com.iris.assistant.domain.repository.LlmRepository
@@ -9,6 +10,8 @@ import com.iris.assistant.domain.tools.ToolRegistry
 import com.iris.assistant.domain.tools.ToolResult
 import com.iris.assistant.util.Constants
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -24,7 +27,8 @@ import javax.inject.Singleton
 @Singleton
 class GeminiRepository @Inject constructor(
     private val okHttpClient: OkHttpClient,
-    private val toolRegistry: ToolRegistry
+    private val toolRegistry: ToolRegistry,
+    private val preferencesRepository: PreferencesRepository
 ) : LlmRepository {
 
     companion object {
@@ -40,7 +44,10 @@ class GeminiRepository @Inject constructor(
         val apiKey = BuildConfig.GEMINI_API_KEY
         if (apiKey.isBlank()) throw IrisException.AuthException("GEMINI_API_KEY is not set")
 
-        val url = "${Constants.GEMINI_ENDPOINT}/${Constants.GEMINI_MODEL}:generateContent?key=$apiKey"
+        val model = preferencesRepository.preferences
+            .map { it.llmModel }
+            .first()
+        val url = "${Constants.GEMINI_ENDPOINT}/${model}:generateContent?key=$apiKey"
 
         // Build contents array from history — start with the conversation
         val contents = buildContents(history)
