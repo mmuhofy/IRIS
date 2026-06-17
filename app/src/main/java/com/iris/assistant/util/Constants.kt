@@ -40,8 +40,8 @@ object Constants {
     const val GEMINI_TTS_RETRY_DELAY_MS  = 1000L
 
     // --- Info Tools ---
-    const val GOOGLE_CSE_ENDPOINT = "https://www.googleapis.com/customsearch/v1"
-    const val NEWS_API_ENDPOINT   = "https://newsapi.org/v2"
+    const val BRAVE_SEARCH_ENDPOINT = "https://api.search.brave.com/res/v1/web/search"
+    const val NEWS_API_ENDPOINT     = "https://newsapi.org/v2"
     const val NEWS_API_COUNTRY    = "tr"
     const val NEWS_API_PAGE_SIZE  = 5
 

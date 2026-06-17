@@ -139,47 +139,51 @@ class WebSearchTool @Inject constructor(
             ?: return ToolResult.Error("Arama sorgusu belirtilmedi.")
         val count = args.optInt("count", 3).coerceIn(1, 10)
 
-        val apiKey = BuildConfig.GOOGLE_CSE_API_KEY
-        val cx = BuildConfig.GOOGLE_CSE_CX
-        if (apiKey.isBlank() || cx.isBlank()) {
-            return ToolResult.Error("GOOGLE_CSE_API_KEY veya GOOGLE_CSE_CX eksik.")
-        }
+        val apiKey = BuildConfig.BRAVE_SEARCH_API_KEY
+        if (apiKey.isBlank()) return ToolResult.Error("BRAVE_SEARCH_API_KEY eksik.")
 
         return runCatching {
-            val url = "${Constants.GOOGLE_CSE_ENDPOINT}" +
-                "?key=$apiKey&cx=$cx&q=${java.net.URLEncoder.encode(query, "UTF-8")}&num=$count&lr=lang_tr"
+            val url = "${Constants.BRAVE_SEARCH_ENDPOINT}" +
+                "?q=${java.net.URLEncoder.encode(query, "UTF-8")}&count=$count"
 
-            val request = Request.Builder().url(url).get().build()
+            val request = Request.Builder()
+                .url(url)
+                .header("Accept", "application/json")
+                .header("X-Subscription-Token", apiKey)
+                .get()
+                .build()
+
             val response = okHttpClient.newCall(request).execute()
             val body = response.body?.string()
                 ?: return@runCatching ToolResult.Error("Arama API'sinden boş yanıt (HTTP ${response.code})")
 
             if (!response.isSuccessful) {
                 val errMsg = try {
-                    JSONObject(body).optJSONObject("error")?.optString("message") ?: body
+                    JSONObject(body).optString("message", body)
                 } catch (_: Exception) { body }
                 return@runCatching ToolResult.Error("Arama yapılamadı: $errMsg")
             }
 
             val json = JSONObject(body)
-            val items = json.optJSONArray("items")
+            val web = json.optJSONObject("web")
+            val results = web?.optJSONArray("results")
 
-            if (items == null || items.length() == 0) {
+            if (results == null || results.length() == 0) {
                 return@runCatching ToolResult.Success("Sonuç bulunamadı.", data = emptyMap())
             }
 
-            val results = mutableListOf<String>()
-            for (i in 0 until items.length()) {
-                val item = items.getJSONObject(i)
+            val items = mutableListOf<String>()
+            for (i in 0 until results.length()) {
+                val item = results.getJSONObject(i)
                 val title = item.optString("title", "")
-                val link = item.optString("link", "")
-                val snippet = item.optString("snippet", "")
-                results.add("${i + 1}. $title\n$snippet\n$link")
+                val link = item.optString("url", "")
+                val desc = item.optString("description", "")
+                items.add("${i + 1}. $title\n$desc\n$link")
             }
 
             ToolResult.Success(
-                displayText = results.joinToString("\n\n"),
-                data = mapOf("results_count" to results.size.toString())
+                displayText = items.joinToString("\n\n"),
+                data = mapOf("results_count" to items.size.toString())
             )
         }.getOrElse { e ->
             ToolResult.Error("Arama yapılamadı: ${e.message}", e)

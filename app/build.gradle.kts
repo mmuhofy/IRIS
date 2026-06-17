@@ -44,9 +44,8 @@ android {
         buildConfigField("String", "GEMINI_API_KEY",   apiKey("GEMINI_API_KEY"))
         buildConfigField("String", "GROQ_API_KEY",     apiKey("GROQ_API_KEY"))
         buildConfigField("String", "WEATHER_API_KEY",  apiKey("WEATHER_API_KEY"))
-        buildConfigField("String", "GOOGLE_CSE_API_KEY", apiKey("GOOGLE_CSE_API_KEY"))
-        buildConfigField("String", "GOOGLE_CSE_CX",      apiKey("GOOGLE_CSE_CX"))
-        buildConfigField("String", "NEWS_API_KEY",       apiKey("NEWS_API_KEY"))
+        buildConfigField("String", "BRAVE_SEARCH_API_KEY", apiKey("BRAVE_SEARCH_API_KEY"))
+        buildConfigField("String", "NEWS_API_KEY",         apiKey("NEWS_API_KEY"))
     }
 
     buildTypes {
