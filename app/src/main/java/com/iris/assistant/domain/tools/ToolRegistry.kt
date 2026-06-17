@@ -78,6 +78,39 @@ class ToolRegistry @Inject constructor(
     }
 
     /**
+     * Returns the OpenAI-compatible `tools` array for Groq (and other OpenAI-compatible APIs).
+     *
+     * Shape sent to Groq API:
+     * [{
+     *   "type": "function",
+     *   "function": {
+     *     "name": "...",
+     *     "description": "...",
+     *     "parameters": { ... }
+     *   }
+     * }]
+     *
+     * Called by GroqLlmRepository before each request.
+     * Returns null if no tools are registered.
+     */
+    fun openAiToolsPayload(): JSONArray? {
+        if (toolMap.isEmpty()) return null
+
+        val tools = JSONArray()
+        toolMap.values.forEach { tool ->
+            tools.put(
+                JSONObject()
+                    .put("type", "function")
+                    .put("function", JSONObject()
+                        .put("name", tool.name)
+                        .put("description", tool.description)
+                        .put("parameters", tool.parameters))
+            )
+        }
+        return tools
+    }
+
+    /**
      * Dispatches a Gemini function_call to the matching tool.
      *
      * @param name Tool name from Gemini's function_call.name field
