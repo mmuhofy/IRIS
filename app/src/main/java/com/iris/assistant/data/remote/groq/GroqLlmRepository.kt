@@ -33,6 +33,10 @@ class GroqLlmRepository @Inject constructor(
     companion object {
         private const val TAG = "GroqLlmRepository"
         private const val MAX_TOOL_ROUNDS = 10
+        private val TOOL_CALL_PATTERN = Regex(
+            """(\{[^}]*"tool"\s*:\s*"[^"]*"[^}]*\})""",
+            RegexOption.DOT_MATCHES_ALL
+        )
     }
 
     override suspend fun chat(
@@ -49,15 +53,36 @@ class GroqLlmRepository @Inject constructor(
             .takeIf { it.isNotBlank() }
             ?: Constants.GROQ_LLM_MODEL
 
-        val toolsPayload = toolRegistry.openAiToolsPayload()
+        val toolDescriptions = buildToolDescriptions()
+        val fullSystemPrompt = if (toolDescriptions != null) {
+            """
+$systemPrompt
 
-        // Build messages array — start with system + conversation history
+AVAILABLE FUNCTIONS:
+You have access to the following functions. When the user asks you to do something that matches one of these functions, respond with a JSON object exactly in this format (and nothing else):
+
+{"tool": "function_name", "args": {"key": "value"}}
+
+Available functions:
+$toolDescriptions
+
+If no function is needed, respond normally. Never say you "cannot" do something when a function is available.
+
+RULES:
+- When calling a function, output ONLY the JSON object, no other text.
+- After the function result is returned, explain the result to the user naturally.
+- Always respond in Turkish.
+            """.trimIndent()
+        } else {
+            systemPrompt
+        }
+
         val messages = JSONArray()
 
         messages.put(
             JSONObject()
                 .put("role", "system")
-                .put("content", systemPrompt)
+                .put("content", fullSystemPrompt)
         )
 
         history.forEach { msg ->
@@ -72,7 +97,6 @@ class GroqLlmRepository @Inject constructor(
             )
         }
 
-        // Multi-turn tool calling loop
         for (round in 0 until MAX_TOOL_ROUNDS) {
 
             val requestBody = JSONObject()
@@ -80,11 +104,6 @@ class GroqLlmRepository @Inject constructor(
                 .put("messages", messages)
                 .put("temperature", 0.7)
                 .put("max_tokens", 1024)
-
-            if (toolsPayload != null) {
-                requestBody.put("tools", toolsPayload)
-                requestBody.put("tool_choice", "auto")
-            }
 
             val jsonRequest = requestBody.toString()
                 .toRequestBody("application/json".toMediaType())
@@ -116,44 +135,21 @@ class GroqLlmRepository @Inject constructor(
                     val choice = choices.getJSONObject(0)
                     val finishReason = choice.optString("finish_reason", "")
                     val message = choice.getJSONObject("message")
+                    val content = message.optString("content", "").trim()
 
-                    val toolCalls = message.optJSONArray("tool_calls")
-
-                    // No tool calls → return text content
-                    if (toolCalls == null || toolCalls.length() == 0 || finishReason == "stop") {
-                        val content = message.optString("content", "").trim()
-                        if (content.isNotEmpty()) {
-                            return@withContext content
+                    if (finishReason == "stop" || content.isNotEmpty()) {
+                        val toolCall = parseToolCall(content)
+                        if (toolCall == null) {
+                            return@withContext cleanOutput(content)
                         }
-                        throw IrisException.LlmException("Groq LLM: empty response content")
-                    }
+                        Log.d(TAG, "round=$round: toolCall=${toolCall.first} args=${toolCall.second}")
+                        val toolResult = toolRegistry.execute(toolCall.first, toolCall.second)
 
-                    Log.d(TAG, "round=$round: ${toolCalls.length()} tool_calls received")
-
-                    // Add the assistant's message (with tool_calls) to history
-                    messages.put(message)
-
-                    // Execute each tool and append results
-                    for (i in 0 until toolCalls.length()) {
-                        val tc = toolCalls.getJSONObject(i)
-                        val id = tc.optString("id", "call_$i")
-                        val fn = tc.getJSONObject("function")
-                        val name = fn.optString("name", "")
-                        val args = try {
-                            JSONObject(fn.optString("arguments", "{}"))
-                        } catch (_: Exception) {
-                            JSONObject()
-                        }
-
-                        Log.d(TAG, "round=$round: executing tool '$name'")
-                        val toolResult = toolRegistry.execute(name, args)
-
-                        // Handle permission / cancellation like GeminiRepository
                         if (toolResult is ToolResult.PermissionRequired) {
                             throw IrisException.PermissionRequiredException(
                                 permission = toolResult.permission,
                                 rationale  = toolResult.rationale,
-                                toolName   = name
+                                toolName   = toolCall.first
                             )
                         }
                         if (toolResult is ToolResult.Cancelled) {
@@ -168,13 +164,17 @@ class GroqLlmRepository @Inject constructor(
 
                         messages.put(
                             JSONObject()
-                                .put("role", "tool")
-                                .put("tool_call_id", id)
-                                .put("content", resultContent)
+                                .put("role", "assistant")
+                                .put("content", content)
                         )
+                        messages.put(
+                            JSONObject()
+                                .put("role", "user")
+                                .put("content", "Function result: $resultContent\n\nBased on this result, respond to the user naturally.")
+                        )
+                    } else {
+                        throw IrisException.LlmException("Groq LLM: empty response content")
                     }
-
-                    // Continue loop — model will generate final text from tool results
                 }
                 401 -> throw IrisException.AuthException("Groq LLM auth failed — check GROQ_LLM_API_KEY")
                 429 -> throw IrisException.RateLimitException("Groq LLM rate limit exceeded")
@@ -183,5 +183,42 @@ class GroqLlmRepository @Inject constructor(
         }
 
         throw IrisException.LlmException("Groq LLM exceeded max tool call rounds ($MAX_TOOL_ROUNDS)")
+    }
+
+    private fun buildToolDescriptions(): String? {
+        val toolsJson = toolRegistry.openAiToolsPayload() ?: return null
+        val descriptions = JSONArray()
+
+        for (i in 0 until toolsJson.length()) {
+            val tool = toolsJson.getJSONObject(i)
+            val fn = tool.optJSONObject("function") ?: continue
+            descriptions.put(
+                JSONObject()
+                    .put("name", fn.optString("name", ""))
+                    .put("description", fn.optString("description", ""))
+                    .put("parameters", fn.optJSONObject("parameters") ?: JSONObject())
+            )
+        }
+
+        return descriptions.toString(2)
+    }
+
+    private fun parseToolCall(output: String): Pair<String, JSONObject>? {
+        val match = TOOL_CALL_PATTERN.find(output) ?: return null
+        val jsonStr = match.value
+
+        return try {
+            val json = JSONObject(jsonStr)
+            val name = json.optString("tool", "")
+            if (name.isBlank()) return null
+            val args = json.optJSONObject("args") ?: JSONObject()
+            Pair(name, args)
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    private fun cleanOutput(output: String): String {
+        return output.replace(TOOL_CALL_PATTERN, "").trim()
     }
 }

@@ -1,201 +1,104 @@
-# IRIS — Project Todo
-
-> Status legend: `[ ]` not started · `[~]` in progress · `[x]` done · `[!]` blocked/needs decision
+# IRIS — Yapılacaklar & Notlar
 
 ---
 
-## Phase 0 — Project Setup
+## Phase 1-2: Tamamlanan
 
-- [x] Create Android Studio project: package `com.iris.assistant`
-- [x] Set Min SDK 26, Target/Compile SDK 36
-- [x] Set up `gradle/libs.versions.toml` (Kotlin, Compose BOM, Hilt, Room, Coroutines, KSP — confirm exact versions)
-- [x] Confirm Min SDK / Target SDK / Compile SDK ✅ (26 / 36 / 36)
-- [x] Set up Clean Architecture folder skeleton: `ui/`, `domain/`, `data/`, `service/`, `di/`, `util/`
-- [x] Create `util/Constants.kt` (placeholder)
-- [x] Set up GitHub repository
-- [x] Configure GitHub Secrets: `GEMINI_API_KEY`, `GROQ_API_KEY`, `HUGGINGFACE_API_KEY`, `PICOVOICE_ACCESS_KEY`
-- [x] Create `local.properties.example` documenting required keys (no values)
-- [x] Set up GitHub Actions CI (build + lint on push)
-- [x] Create `memory-bank.md` and keep updated after every confirmed change
+- [x] Onboarding flow
+- [x] Theme sistemi (Lavender, Sunset, Ocean, Forest, Rose, Monochrome)
+- [x] Home screen: Iris Core animation + quick controls
+- [x] Chat Mode (Voice Mode + Chat Mode toggle)
+- [x] Wake word "Hey IRIS" (Picovoice Porcupine)
+- [x] STT (Groq Whisper-large-v3, tr)
+- [x] TTS (Kokoro HF API)
+- [x] Gemini LLM + function calling
+- [x] Conversation history (Room)
+- [x] Tool sistemi: get_time, calculate, send_sms, make_call, set_alarm, set_reminder, get_weather, web_search, take_note, control_volume, control_brightness, toggle_wifi, toggle_bluetooth, launch_app, open_website, read_notifications, get_news
+- [x] Settings sayfası (Still design: grup kartları, icon circles, section header)
+- [x] Provider/Model/Voice selector
+- [x] Color scheme picker
+- [x] System prompt (İngilizce, tool-calling odaklı)
 
----
+## Phase 3: Kısmi — Devam Eden
 
-## Phase 1 — MVP ("Çalışan IRIS")
+- [x] AutonomyLevel (SAFE / BALANCED / FULL_AUTO / CUSTOM)
+- [x] ScreenInteractionRepository
+- [x] IrisAccessibilityService (servis + manifest)
+- [x] Screen tools: click, type, scroll, navigate_back, read_screen
+- [x] ActionPreviewOverlay (spotlight, countdown, ripple, cancel)
+- [x] ScreenActionGate (overlay üzerinden approval)
+- [ ] **Autonomy Level picker UI** — Settings'te seçici henüz yok
+- [ ] **Accessibility service aktivasyon rehberi** — Kullanıcıya adım adım açıklama ekranı gerek
+- [ ] **NavigateTool** — hala `awaitApproval("Gezinme işlemi")` koordinatsız çağırıyor
+- [ ] **Sensitive app blacklist** — bankacılık/şifre uygulamaları için kara liste
 
-### Theme & Design System
-- [x] Define `Color.kt` for all 6 color schemes (Lavender, Sunset, Ocean, Forest, Rose, Monochrome)
-- [x] Define `Type.kt` (typography, system font)
-- [x] Define `Theme.kt` (dark mode default, scheme selection wiring)
-- [x] Integrate Phosphor Icons dependency
-- [x] Build base components: `IrisCard`, `IrisButton` (primary/secondary/destructive), gradient utilities
+## Phase 4: Henüz Başlanmadı
 
-### Onboarding
-- [x] Screen 1: Welcome + name confirmation ("Muhofy")
-- [x] Screen 2: Microphone permission request + explanation
-- [x] Screen 3: Wake word ("Hey IRIS") test/confirmation
-- [x] Screen 4: Quick demo command flow
-- [x] Screen 5: Battery optimization whitelist request
-- [x] Onboarding completion → navigate to Home (Voice Mode)
+- [ ] Termux entegrasyonu (dosya işlemleri: move, copy, delete, read, write, list, search, rename)
+- [ ] Macro/workflow kaydetme & tekrarlama
+- [ ] Cross-app workflow
+- [ ] Floating bubble assistant
+- [ ] VoiceInteractionService (varsayılan asistan / power button trigger)
+- [ ] AssistStructure-based screen context
 
-### Voice Pipeline
-- [x] Integrate openWakeWord (ONNX Runtime) — start with prebuilt `hey_jarvis.onnx` (or manual mic-button trigger for true MVP)
-- [x] `service/WakeWordService.kt` — foreground service, listens for wake word
-- [x] Audio recording on wake word trigger (`MediaRecorder` or `AudioRecord`)
-- [x] Voice Activity Detection (VAD) — auto-stop recording after silence (~1.5s)
-- [x] `data/remote/WhisperApiClient.kt` — Groq Whisper-large-v3 STT (`language=tr`)
-- [x] `data/remote/GeminiApiClient.kt` — Gemini 3.5 Flash chat (verify model string before use)
-- [x] `data/remote/GroqLlmClient.kt` — fallback LLM (verify Groq model name)
-- [x] `data/remote/tts/TtsProvider.kt` — common interface (`synthesize(text): AudioResult`)
-- [x] `EdgeTtsClient` — default provider, `tr-TR-AhmetNeural`/`tr-TR-EmelNeural`
-- [x] `XttsClient` — Coqui XTTS v2 (verify hosting approach: HF Space vs self-hosted)
-- [x] `GeminiLiveTtsClient` — native audio option (verify model name + cost before enabling by default)
-- [x] Settings: TTS provider selector + voice sub-selection (per provider)
-- [x] Audio playback for TTS output
+## Phase 5: Henüz Başlanmadı
 
-### Home Screen (Voice Mode)
-- [x] Iris Core animation: Canvas-based gradient ring (IDLE/LISTENING/THINKING/SPEAKING states)
-- [x] Status text display
-- [x] Bottom quick controls: Mic toggle, Screen-control toggle, Stop/interrupt
-- [x] Top bar: menu, settings, chat-mode icons
+- [ ] Multi-language auto-detection
+- [ ] Proactive suggestions / habit learning
+- [ ] Smart notification filtering
+- [ ] Light theme
 
-### Chat Mode
-- [x] Chat screen UI (message list, input field)
-- [x] Chat ↔ Voice mode switching
-- [x] Shared ViewModel/backend between modes
+## Bilinen Buglar & Problemler
 
-### Local Storage
-- [x] Room schema: conversation history (messages, timestamps, role)
-- [x] DAO + Repository for conversation history
-- [x] DataStore: user preferences (name, theme, autonomy level, etc.)
-- [x] Settings screen: "Clear history" action
+### 1. Groq LLM tool calling — ÇÖZÜLDÜ (commit 980af53)
+- Sorun: Groq Llama 3.3 70B native function calling'i malformed XML üretiyordu (`<function-name...` ile `=` yerine `-`)
+- Çözüm: Native `tools` parametresi kaldırıldı, JSON-based tool calling'e geçildi (LocalLlmRepository ile aynı yaklaşım)
+- Tool description'lar system prompt'a ekleniyor, model `{"tool": "name", "args": {}}` formatında yanıt veriyor
 
-### Core LLM Loop
-- [x] `domain/usecase/SendMessageUseCase.kt` — orchestrates STT → Gemini → TTS
-- [x] System prompt v1 (IRIS personality, Turkish, emotion-awareness per text)
-- [x] Error handling: no internet, API limit, STT failure (per System Instructions error rules)
-- [x] Groq fallback trigger logic (on Gemini rate limit/error)
+### 2. Local model generation çok yavaş (çözüm beklemede)
+- Llama-3.2-1B-Instruct-Q4_K_M.gguf: prompt >6000 chars → generation >30s
+- Çözüm uygulandı: 60s timeout + cancelGeneration(), prompt truncation, maxTokens=128
+- Test edilmedi — cihazda denenmeli
 
----
+### 3. Weather tool hata döndürüyor
+- `WEATHER_API_KEY` environment variable set olmasına rağmen `get_weather` error dönüyor
+- Weatherapi endpoint/kod kontrol edilmeli
 
-## Phase 2 — Tool-Enabled IRIS
+### 4. Microphone permission bug
+- İlk izin istendiğinde bazen beklemede kalıyor veya hata dönüyor
+- Onboarding Screen 2'de tekrar test edilmeli
 
-### Tool Framework
-- [x] `domain/tools/JarvisTool.kt` interface
-- [x] `domain/tools/ToolResult.kt` sealed class (Success, Error, PermissionRequired, Cancelled)
-- [x] `domain/tools/ToolRegistry.kt` — registration, lookup, Gemini function-declaration formatting
-- [x] Gemini function-calling integration in `GeminiApiClient` (data/remote/gemini/GeminiRepository.kt)
-- [x] Permission-on-first-use flow (request when tool first triggered, with explanation dialog)
+## UX İyileştirmeleri
 
-### Communication Tools
-- [ ] `make_call(contact)`
-- [ ] `send_sms(contact, message)`
-- [ ] `read_notifications()` (NotificationListenerService)
-- [ ] `open_whatsapp_chat(contact, message)`
-
-### Productivity Tools
-- [ ] `set_alarm(time, label)`
-- [ ] `create_reminder(text, datetime)`
-- [ ] `add_calendar_event(title, date, time, location?)`
-- [ ] `get_today_schedule()`
-- [ ] `create_note(text)`
-
-### System Tools
-- [ ] `open_app(appName)`
-- [ ] `set_volume(level, type)`
-- [ ] `set_brightness(level)`
-- [ ] `toggle_wifi(state)`
-- [ ] `toggle_bluetooth(state)`
-- [ ] `toggle_flashlight(state)`
-- [ ] `get_battery_status()`
-
-### Information Tools
-- [ ] `get_weather(city)`
-- [ ] `web_search(query)`
-- [ ] `get_news(topic)`
-- [ ] `calculate(expression)`
-- [ ] `get_current_time()`
-
-### Background Service
-- [ ] Foreground service for persistent wake-word listening
-- [ ] Persistent notification ("IRIS aktif")
-- [ ] Battery optimization handling
+- [ ] Accessibility service aktivasyonu için adım adım rehber ekranı
+- [ ] Autonomy Level değiştirirken uyarı dialog'u (özellikle FULL_AUTO)
+- [ ] Screen action preview sırasında geri sayım sesi/titreşim
+- [ ] İlk tool kullanımında permission dialog'u (PermissionRequiredException)
+- [ ] Model indirme iptal edilebilir olmalı
+- [ ] İndirme sonrası otomatik model seçimi
 
 ---
 
-## Phase 3 — Screen Intelligence
+## Local TTS (XTTS) Planı
 
-- [ ] `service/IrisAccessibilityService.kt` — accessibility service setup + manifest config
-- [ ] `read_screen()` — accessibility tree parsing → text representation
-- [ ] Screen control actions: `click_element`, `type_text`, `scroll`, `go_back`, `go_home`
-- [ ] `take_screenshot()` (MediaProjection) — vision fallback for non-tree-readable UIs
-- [ ] `service/ActionPreviewOverlay.kt` — WindowManager overlay (highlight + countdown + cancel)
-- [ ] Autonomy Level system: SAFE / BALANCED / FULL_AUTO / CUSTOM (settings + enforcement logic)
-- [ ] Destructive action keyword detection (sil, gönder, onayla, satın al, ödeme, kabul)
-- [ ] Sensitive app blacklist (banking, password managers) — screen control disabled
-- [ ] Multi-step read→decide→act loop (no max-step limit, per Muhofy's decision)
-- [ ] "Stop/interrupt" wired into screen-control loop
+**Durum:** Şu anda Kokoro TTS (HuggingFace Inference API) kullanılıyor.
 
----
+**XTTS-v2 için gerekenler:**
+- Model boyutu: ~1.2GB (XTTS-v2) — cihazda yer açılmalı
+- HF Inference API: XTTS-v2 destekleniyor (`https://api-inference.huggingface.co/models/coqui/XTTS-v2`)
+  - API ile kullanım: Kokoro ile aynı endpoint pattern, sadece model değişir
+- On-device: şu an için mümkün değil (llama.cpp ses modelleri henüz stabil değil, mobil için optimize model yok)
+- Alternatif: **OuteTTS** (0.5B parametre) — daha küçük, mobil için daha uygun olabilir
 
-## Phase 4 — Power Features
+**Plan:**
+1. **Kısa vade (Phase 1-2):** Kokoro TTS devam ediyor
+2. **Orta vade (Phase 3-4 bitince):** HF Inference API üzerinden XTTS-v2 entegrasyonu (ses klonlama için)
+   - `MultiSpeakerTtsRepository` veya `TtsProvider` arayüzü
+   - Provider seçimi: Kokoro veya XTTS
+   - Voice cloning: kullanıcı sesini kaydedip XTTS'e gönderme
+3. **Uzun vade (Phase 5 sonrası):** On-device TTS araştırması
+   - executorch + XTTS quantized
+   - OuteTTS mobil port
+   - llama.cpp ses modeli desteği stabil olunca
 
-### Embedded Shell ("Power Mode")
-- [ ] Bootstrap download flow (ABI detection, progress UI) — verify Termux bootstrap release URLs/assets first
-- [ ] `BootstrapInstaller` — extract, symlink, permission setup
-- [ ] proot binary sourcing (from bootstrap or NDK build) — verify before implementation
-- [ ] `EmbeddedShell.execute(command)` — proot-based command execution
-- [ ] `execute_shell_command` tool (raw command from AI)
-- [ ] `ShellSecuritySettings` — UNRESTRICTED / CONFIRM_EACH / RESTRICTED, default UNRESTRICTED
-- [ ] Settings UI: Power Mode toggle + security level selector + one-time warning dialog
-- [ ] Investigate `MANAGE_EXTERNAL_STORAGE` requirement for scoped storage access
-
-### Other Power Features
-- [ ] Macro/workflow recording & replay system
-- [ ] Cross-app workflow execution
-- [ ] Floating bubble assistant (overlay icon, quick actions)
-- [ ] `VoiceInteractionService` + `VoiceInteractionSessionService` (default assistant, power-button trigger)
-- [ ] `onHandleAssist` — AssistStructure-based screen context capture
-- [ ] Settings: "Set as Default Assistant" → deep link to system settings
-
----
-
-## Phase 5 — Polish
-
-- [ ] Multi-language auto-detection (remove `language=tr` lock from Whisper, update system prompt)
-- [ ] Proactive suggestions / habit learning (pattern tracking, opt-in)
-- [ ] Smart notification filtering/prioritization
-- [ ] Light theme support
-- [ ] TTS tone/speed adjustment based on detected text sentiment
-
----
-
-## Phase 1 Additions — Misc
-
-- [ ] App icon: adaptive icon, "iris" geometric shape, gradient per active color scheme
-- [ ] Splash screen via `androidx.core.splashscreen` (simple fade-in)
-- [ ] `IrisOrchestrator.stop()` — wires Job.cancel(), TTS.stop(), screen-loop requestStop()
-- [ ] Voice "Dur IRIS" / "Yeter" → triggers stop()
-- [ ] Settings: "Background listening" toggle (foreground service on/off)
-- [ ] Foreground service persistent "IRIS aktif" notification
-
-## Phase 2 Additions — Misc
-
-- [ ] Notification quick actions for reminders/alarms (`NotificationCompat.Action` + `PendingIntent`)
-- [ ] Train custom "Hey IRIS" wake word model (IT-BAER/hawake-wakeword pipeline, English-based)
-
-## Phase 5 Additions — Misc
-
-- [ ] Home screen widget ("tap to talk") via Glance API
-- [ ] (If needed) ACRA crash reporting integration — privacy-preserving alternative to Firebase
-
-## Open Questions / Needs Verification
-
-- [!] Confirm exact Gemini model string (`gemini-3.5-flash` vs alternatives) at implementation time
-- [!] Confirm Groq fallback model name
-- [!] Confirm XTTS v2 hosting approach (HF Space API vs self-hosted server)
-- [!] Confirm Gemini Live native-audio model name + cost/free-tier limits before enabling as TTS option
-- [!] Verify Termux bootstrap asset URLs/format for embedded shell
-- [!] Verify proot inclusion in bootstrap vs need for custom NDK build
-- [!] Confirm Min/Target/Compile SDK versions
-- [!] Confirm exact dependency versions (Compose BOM ~2026.05.00, Hilt ~2.57.x, Room ~2.8.x, Kotlin ~2.2.x) against Android Studio new-project template at setup time
-✅ Confirmed baseline: Kotlin 2.2.20, Compose BOM 2026.04.01, Hilt 2.59.2, Room 2.8.4, KSP 2.2.20-2.0.3
+**Kesin zaman:** XTTS entegrasyonu Phase 3-4 bittiğinde başlayabilir. Şu anki hedef: Eylül 2026.
