@@ -24,8 +24,9 @@ jobs:
 
       - name: Inject API keys from secrets
         run: |
-          echo "GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}" >> local.properties
-          echo "GROQ_API_KEY=${{ secrets.GROQ_API_KEY }}"     >> local.properties
+          echo "GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}"   >> local.properties
+          echo "GROQ_API_KEY=${{ secrets.GROQ_API_KEY }}"       >> local.properties
+          echo "WEATHER_API_KEY=${{ secrets.WEATHER_API_KEY }}" >> local.properties
 
       - name: Grant Gradle wrapper execute permission
         run: chmod +x gradlew
