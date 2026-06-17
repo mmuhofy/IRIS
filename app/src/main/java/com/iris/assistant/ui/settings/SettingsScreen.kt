@@ -423,6 +423,7 @@ private fun ColorSchemeSelector(
                     .size(28.dp)
                     .clip(CircleShape)
                     .background(irisColors.primary)
+                    .clickable { onChange(scheme) }
                     .then(
                         if (selected) Modifier.border(2.dp, Color.White, CircleShape)
                         else Modifier

@@ -130,7 +130,9 @@ fun ChatScreen(
                 // --- Message list or empty state ---
                 if (uiState.messages.isEmpty() && !uiState.isLoading) {
                     Box(
-                        modifier    = Modifier.weight(1f),
+                        modifier    = Modifier
+                            .weight(1f)
+                            .fillMaxWidth(),
                         contentAlignment = Alignment.Center
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
