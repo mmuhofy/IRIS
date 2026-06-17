@@ -122,21 +122,29 @@ class LocalLlmRepository @Inject constructor(
         Log.d(TAG, "Loading model: $modelPath")
 
         try {
-            llamaModel = LlamaModel.load(modelPath) {
-                contextSize = 2048
-                threads = 4
-                temperature = 0.7f
-                topP = 0.9f
-                topK = 40
-                repeatPenalty = 1.1f
-                maxTokens = 128
-                useMmap = true
-                useMlock = false
-                gpuLayers = 0
-                stopSequences = listOf("<|eot_id|>", "<|im_end|>")
+            withTimeout(90_000L) {
+                llamaModel = LlamaModel.load(modelPath) {
+                    contextSize = 2048
+                    threads = 4
+                    temperature = 0.7f
+                    topP = 0.9f
+                    topK = 40
+                    repeatPenalty = 1.1f
+                    maxTokens = 128
+                    useMmap = true
+                    useMlock = false
+                    gpuLayers = 0
+                    stopSequences = listOf("<|eot_id|>", "<|im_end|>")
+                }
+                loadedModelPath = modelPath
+                Log.d(TAG, "Model loaded successfully")
             }
-            loadedModelPath = modelPath
-            Log.d(TAG, "Model loaded successfully")
+        } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
+            Log.e(TAG, "Model loading timed out after 90s")
+            loadedModelPath = null
+            throw com.iris.assistant.domain.model.IrisException.LlmException(
+                "Model yüklenemedi: 90sn zaman aşımı. Cihaz yetersiz olabilir."
+            )
         } catch (e: UnsatisfiedLinkError) {
             Log.e(TAG, "Native library not found", e)
             loadedModelPath = null
