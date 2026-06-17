@@ -1,6 +1,7 @@
 package com.iris.assistant.data.tools.screen
 
 import android.graphics.Rect
+import android.os.Bundle
 import android.view.accessibility.AccessibilityNodeInfo
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -91,7 +92,8 @@ class ScreenInteractionRepository @Inject constructor() {
     fun typeText(chars: CharSequence): Boolean {
         val root = rootNode ?: return false
         val focused = findFocusedNode(root)
-        return focused?.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, chars) ?: false
+        val args = Bundle().apply { putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, chars) }
+        return focused?.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, args) ?: false
     }
 
     private fun findFocusedNode(node: AccessibilityNodeInfo): AccessibilityNodeInfo? {
