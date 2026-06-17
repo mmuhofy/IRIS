@@ -258,7 +258,7 @@ class ActionPreviewOverlay(
 }
 
 private inline fun ValueAnimator.addListener(
-    onEnd: () -> Unit = {}
+    crossinline onEnd: () -> Unit = {}
 ): android.animation.AnimatorListenerAdapter {
     val listener = object : android.animation.AnimatorListenerAdapter() {
         override fun onAnimationEnd(animation: android.animation.Animator) = onEnd()
