@@ -10,6 +10,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 import org.codeshipping.llamakotlin.LlamaModel
 import org.codeshipping.llamakotlin.exception.LlamaException
 import org.json.JSONArray
@@ -128,10 +129,11 @@ class LocalLlmRepository @Inject constructor(
                 topP = 0.9f
                 topK = 40
                 repeatPenalty = 1.1f
-                maxTokens = 512
+                maxTokens = 128
                 useMmap = true
                 useMlock = false
                 gpuLayers = 0
+                stopSequences = listOf("<|eot_id|>", "<|im_end|>")
             }
             loadedModelPath = modelPath
             Log.d(TAG, "Model loaded successfully")
@@ -172,15 +174,27 @@ class LocalLlmRepository @Inject constructor(
 
     private suspend fun generateText(prompt: String): String {
         val model = llamaModel ?: return ""
+        val startTime = System.currentTimeMillis()
+        Log.d(TAG, "Generation started (prompt.length=${prompt.length})")
         return try {
-            model.generate(prompt)
+            val result = withTimeout(30_000L) {
+                model.generate(prompt)
+            }
+            val elapsed = System.currentTimeMillis() - startTime
+            Log.d(TAG, "Generation done in ${elapsed}ms, result.length=${result.length}")
+            result
+        } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
+            Log.e(TAG, "Generation timed out after 30s")
+            throw com.iris.assistant.domain.model.IrisException.LlmException(
+                "Metin oluşturma zaman aşımı (30sn). Cihazınız bu model için çok yavaş olabilir."
+            )
         } catch (e: LlamaException.GenerationError) {
-            Log.e(TAG, "Generation error", e)
+            Log.e(TAG, "Generation error after ${System.currentTimeMillis()-startTime}ms", e)
             throw com.iris.assistant.domain.model.IrisException.LlmException(
                 "Metin oluşturma hatası: ${e.message ?: "Bilinmeyen"}"
             )
         } catch (e: Exception) {
-            Log.e(TAG, "Generate error", e)
+            Log.e(TAG, "Generate error after ${System.currentTimeMillis()-startTime}ms", e)
             throw com.iris.assistant.domain.model.IrisException.LlmException(
                 "Metin oluşturma hatası: ${e.message}"
             )
@@ -255,7 +269,7 @@ RULES:
                 sb.append("<|im_start|>assistant")
             }
             "llama" -> {
-                sb.appendLine("<|begin_of_text|><|start_header_id|>system<|end_header_id|>")
+                sb.append("<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\n")
                 sb.appendLine(systemPrompt)
                 sb.appendLine("<|eot_id|>")
 
@@ -264,12 +278,12 @@ RULES:
                         ChatMessage.Role.USER -> "user"
                         ChatMessage.Role.ASSISTANT -> "assistant"
                     }
-                    sb.appendLine("<|start_header_id|>$role<|end_header_id|>")
+                    sb.append("<|start_header_id|>$role<|end_header_id|>\n\n")
                     sb.appendLine(msg.content)
                     sb.appendLine("<|eot_id|>")
                 }
 
-                sb.append("<|start_header_id|>assistant<|end_header_id|>")
+                sb.append("<|start_header_id|>assistant<|end_header_id|>\n\n")
             }
         }
 
