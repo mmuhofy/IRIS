@@ -2,6 +2,7 @@ package com.iris.assistant.domain.model
 
 sealed class DownloadState {
     data object Idle : DownloadState()
+    data object Connecting : DownloadState()
     data class Downloading(
         val progress: Float,
         val bytesDownloaded: Long,

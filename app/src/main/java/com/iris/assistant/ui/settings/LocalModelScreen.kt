@@ -177,6 +177,20 @@ private fun ModelCard(
                 Spacer(Modifier.width(12.dp))
 
                 when (val dlState = modelState.downloadState) {
+                    is DownloadState.Connecting -> {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            LinearProgressIndicator(
+                                modifier = Modifier.width(80.dp),
+                                color = IrisTheme.colors.primary,
+                            )
+                            Spacer(Modifier.height(4.dp))
+                            Text(
+                                text = "Bağlanıyor...",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = ColorTextSecondary,
+                            )
+                        }
+                    }
                     is DownloadState.Downloading -> {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             val total = dlState.totalBytes.coerceAtLeast(0L)

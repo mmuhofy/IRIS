@@ -26,28 +26,26 @@ import javax.inject.Singleton
 @Singleton
 class ModelDownloader @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val okHttpClient: OkHttpClient
 ) {
     companion object {
         private const val TAG = "ModelDownloader"
         private const val MODELS_DIR = "iris_models"
-        private const val TIMEOUT_CONNECT_SECONDS = 60L
-        private const val TIMEOUT_READ_SECONDS = 120L
+        private const val CONNECT_TIMEOUT = 30L
+        private const val READ_TIMEOUT = 60L
         private const val USER_AGENT = "IRIS-Android/1.0"
     }
 
-    private val downloadClient: OkHttpClient = okHttpClient.newBuilder()
-        .connectTimeout(TIMEOUT_CONNECT_SECONDS, TimeUnit.SECONDS)
-        .readTimeout(TIMEOUT_READ_SECONDS, TimeUnit.SECONDS)
-        .writeTimeout(TIMEOUT_CONNECT_SECONDS, TimeUnit.SECONDS)
+    private val client = OkHttpClient.Builder()
+        .connectTimeout(CONNECT_TIMEOUT, TimeUnit.SECONDS)
+        .readTimeout(READ_TIMEOUT, TimeUnit.SECONDS)
+        .writeTimeout(CONNECT_TIMEOUT, TimeUnit.SECONDS)
         .followRedirects(true)
         .followSslRedirects(true)
+        .retryOnConnectionFailure(true)
         .build()
 
-    private val downloadScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
-
+    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private val activeJobs = mutableMapOf<String, Job>()
-
     private val _downloadStates = MutableStateFlow<Map<String, DownloadState>>(emptyMap())
     val downloadStates: StateFlow<Map<String, DownloadState>> = _downloadStates.asStateFlow()
 
@@ -57,28 +55,21 @@ class ModelDownloader @Inject constructor(
         return dir
     }
 
-    fun getModelFile(model: LocalModelInfo): File =
-        File(modelsDir(), model.hfFilename)
+    fun getModelFile(model: LocalModelInfo): File = File(modelsDir(), model.hfFilename)
 
-    fun isDownloaded(model: LocalModelInfo): Boolean =
-        getModelFile(model).exists()
+    fun isDownloaded(model: LocalModelInfo): Boolean = getModelFile(model).exists()
 
     fun startDownload(modelId: String) {
         val model = LocalModelManifest.models.find { it.id == modelId } ?: return
         if (activeJobs[modelId]?.isActive == true) return
 
-        _downloadStates.update {
-            it + (modelId to DownloadState.Downloading(
-                progress = 0f,
-                bytesDownloaded = 0,
-                totalBytes = model.sizeMb * 1_000_000L
-            ))
-        }
+        _downloadStates.update { it + (modelId to DownloadState.Connecting) }
 
-        val job = downloadScope.launch {
-            download(model) { state ->
-                _downloadStates.update { it + (modelId to state) }
-            }
+        val job = scope.launch {
+            download(model)
+        }
+        job.invokeOnCompletion {
+            if (!activeJobs.containsKey(modelId)) return@invokeOnCompletion
             activeJobs.remove(modelId)
         }
         activeJobs[modelId] = job
@@ -90,122 +81,127 @@ class ModelDownloader @Inject constructor(
         _downloadStates.update { it + (modelId to DownloadState.Idle) }
     }
 
-    private suspend fun download(
-        model: LocalModelInfo,
-        onProgress: (DownloadState) -> Unit
-    ) {
+    private suspend fun download(model: LocalModelInfo) {
+        val modelId = model.id
         val targetFile = getModelFile(model)
         if (targetFile.exists()) {
             Log.d(TAG, "${model.displayName} already downloaded")
-            onProgress(DownloadState.Ready)
+            _downloadStates.update { it + (modelId to DownloadState.Ready) }
             return
         }
 
-        val downloadUrl = "https://huggingface.co/${model.hfRepoId}/resolve/main/${model.hfFilename}"
-        val estimatedTotalBytes = model.sizeMb * 1_000_000L
-        Log.d(TAG, "Downloading: $downloadUrl (estimated: ${estimatedTotalBytes}B)")
-
-        val request = Request.Builder()
-            .url(downloadUrl)
-            .header("User-Agent", USER_AGENT)
-            .build()
+        val url = "https://huggingface.co/${model.hfRepoId}/resolve/main/${model.hfFilename}?download=1"
+        val estimatedBytes = model.sizeMb.toLong() * 1_000_000L
+        Log.d(TAG, "Downloading $url (est: ${estimatedBytes}B)")
 
         try {
-            val response = downloadClient.newCall(request).execute()
+            val response = client.newCall(
+                Request.Builder()
+                    .url(url)
+                    .header("User-Agent", USER_AGENT)
+                    .header("Accept", "*/*")
+                    .build()
+            ).execute()
+
             if (!response.isSuccessful) {
-                val errorBody = try {
-                    response.body?.string()?.take(200) ?: ""
-                } catch (_: Exception) { "" }
-                val error = "HTTP ${response.code}: ${response.message}. $errorBody"
-                Log.e(TAG, "Download error: $error")
-                onProgress(DownloadState.Error(error))
+                Log.e(TAG, "HTTP ${response.code}: ${response.message}")
+                _downloadStates.update {
+                    it + (modelId to DownloadState.Error(
+                        "Sunucu hatası (HTTP ${response.code})"
+                    ))
+                }
                 return
             }
 
             val body = response.body ?: run {
-                onProgress(DownloadState.Error("Sunucudan boş yanıt alındı"))
+                _downloadStates.update { it + (modelId to DownloadState.Error("Boş yanıt")) }
                 return
             }
 
             val contentLength = body.contentLength()
-            val actualTotalBytes = if (contentLength > 0L) contentLength else estimatedTotalBytes
-            if (contentLength > 0L) {
-                Log.d(TAG, "Content-Length: $contentLength bytes (${contentLength / 1_000_000} MB)")
-            } else {
-                Log.d(TAG, "Content-Length unknown, using estimate: ${estimatedTotalBytes}B")
-            }
+            val totalBytes = if (contentLength > 0L) contentLength else estimatedBytes
 
-            val inputStream = body.byteStream()
-            val outputStream = targetFile.outputStream()
+            val input = body.byteStream()
+            val output = targetFile.outputStream()
+            val buf = ByteArray(8192)
 
-            val buffer = ByteArray(8192)
-            var bytesRead: Long = 0
-            var lastReportedPct = -1
-            var lastReportedBytes: Long = 0
-            var lastReportedTimeMs = 0L
+            var read: Long = 0
+            var lastPct = -1
+            var lastBytes: Long = 0
+            var lastMs = System.currentTimeMillis()
+            var firstChunk = true
 
             try {
-                var read: Int
-                while (inputStream.read(buffer).also { read = it } != -1) {
+                while (true) {
                     if (!currentCoroutineContext().isActive) {
                         targetFile.delete()
-                        Log.d(TAG, "Download cancelled for ${model.id}")
+                        Log.d(TAG, "Download cancelled: $modelId")
+                        _downloadStates.update { it + (modelId to DownloadState.Idle) }
                         return
                     }
 
-                    outputStream.write(buffer, 0, read)
-                    bytesRead += read
+                    val n = input.read(buf)
+                    if (n == -1) break
+
+                    output.write(buf, 0, n)
+                    read += n
+
+                    if (firstChunk) {
+                        firstChunk = false
+                        Log.d(TAG, "First chunk received for $modelId")
+                    }
 
                     val now = System.currentTimeMillis()
-                    val bytesSinceReport = bytesRead - lastReportedBytes
-                    val timeSinceReport = now - lastReportedTimeMs
+                    val pct = (read * 100 / totalBytes).toInt()
+                    val bytesSince = read - lastBytes
+                    val msSince = now - lastMs
 
-                    val pct = (bytesRead * 100 / actualTotalBytes).toInt()
-                    val shouldReport = pct > lastReportedPct
-                        || bytesSinceReport >= 8_192
-                        || timeSinceReport >= 250L
-
-                    if (shouldReport) {
-                        lastReportedPct = pct
-                        lastReportedBytes = bytesRead
-                        lastReportedTimeMs = now
-                        val progress = (bytesRead.toFloat() / actualTotalBytes * 100f)
-                            .coerceAtMost(100f)
-                        onProgress(
-                            DownloadState.Downloading(
-                                progress = progress,
-                                bytesDownloaded = bytesRead,
-                                totalBytes = actualTotalBytes
-                            )
-                        )
+                    if (pct > lastPct || bytesSince >= 8_192 || msSince >= 250L) {
+                        lastPct = pct
+                        lastBytes = read
+                        lastMs = now
+                        _downloadStates.update {
+                            it + (modelId to DownloadState.Downloading(
+                                progress = (read.toFloat() / totalBytes * 100f).coerceAtMost(100f),
+                                bytesDownloaded = read,
+                                totalBytes = totalBytes
+                            ))
+                        }
                     }
                 }
-                outputStream.flush()
-                Log.d(TAG, "Download complete: ${targetFile.absolutePath} (${bytesRead} bytes)")
-                onProgress(DownloadState.Ready)
+
+                output.flush()
+                Log.d(TAG, "Downloaded: ${targetFile.absolutePath} ($read bytes)")
+                _downloadStates.update { it + (modelId to DownloadState.Ready) }
             } catch (e: IOException) {
                 targetFile.delete()
-                Log.e(TAG, "Download error during transfer", e)
-                onProgress(DownloadState.Error(e.message ?: "İndirme sırasında hata oluştu"))
+                Log.e(TAG, "Download transfer error", e)
+                _downloadStates.update {
+                    it + (modelId to DownloadState.Error("İndirme kesildi: ${e.message}"))
+                }
             } finally {
-                try { inputStream.close() } catch (_: Exception) {}
-                try { outputStream.close() } catch (_: Exception) {}
+                try { input.close() } catch (_: Exception) {}
+                try { output.close() } catch (_: Exception) {}
             }
+
         } catch (e: IOException) {
             targetFile.delete()
-            Log.e(TAG, "Download error (network)", e)
-            onProgress(DownloadState.Error(e.message ?: "İndirme başlatılamadı"))
+            Log.e(TAG, "Download network error", e)
+            _downloadStates.update {
+                it + (modelId to DownloadState.Error(
+                    "Bağlantı hatası: ${e.message ?: "Sunucuya ulaşılamadı"}"
+                ))
+            }
         }
     }
 
     fun deleteModel(model: LocalModelInfo): Boolean {
         cancelDownload(model.id)
-        val file = getModelFile(model)
-        return if (file.exists()) file.delete() else false
+        return getModelFile(model).delete()
     }
 
     fun getModelSizeBytes(model: LocalModelInfo): Long {
-        val file = getModelFile(model)
-        return if (file.exists()) file.length() else 0L
+        val f = getModelFile(model)
+        return if (f.exists()) f.length() else 0L
     }
 }
