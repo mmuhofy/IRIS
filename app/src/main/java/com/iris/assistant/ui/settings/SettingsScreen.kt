@@ -125,7 +125,6 @@ fun SettingsScreen(
                 SettingsRowWithContent(
                     icon = PhIcons.Regular.Waveform,
                     label = "Ses karakteri",
-                    description = uiState.ttsVoice.displayName,
                 ) {
                     VoiceSelector(
                         current  = uiState.ttsVoice,
@@ -361,28 +360,49 @@ private fun VoiceSelector(
     current : TtsVoice,
     onChange: (TtsVoice) -> Unit,
 ) {
-    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        TtsVoice.entries.forEach { voice ->
-            val selected = voice == current
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(
-                        if (selected) IrisTheme.colors.primary
-                        else MaterialTheme.colorScheme.surfaceVariant
-                    )
-                    .clickable { onChange(voice) }
-                    .padding(horizontal = 10.dp, vertical = 6.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = voice.displayName,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = if (selected) MaterialTheme.colorScheme.background
-                            else ColorTextPrimary,
-                    fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
-                )
-            }
+    val voices = TtsVoice.entries
+    val currentIndex = voices.indexOf(current)
+
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        IconButton(
+            onClick = {
+                val prev = (currentIndex - 1).coerceAtLeast(0)
+                onChange(voices[prev])
+            },
+            enabled = currentIndex > 0,
+            modifier = Modifier.size(32.dp),
+        ) {
+            Icon(
+                imageVector = PhIcons.Regular.CaretLeft,
+                contentDescription = "Önceki",
+                tint = if (currentIndex > 0) IrisTheme.colors.primary
+                       else ColorTextSecondary.copy(alpha = 0.35f),
+                modifier = Modifier.size(18.dp),
+            )
+        }
+
+        Text(
+            text = current.displayName,
+            style = MaterialTheme.typography.bodyMedium,
+            color = IrisTheme.colors.primary,
+            fontWeight = FontWeight.SemiBold,
+        )
+
+        IconButton(
+            onClick = {
+                val next = (currentIndex + 1).coerceAtMost(voices.lastIndex)
+                onChange(voices[next])
+            },
+            enabled = currentIndex < voices.lastIndex,
+            modifier = Modifier.size(32.dp),
+        ) {
+            Icon(
+                imageVector = PhIcons.Regular.CaretRight,
+                contentDescription = "Sonraki",
+                tint = if (currentIndex < voices.lastIndex) IrisTheme.colors.primary
+                       else ColorTextSecondary.copy(alpha = 0.35f),
+                modifier = Modifier.size(18.dp),
+            )
         }
     }
 }
@@ -514,25 +534,61 @@ private fun ModelSelector(
         DropdownMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false },
-            modifier = Modifier.fillMaxWidth(0.85f),
+            shape = RoundedCornerShape(16.dp),
+            modifier = Modifier
+                .fillMaxWidth(0.85f)
+                .background(
+                    color = MaterialTheme.colorScheme.surface,
+                    shape = RoundedCornerShape(16.dp),
+                ),
         ) {
-            models.forEach { model ->
-                DropdownMenuItem(
-                    text = {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                text = model.displayName,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = if (model.apiName == current) IrisTheme.colors.primary
-                                        else ColorTextPrimary,
-                            )
-                        }
-                    },
-                    onClick = {
-                        onChange(model.apiName)
-                        expanded = false
-                    },
-                )
+            Column(modifier = Modifier.padding(vertical = 4.dp)) {
+                models.forEachIndexed { index, model ->
+                    DropdownMenuItem(
+                        text = {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = model.displayName,
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        color = if (model.apiName == current) IrisTheme.colors.primary
+                                                else ColorTextPrimary,
+                                    )
+                                    Text(
+                                        text = model.apiName,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = ColorTextSecondary,
+                                    )
+                                }
+                                if (model.apiName == current) {
+                                    Icon(
+                                        imageVector = PhIcons.Regular.Check,
+                                        contentDescription = null,
+                                        tint = IrisTheme.colors.primary,
+                                        modifier = Modifier.size(18.dp),
+                                    )
+                                }
+                            }
+                        },
+                        onClick = {
+                            onChange(model.apiName)
+                            expanded = false
+                        },
+                        modifier = Modifier.padding(horizontal = 4.dp),
+                    )
+                    if (index < models.lastIndex) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 12.dp)
+                                .height(0.5.dp)
+                                .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f)),
+                        )
+                    }
+                }
             }
         }
     }
