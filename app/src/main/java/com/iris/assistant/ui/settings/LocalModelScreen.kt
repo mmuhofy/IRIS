@@ -110,20 +110,9 @@ fun LocalModelScreen(
     }
 }
 
-private data class ModelCardState(
-    val id: String,
-    val displayName: String,
-    val description: String,
-    val sizeMb: Int,
-    val recommended: Boolean,
-    val isDownloaded: Boolean,
-    val downloadState: DownloadState,
-)
-
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ModelCard(
-    modelState: ModelCardState,
+    modelState: ModelUiItem,
     isSelected: Boolean,
     onSelect: () -> Unit,
     onDownload: () -> Unit,
