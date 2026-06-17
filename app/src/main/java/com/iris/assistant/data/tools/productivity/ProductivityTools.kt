@@ -257,6 +257,16 @@ class AddCalendarEventTool @Inject constructor(
         val description = args.optString("description", "")
         val location = args.optString("location", "")
 
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M &&
+            context.checkSelfPermission(Manifest.permission.WRITE_CALENDAR)
+            != android.content.pm.PackageManager.PERMISSION_GRANTED
+        ) {
+            return ToolResult.PermissionRequired(
+                permission = Manifest.permission.WRITE_CALENDAR,
+                rationale = "IRIS takvime etkinlik ekleyebilmek için takvim iznine ihtiyaç duyar."
+            )
+        }
+
         @Suppress("MagicNumber")
         val dateParts = dateStr.split(".").mapNotNull { it.toIntOrNull() }
         if (dateParts.size != 3) {
