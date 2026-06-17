@@ -22,18 +22,40 @@ object Constants {
     const val GROQ_LLM_ENDPOINT  = "https://api.groq.com/openai/v1/chat/completions"
     const val GROQ_LLM_MODEL     = "llama-3.3-70b-versatile"
 
-    // Model strings prefixed with "groq:" route to GroqLlmRepository.
-    // All others go to GeminiRepository.
-    val LLM_MODELS = listOf(
-        "gemini-3.5-flash",
-        "gemini-3.1-flash",
-        "gemini-2.5-flash",
-        "gemini-3.5-pro",
-        "gemini-2.5-pro",
-        "groq:llama-3.3-70b-versatile",
+    data class LlmModelInfo(
+        val apiName     : String,
+        val displayName : String,
+        val provider    : String // "gemini" or "groq"
     )
 
-    const val LLM_PROVIDER_PREFIX_GROQ = "groq:"
+    val LLM_PROVIDER_GEMINI = "gemini"
+    val LLM_PROVIDER_GROQ   = "groq"
+
+    val LLM_PROVIDERS = listOf(
+        LLM_PROVIDER_GEMINI,
+        LLM_PROVIDER_GROQ,
+    )
+
+    fun providerDisplayName(provider: String): String = when (provider) {
+        LLM_PROVIDER_GEMINI -> "Gemini"
+        LLM_PROVIDER_GROQ   -> "Groq"
+        else                -> provider
+    }
+
+    val LLM_MODELS = listOf(
+        LlmModelInfo("gemini-3.5-flash", "3.5 Flash",     LLM_PROVIDER_GEMINI),
+        LlmModelInfo("gemini-3.1-flash", "3.1 Flash",     LLM_PROVIDER_GEMINI),
+        LlmModelInfo("gemini-2.5-flash", "2.5 Flash",     LLM_PROVIDER_GEMINI),
+        LlmModelInfo("gemini-3.5-pro",   "3.5 Pro",       LLM_PROVIDER_GEMINI),
+        LlmModelInfo("gemini-2.5-pro",   "2.5 Pro",       LLM_PROVIDER_GEMINI),
+        LlmModelInfo("llama-3.3-70b-versatile", "Llama 3.3 70B", LLM_PROVIDER_GROQ),
+    )
+
+    fun modelsForProvider(provider: String): List<LlmModelInfo> =
+        LLM_MODELS.filter { it.provider == provider }
+
+    fun defaultModelForProvider(provider: String): LlmModelInfo? =
+        modelsForProvider(provider).firstOrNull()
 
     // --- TTS — Gemini ---
     // Model: gemini-3.1-flash-tts-preview (current stable TTS model, verified 2026-05)

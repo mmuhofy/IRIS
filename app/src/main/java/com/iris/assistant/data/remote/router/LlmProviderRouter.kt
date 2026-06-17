@@ -22,11 +22,11 @@ class LlmProviderRouter @Inject constructor(
         history     : List<ChatMessage>,
         systemPrompt: String
     ): String {
-        val selectedModel = preferencesRepository.preferences
-            .map { it.llmModel }
+        val provider = preferencesRepository.preferences
+            .map { it.llmProvider }
             .first()
 
-        return if (selectedModel.startsWith(Constants.LLM_PROVIDER_PREFIX_GROQ)) {
+        return if (provider == Constants.LLM_PROVIDER_GROQ) {
             groqLlmRepository.chat(history, systemPrompt)
         } else {
             geminiRepository.chat(history, systemPrompt)

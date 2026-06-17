@@ -16,11 +16,12 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 data class SettingsUiState(
-    val colorScheme        : ColorSchemeOption = ColorSchemeOption.LAVENDER,
-    val backgroundListening: Boolean           = true,
-    val ttsVoice           : TtsVoice          = TtsVoice.DEFAULT,
-    val llmModel           : String            = Constants.GEMINI_MODEL,
-    val historyCleared     : Boolean           = false
+    val colorScheme        : ColorSchemeOption  = ColorSchemeOption.LAVENDER,
+    val backgroundListening: Boolean            = true,
+    val ttsVoice           : TtsVoice           = TtsVoice.DEFAULT,
+    val llmProvider        : String             = Constants.LLM_PROVIDER_GEMINI,
+    val llmModel           : String             = Constants.GEMINI_MODEL,
+    val historyCleared     : Boolean            = false
 )
 
 @HiltViewModel
@@ -35,6 +36,7 @@ class SettingsViewModel @Inject constructor(
                 colorScheme         = prefs.colorScheme,
                 backgroundListening = prefs.backgroundListening,
                 ttsVoice            = prefs.ttsVoice,
+                llmProvider         = prefs.llmProvider,
                 llmModel            = prefs.llmModel
             )
         }
@@ -54,6 +56,16 @@ class SettingsViewModel @Inject constructor(
 
     fun onTtsVoiceChange(voice: TtsVoice) {
         viewModelScope.launch { preferencesRepository.setTtsVoice(voice) }
+    }
+
+    fun onLlmProviderChange(provider: String) {
+        viewModelScope.launch {
+            preferencesRepository.setLlmProvider(provider)
+            val defaultModel = Constants.defaultModelForProvider(provider)
+            if (defaultModel != null) {
+                preferencesRepository.setLlmModel(defaultModel.apiName)
+            }
+        }
     }
 
     fun onLlmModelChange(model: String) {

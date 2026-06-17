@@ -38,10 +38,9 @@ class GroqLlmRepository @Inject constructor(
         val apiKey = BuildConfig.GROQ_LLM_API_KEY
         if (apiKey.isBlank()) throw IrisException.AuthException("GROQ_LLM_API_KEY is not set")
 
-        val selectedModel = preferencesRepository.preferences
+        val modelName = preferencesRepository.preferences
             .map { it.llmModel }
             .first()
-        val modelName = selectedModel.removePrefix(Constants.LLM_PROVIDER_PREFIX_GROQ)
             .takeIf { it.isNotBlank() }
             ?: Constants.GROQ_LLM_MODEL
 

@@ -29,6 +29,7 @@ class PreferencesRepository @Inject constructor(
         val ONBOARDING_COMPLETED = booleanPreferencesKey("onboarding_completed")
         val TTS_VOICE            = stringPreferencesKey("tts_voice")
         val USER_NAME            = stringPreferencesKey("user_name")
+        val LLM_PROVIDER         = stringPreferencesKey("llm_provider")
         val LLM_MODEL            = stringPreferencesKey("llm_model")
     }
 
@@ -43,6 +44,7 @@ class PreferencesRepository @Inject constructor(
                 ?.let { TtsVoice.fromApiName(it) }
                 ?: TtsVoice.DEFAULT,
             userName = prefs[Keys.USER_NAME] ?: Constants.USER_NAME,
+            llmProvider = prefs[Keys.LLM_PROVIDER] ?: Constants.LLM_PROVIDER_GEMINI,
             llmModel = prefs[Keys.LLM_MODEL] ?: Constants.GEMINI_MODEL
         )
     }
@@ -69,5 +71,9 @@ class PreferencesRepository @Inject constructor(
 
     suspend fun setLlmModel(model: String) {
         context.dataStore.edit { it[Keys.LLM_MODEL] = model }
+    }
+
+    suspend fun setLlmProvider(provider: String) {
+        context.dataStore.edit { it[Keys.LLM_PROVIDER] = provider }
     }
 }
