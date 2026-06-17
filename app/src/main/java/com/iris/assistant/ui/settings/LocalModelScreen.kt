@@ -194,8 +194,8 @@ private fun ModelCard(
                             } else {
                                 LinearProgressIndicator(
                                     progress = {
-                                        if (dlState.contentLength > 0) {
-                                            (dlState.bytesDownloaded.toFloat() / dlState.contentLength).coerceIn(0f, 1f)
+                                        if (dlState.totalBytes > 0L) {
+                                            (dlState.bytesDownloaded.toFloat() / dlState.totalBytes).coerceIn(0f, 1f)
                                         } else {
                                             0f
                                         }
@@ -205,7 +205,7 @@ private fun ModelCard(
                                 )
                                 Spacer(Modifier.height(4.dp))
                                 Text(
-                                    text = "${formatBytes(dlState.bytesDownloaded)} / ${formatBytes(dlState.contentLength.coerceAtLeast(0))}",
+                                    text = "${formatBytes(dlState.bytesDownloaded)} / ${formatBytes(dlState.totalBytes.coerceAtLeast(0L))}",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = ColorTextSecondary,
                                 )
