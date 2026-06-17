@@ -29,6 +29,7 @@ jobs:
           echo "WEATHER_API_KEY=${{ secrets.WEATHER_API_KEY }}"     >> local.properties
           echo "TAVILY_API_KEY=${{ secrets.TAVILY_API_KEY }}"                >> local.properties
           echo "NEWS_API_KEY=${{ secrets.NEWS_API_KEY }}"                >> local.properties
+          echo "GROQ_LLM_API_KEY=${{ secrets.GROQ_LLM_API_KEY }}"       >> local.properties
 
       - name: Grant Gradle wrapper execute permission
         run: chmod +x gradlew

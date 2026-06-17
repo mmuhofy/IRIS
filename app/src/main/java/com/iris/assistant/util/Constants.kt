@@ -19,12 +19,21 @@ object Constants {
     // --- LLM ---
     const val GEMINI_MODEL       = "gemini-3.5-flash"
     const val GEMINI_ENDPOINT    = "https://generativelanguage.googleapis.com/v1beta/models"
-    const val GROQ_LLM_MODEL     = "llama-3.3-70b-versatile" // TODO: confirm at implementation time
+    const val GROQ_LLM_ENDPOINT  = "https://api.groq.com/openai/v1/chat/completions"
+    const val GROQ_LLM_MODEL     = "llama-3.3-70b-versatile"
 
+    // Model strings prefixed with "groq:" route to GroqLlmRepository.
+    // All others go to GeminiRepository.
     val LLM_MODELS = listOf(
         "gemini-3.5-flash",
+        "gemini-3.1-flash",
         "gemini-2.5-flash",
+        "gemini-3.5-pro",
+        "gemini-2.5-pro",
+        "groq:llama-3.3-70b-versatile",
     )
+
+    const val LLM_PROVIDER_PREFIX_GROQ = "groq:"
 
     // --- TTS — Gemini ---
     // Model: gemini-3.1-flash-tts-preview (current stable TTS model, verified 2026-05)
