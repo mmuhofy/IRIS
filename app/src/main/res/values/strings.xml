@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">Iris</string>
+    <string name="accessibility_service_description">IRIS\'in ekranı okuması ve sizin adınıza tıklaması için erişilebilirlik servisi. Bu servis, IRIS\'in ekran içeriğini anlaması ve sesli komutlarla işlem yapması için gereklidir.</string>
 </resources>

@@ -9,6 +9,11 @@ import com.iris.assistant.data.tools.info.WebSearchTool
 import com.iris.assistant.data.tools.productivity.AddCalendarEventTool
 import com.iris.assistant.data.tools.productivity.AddReminderTool
 import com.iris.assistant.data.tools.productivity.SetAlarmTool
+import com.iris.assistant.data.tools.screen.ClickTool
+import com.iris.assistant.data.tools.screen.NavigateTool
+import com.iris.assistant.data.tools.screen.ReadScreenTool
+import com.iris.assistant.data.tools.screen.ScrollTool
+import com.iris.assistant.data.tools.screen.TypeTool
 import com.iris.assistant.data.tools.system.GetBatteryStatusTool
 import com.iris.assistant.data.tools.system.OpenAppTool
 import com.iris.assistant.data.tools.system.SetBrightnessTool
@@ -92,4 +97,21 @@ abstract class ToolsModule {
 
     @Binds @IntoSet
     abstract fun bindAddCalendarEventTool(impl: AddCalendarEventTool): JarvisTool
+
+    // --- Screen Intelligence ---
+
+    @Binds @IntoSet
+    abstract fun bindReadScreenTool(impl: ReadScreenTool): JarvisTool
+
+    @Binds @IntoSet
+    abstract fun bindClickTool(impl: ClickTool): JarvisTool
+
+    @Binds @IntoSet
+    abstract fun bindTypeTool(impl: TypeTool): JarvisTool
+
+    @Binds @IntoSet
+    abstract fun bindScrollTool(impl: ScrollTool): JarvisTool
+
+    @Binds @IntoSet
+    abstract fun bindNavigateTool(impl: NavigateTool): JarvisTool
 }
