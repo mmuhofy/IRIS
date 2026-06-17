@@ -176,20 +176,33 @@ private fun ModelCard(
 
                 Spacer(Modifier.width(12.dp))
 
-                when (modelState.downloadState) {
+                when (val dlState = modelState.downloadState) {
                     is DownloadState.Downloading -> {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            LinearProgressIndicator(
-                                progress = { modelState.downloadState.progress / 100f },
-                                modifier = Modifier.width(80.dp),
-                                color = IrisTheme.colors.primary,
-                            )
-                            Spacer(Modifier.height(4.dp))
-                            Text(
-                                text = "${modelState.downloadState.progress.toInt()}%",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = ColorTextSecondary,
-                            )
+                            if (dlState.progress >= 0f) {
+                                LinearProgressIndicator(
+                                    progress = { dlState.progress / 100f },
+                                    modifier = Modifier.width(80.dp),
+                                    color = IrisTheme.colors.primary,
+                                )
+                                Spacer(Modifier.height(4.dp))
+                                Text(
+                                    text = "${dlState.progress.toInt()}%",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = ColorTextSecondary,
+                                )
+                            } else {
+                                LinearProgressIndicator(
+                                    modifier = Modifier.width(80.dp),
+                                    color = IrisTheme.colors.primary,
+                                )
+                                Spacer(Modifier.height(4.dp))
+                                Text(
+                                    text = formatBytes(dlState.bytesDownloaded),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = ColorTextSecondary,
+                                )
+                            }
                         }
                     }
                     is DownloadState.Error -> {
@@ -261,5 +274,14 @@ private fun formatSize(sizeMb: Int): String {
     return when {
         sizeMb >= 1000 -> "%.1f GB".format(sizeMb / 1000f)
         else           -> "${sizeMb} MB"
+    }
+}
+
+private fun formatBytes(bytes: Long): String {
+    return when {
+        bytes >= 1_000_000_000 -> "%.1f GB".format(bytes / 1_000_000_000f)
+        bytes >= 1_000_000     -> "%.1f MB".format(bytes / 1_000_000f)
+        bytes >= 1_000         -> "%.1f KB".format(bytes / 1_000f)
+        else                   -> "${bytes} B"
     }
 }

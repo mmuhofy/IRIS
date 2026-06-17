@@ -8,10 +8,13 @@ import com.iris.assistant.data.remote.local.ModelDownloader
 import com.iris.assistant.domain.model.DownloadState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -41,26 +44,28 @@ class LocalModelViewModel @Inject constructor(
     val uiState: StateFlow<LocalModelUiState> = _uiState.asStateFlow()
 
     init {
-        refreshModels()
-    }
-
-    private fun refreshModels() {
         viewModelScope.launch {
             val prefs = preferencesRepository.preferences.map { it }.first()
-            val items = LocalModelManifest.models.map { model ->
-                val downloaded = modelDownloader.isDownloaded(model)
-                ModelUiItem(
-                    id = model.id,
-                    displayName = model.displayName,
-                    description = model.description,
-                    sizeMb = model.sizeMb,
-                    recommended = model.recommended,
-                    isDownloaded = downloaded,
-                    downloadState = if (downloaded) DownloadState.Ready else DownloadState.Idle
-                )
-            }
-            _uiState.update {
-                it.copy(models = items, selectedModelId = prefs.localModelName)
+
+            // Observe download states from the application-scoped downloader
+            modelDownloader.downloadStates.collect { downloadStates ->
+                val items = LocalModelManifest.models.map { model ->
+                    val downloaded = modelDownloader.isDownloaded(model)
+                    val dlState = downloadStates[model.id]
+                        ?: if (downloaded) DownloadState.Ready else DownloadState.Idle
+                    ModelUiItem(
+                        id = model.id,
+                        displayName = model.displayName,
+                        description = model.description,
+                        sizeMb = model.sizeMb,
+                        recommended = model.recommended,
+                        isDownloaded = downloaded || dlState is DownloadState.Ready,
+                        downloadState = dlState
+                    )
+                }
+                _uiState.update {
+                    it.copy(models = items, selectedModelId = prefs.localModelName)
+                }
             }
         }
     }
@@ -78,27 +83,7 @@ class LocalModelViewModel @Inject constructor(
     }
 
     fun onDownloadModel(modelId: String) {
-        viewModelScope.launch {
-            val model = LocalModelManifest.models.find { it.id == modelId } ?: return@launch
-
-            _uiState.update { state ->
-                state.copy(models = state.models.map {
-                    if (it.id == modelId) it.copy(downloadState = DownloadState.Downloading(0f, 0, 0))
-                    else it
-                })
-            }
-
-            modelDownloader.download(model) { state ->
-                _uiState.update { uiState ->
-                    uiState.copy(models = uiState.models.map {
-                        if (it.id == modelId) it.copy(
-                            downloadState = state,
-                            isDownloaded = state is DownloadState.Ready
-                        ) else it
-                    })
-                }
-            }
-        }
+        modelDownloader.startDownload(modelId)
     }
 
     fun onDeleteModel(modelId: String) {
@@ -111,15 +96,6 @@ class LocalModelViewModel @Inject constructor(
                 preferencesRepository.setLocalModelName("")
                 preferencesRepository.setLocalModelPath("")
                 _uiState.update { it.copy(selectedModelId = "") }
-            }
-
-            _uiState.update { state ->
-                state.copy(models = state.models.map {
-                    if (it.id == modelId) it.copy(
-                        isDownloaded = false,
-                        downloadState = DownloadState.Idle
-                    ) else it
-                })
             }
         }
     }
