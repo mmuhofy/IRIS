@@ -20,7 +20,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -493,6 +492,7 @@ private fun ProviderSelector(
 
 // ── Model selector ───────────────────────────────────────────────────────────
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ModelSelector(
     current : String,
@@ -545,47 +545,52 @@ private fun ModelSelector(
         ) {
             Column(modifier = Modifier.padding(vertical = 4.dp)) {
                 models.forEachIndexed { index, model ->
-                    DropdownMenuItem(
-                        text = {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = model.displayName,
-                                        style = MaterialTheme.typography.bodyLarge,
-                                        color = if (model.apiName == current) IrisTheme.colors.primary
-                                                else ColorTextPrimary,
-                                    )
-                                    Text(
-                                        text = model.apiName,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = ColorTextSecondary,
-                                    )
-                                }
-                                if (model.apiName == current) {
-                                    Icon(
-                                        imageVector = PhIcons.Regular.Check,
-                                        contentDescription = null,
-                                        tint = IrisTheme.colors.primary,
-                                        modifier = Modifier.size(18.dp),
-                                    )
-                                }
-                            }
-                        },
+                    val isSelected = model.apiName == current
+                    Surface(
                         onClick = {
                             onChange(model.apiName)
                             expanded = false
                         },
                         shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier.padding(horizontal = 4.dp),
-                    )
+                        color = Color.Transparent,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 6.dp, vertical = 2.dp),
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 12.dp, vertical = 14.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = model.displayName,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = if (isSelected) IrisTheme.colors.primary
+                                            else ColorTextPrimary,
+                                )
+                                Text(
+                                    text = model.apiName,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = ColorTextSecondary,
+                                )
+                            }
+                            if (isSelected) {
+                                Icon(
+                                    imageVector = PhIcons.Regular.Check,
+                                    contentDescription = null,
+                                    tint = IrisTheme.colors.primary,
+                                    modifier = Modifier.size(18.dp),
+                                )
+                            }
+                        }
+                    }
                     if (index < models.lastIndex) {
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 12.dp)
+                                .padding(horizontal = 18.dp)
                                 .height(0.5.dp)
                                 .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f)),
                         )
