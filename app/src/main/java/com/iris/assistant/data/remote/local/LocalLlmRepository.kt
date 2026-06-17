@@ -7,8 +7,11 @@ import com.iris.assistant.domain.repository.LlmRepository
 import com.iris.assistant.domain.tools.ToolRegistry
 import com.iris.assistant.domain.tools.ToolResult
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import org.codeshipping.llamakotlin.LlamaModel
@@ -28,6 +31,7 @@ class LocalLlmRepository @Inject constructor(
     companion object {
         private const val TAG = "LocalLlmRepository"
         private const val MAX_TOOL_ROUNDS = 5
+        private const val MAX_PROMPT_CHARS = 6000
 
         private val TOOL_CALL_PATTERN = Regex(
             """(\{[^}]*"tool"\s*:\s*"[^"]*"[^}]*\})""",
@@ -184,17 +188,27 @@ class LocalLlmRepository @Inject constructor(
         val model = llamaModel ?: return ""
         val startTime = System.currentTimeMillis()
         Log.d(TAG, "Generation started (prompt.length=${prompt.length})")
+
+        val timeoutMs = 60_000L
+
+        val cancelJob = GlobalScope.launch(Dispatchers.Default) {
+            delay(timeoutMs)
+            Log.w(TAG, "Generation timed out after ${timeoutMs}ms, cancelling...")
+            model.cancelGeneration()
+        }
+
         return try {
-            val result = withTimeout(30_000L) {
-                model.generate(prompt)
-            }
+            val result = model.generate(prompt)
             val elapsed = System.currentTimeMillis() - startTime
             Log.d(TAG, "Generation done in ${elapsed}ms, result.length=${result.length}")
+            if (elapsed >= timeoutMs - 2_000) {
+                Log.w(TAG, "Generation completed just before timeout (${elapsed}ms)")
+            }
             result
-        } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
-            Log.e(TAG, "Generation timed out after 30s")
+        } catch (e: LlamaException.GenerationCancelled) {
+            Log.w(TAG, "Generation cancelled (timeout after ${System.currentTimeMillis()-startTime}ms)")
             throw com.iris.assistant.domain.model.IrisException.LlmException(
-                "Metin oluşturma zaman aşımı (30sn). Cihazınız bu model için çok yavaş olabilir."
+                "Metin oluşturma zaman aşımı (60sn). Cihazınız bu modeli kaldıramıyor."
             )
         } catch (e: LlamaException.GenerationError) {
             Log.e(TAG, "Generation error after ${System.currentTimeMillis()-startTime}ms", e)
@@ -206,6 +220,8 @@ class LocalLlmRepository @Inject constructor(
             throw com.iris.assistant.domain.model.IrisException.LlmException(
                 "Metin oluşturma hatası: ${e.message}"
             )
+        } finally {
+            cancelJob.cancel()
         }
     }
 
@@ -295,7 +311,36 @@ RULES:
             }
         }
 
-        return sb.toString()
+        val fullPrompt = sb.toString()
+        if (fullPrompt.length > MAX_PROMPT_CHARS) {
+            Log.w(TAG, "Prompt too long (${fullPrompt.length}), truncating history")
+            val sb2 = StringBuilder()
+            sb2.append(fullPrompt.substringBefore(history.firstOrNull()?.let { "<|start_header_id|>user<|end_header_id|>" } ?: "<|im_start|>user"))
+            for (msg in history.takeLast(2)) {
+                val role = when (msg.role) {
+                    ChatMessage.Role.USER -> "user"
+                    ChatMessage.Role.ASSISTANT -> "assistant"
+                }
+                when (chatTemplate) {
+                    "llama" -> {
+                        sb2.append("<|start_header_id|>$role<|end_header_id|>\n\n")
+                        sb2.appendLine(msg.content)
+                        sb2.appendLine("<|eot_id|>")
+                    }
+                    else -> {
+                        sb2.appendLine("<|im_start|>$role")
+                        sb2.appendLine(msg.content)
+                        sb2.appendLine("<|im_end|>")
+                    }
+                }
+            }
+            when (chatTemplate) {
+                "llama" -> sb2.append("<|start_header_id|>assistant<|end_header_id|>\n\n")
+                else -> sb2.append("<|im_start|>assistant")
+            }
+            return sb2.toString()
+        }
+        return fullPrompt
     }
 
     private fun buildContinuationPrompt(
