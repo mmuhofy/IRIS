@@ -1,0 +1,8 @@
+# IRIS API Keys
+# Copy this file to local.properties and fill in your keys.
+# These values are also injected from GitHub Secrets in CI.
+# Never commit local.properties.
+
+GEMINI_API_KEY=
+GROQ_API_KEY=
+WEATHER_API_KEY=

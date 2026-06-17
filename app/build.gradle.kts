@@ -41,8 +41,9 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        buildConfigField("String", "GEMINI_API_KEY", apiKey("GEMINI_API_KEY"))
-        buildConfigField("String", "GROQ_API_KEY",   apiKey("GROQ_API_KEY"))
+        buildConfigField("String", "GEMINI_API_KEY",   apiKey("GEMINI_API_KEY"))
+        buildConfigField("String", "GROQ_API_KEY",     apiKey("GROQ_API_KEY"))
+        buildConfigField("String", "WEATHER_API_KEY",  apiKey("WEATHER_API_KEY"))
     }
 
     buildTypes {
