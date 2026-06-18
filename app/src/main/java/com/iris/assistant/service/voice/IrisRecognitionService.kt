@@ -49,7 +49,7 @@ class IrisRecognitionService : RecognitionService() {
             AudioFormat.ENCODING_PCM_16BIT
         )
         if (bufferSize <= 0) {
-            callback.error(SpeechRecognizer.ERROR_CLIENT, Bundle())
+            callback.error(SpeechRecognizer.ERROR_CLIENT)
             return
         }
 
@@ -64,20 +64,20 @@ class IrisRecognitionService : RecognitionService() {
                 bufferSize * 2
             )
         } catch (e: SecurityException) {
-            callback.error(SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS, Bundle())
+            callback.error(SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS)
             return
         }
 
         if (audioRecorder?.state != AudioRecord.STATE_INITIALIZED) {
-            callback.error(SpeechRecognizer.ERROR_CLIENT, Bundle())
+            callback.error(SpeechRecognizer.ERROR_CLIENT)
             audioRecorder?.release()
             audioRecorder = null
             return
         }
 
         audioRecorder?.startRecording()
-        callback.onReadyForSpeech(Bundle())
-        callback.onBeginningOfSpeech()
+        callback.readyForSpeech(Bundle())
+        callback.beginningOfSpeech()
 
         val buffer = ByteArray(bufferSize)
         recordingThread = Thread {
@@ -97,14 +97,13 @@ class IrisRecognitionService : RecognitionService() {
     override fun onStopListening(callback: Callback) {
         Log.d(TAG, "onStopListening")
         stopRecording()
-        callback.onEndOfSpeech()
+        callback.endOfSpeech()
         processAudio(callback)
     }
 
     override fun onCancel(callback: Callback) {
         Log.d(TAG, "onCancel")
         stopRecording()
-        callback.error(SpeechRecognizer.ERROR_CANCELED, Bundle())
         activeCallback = null
     }
 
@@ -120,7 +119,7 @@ class IrisRecognitionService : RecognitionService() {
 
     private fun processAudio(callback: Callback) {
         val pcm = pcmBuffer?.toByteArray() ?: run {
-            callback.error(SpeechRecognizer.ERROR_NO_MATCH, Bundle())
+            callback.error(SpeechRecognizer.ERROR_NO_MATCH)
             activeCallback = null
             return
         }
@@ -131,7 +130,7 @@ class IrisRecognitionService : RecognitionService() {
                 val wavData = pcmToWav(pcm)
                 val text = transcribe(wavData)
                 if (text.isNotBlank()) {
-                    callback.onResults(Bundle().apply {
+                    callback.results(Bundle().apply {
                         putStringArrayList(
                             SpeechRecognizer.RESULTS_RECOGNITION,
                             arrayListOf(text)
@@ -142,11 +141,11 @@ class IrisRecognitionService : RecognitionService() {
                         )
                     })
                 } else {
-                    callback.error(SpeechRecognizer.ERROR_NO_MATCH, Bundle())
+                    callback.error(SpeechRecognizer.ERROR_NO_MATCH)
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Transcription failed", e)
-                callback.error(SpeechRecognizer.ERROR_NETWORK_TIMEOUT, Bundle())
+                callback.error(SpeechRecognizer.ERROR_NETWORK_TIMEOUT)
             }
             activeCallback = null
         }.start()
