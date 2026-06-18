@@ -50,6 +50,7 @@ class AudioRecorder @Inject constructor() {
         val buffer      = ShortArray(bufferSize / 2)
         var silenceMs   = 0L
         var lastChunkMs = System.currentTimeMillis()
+        var hasSpeech   = false
 
         recorder.startRecording()
 
@@ -80,6 +81,7 @@ class AudioRecorder @Inject constructor() {
                     silenceMs += elapsed
                     if (silenceMs >= Constants.VAD_SILENCE_THRESHOLD_MS) break
                 } else {
+                    hasSpeech = true
                     silenceMs = 0
                 }
             }
@@ -89,6 +91,10 @@ class AudioRecorder @Inject constructor() {
         }
 
         onAmplitude(0f)
+
+        // If no speech detected at all, return empty array (caller should discard)
+        if (!hasSpeech) return@withContext byteArrayOf()
+
         pcmOut.toByteArray().toWav()
     }
 

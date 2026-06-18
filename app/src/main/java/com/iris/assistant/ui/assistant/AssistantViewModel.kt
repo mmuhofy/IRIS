@@ -82,6 +82,11 @@ class AssistantViewModel(
                 return@launch
             }
 
+            if (audioBytes.isEmpty()) {
+                finish()
+                return@launch
+            }
+
             _uiState.update { it.copy(isListening = false, amplitude = 0f, isThinking = true) }
 
             val transcript = runCatching {
