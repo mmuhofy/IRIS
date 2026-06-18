@@ -2,4 +2,5 @@
 <voice-interaction-service
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:sessionService="com.iris.assistant.service.voice.IrisVoiceInteractionSessionService"
-    android:recognitionService="com.iris.assistant.service.voice.IrisVoiceInteractionService" />
+    android:supportsAssist="true"
+    android:supportsLaunchVoiceAssistFromKeyguard="true" />
