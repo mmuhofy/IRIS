@@ -10,9 +10,7 @@ import android.speech.SpeechRecognizer
 import android.util.Log
 import com.iris.assistant.BuildConfig
 import com.iris.assistant.util.Constants
-import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
+import dagger.hilt.EntryPointAccessors
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
@@ -22,9 +20,7 @@ import org.json.JSONObject
 import java.io.ByteArrayOutputStream
 import java.io.IOException
 import java.io.OutputStream
-import javax.inject.Inject
 
-@AndroidEntryPoint
 class IrisRecognitionService : RecognitionService() {
 
     companion object {
@@ -32,7 +28,7 @@ class IrisRecognitionService : RecognitionService() {
         private const val SAMPLE_RATE = 16000
     }
 
-    @Inject lateinit var okHttpClient: OkHttpClient
+    private lateinit var okHttpClient: OkHttpClient
 
     private var audioRecorder: AudioRecord? = null
     private var pcmBuffer: ByteArrayOutputStream? = null
@@ -41,6 +37,13 @@ class IrisRecognitionService : RecognitionService() {
 
     override fun onStartListening(intent: Intent, callback: Callback) {
         Log.d(TAG, "onStartListening")
+        if (!::okHttpClient.isInitialized) {
+            val entryPoint = EntryPointAccessors.fromApplication(
+                applicationContext,
+                VoiceInteractionEntryPoint::class.java
+            )
+            okHttpClient = entryPoint.okHttpClient()
+        }
         activeCallback = callback
 
         val bufferSize = AudioRecord.getMinBufferSize(

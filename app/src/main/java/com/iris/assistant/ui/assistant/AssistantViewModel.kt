@@ -12,15 +12,12 @@ import com.iris.assistant.domain.model.ChatMessage
 import com.iris.assistant.domain.usecase.SendMessageUseCase
 import com.iris.assistant.domain.usecase.TranscribeAudioUseCase
 import com.iris.assistant.data.remote.tts.TtsProvider
-import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
 data class ChatBubble(
     val text: String,
@@ -37,13 +34,12 @@ data class AssistantUiState(
     val isDone     : Boolean          = false
 )
 
-@HiltViewModel
-class AssistantViewModel @Inject constructor(
-    @ApplicationContext private val context    : Context,
-    private val audioRecorder                 : AudioRecorder,
-    private val transcribeAudioUseCase        : TranscribeAudioUseCase,
-    private val sendMessageUseCase            : SendMessageUseCase,
-    private val ttsProvider                   : TtsProvider
+class AssistantViewModel(
+    private val context              : Context,
+    private val audioRecorder        : AudioRecorder,
+    private val transcribeAudioUseCase: TranscribeAudioUseCase,
+    private val sendMessageUseCase   : SendMessageUseCase,
+    private val ttsProvider          : TtsProvider
 ) : ViewModel() {
 
     companion object {
@@ -74,9 +70,7 @@ class AssistantViewModel @Inject constructor(
         }
 
         pipelineJob = viewModelScope.launch {
-            _uiState.update {
-                it.copy(isListening = true, amplitude = 0f)
-            }
+            _uiState.update { it.copy(isListening = true, amplitude = 0f) }
 
             val audioBytes = runCatching {
                 audioRecorder.recordUntilSilence(
@@ -105,10 +99,7 @@ class AssistantViewModel @Inject constructor(
             val reply: String
             try {
                 reply = sendMessageUseCase(listOf(
-                    ChatMessage(
-                        role = ChatMessage.Role.USER,
-                        content = transcript
-                    )
+                    ChatMessage(role = ChatMessage.Role.USER, content = transcript)
                 ))
             } catch (e: Exception) {
                 Log.e(TAG, "LLM failed", e)
@@ -143,10 +134,7 @@ class AssistantViewModel @Inject constructor(
             val reply: String
             try {
                 reply = sendMessageUseCase(listOf(
-                    ChatMessage(
-                        role = ChatMessage.Role.USER,
-                        content = text
-                    )
+                    ChatMessage(role = ChatMessage.Role.USER, content = text)
                 ))
             } catch (e: Exception) {
                 Log.e(TAG, "LLM failed", e)

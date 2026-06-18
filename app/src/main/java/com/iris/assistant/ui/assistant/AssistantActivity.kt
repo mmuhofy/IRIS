@@ -47,23 +47,24 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import com.iris.assistant.service.voice.VoiceInteractionEntryPoint
 import com.iris.assistant.ui.theme.IrisTheme
 import com.phosphor.icons.PhIcons
 import com.phosphor.icons.filled.MicrophoneFill
 import com.phosphor.icons.filled.PaperPlaneRightFill
-import dagger.hilt.android.AndroidEntryPoint
+import dagger.hilt.EntryPointAccessors
 import kotlin.math.sin
 
-@AndroidEntryPoint
 class AssistantActivity : ComponentActivity() {
 
     companion object {
@@ -78,16 +79,30 @@ class AssistantActivity : ComponentActivity() {
             WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
             WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL
         )
-
         window.navigationBarColor = android.graphics.Color.TRANSPARENT
         window.statusBarColor = android.graphics.Color.TRANSPARENT
 
-        overridePendingTransition(0, 0)
-
         Log.d(TAG, "onCreate")
+
+        val entryPoint = EntryPointAccessors.fromApplication(
+            applicationContext,
+            VoiceInteractionEntryPoint::class.java
+        )
+
+        val viewModel = AssistantViewModel(
+            context               = applicationContext,
+            audioRecorder         = entryPoint.audioRecorder(),
+            transcribeAudioUseCase = entryPoint.transcribeAudioUseCase(),
+            sendMessageUseCase    = entryPoint.sendMessageUseCase(),
+            ttsProvider           = entryPoint.ttsProvider()
+        )
+
         setContent {
             IrisTheme {
-                AssistantScreen(onClose = { finish() })
+                AssistantScreen(
+                    viewModel = viewModel,
+                    onClose   = { finish() }
+                )
             }
         }
     }
@@ -95,8 +110,8 @@ class AssistantActivity : ComponentActivity() {
 
 @Composable
 private fun AssistantScreen(
-    onClose: () -> Unit,
-    viewModel: AssistantViewModel = viewModel()
+    onClose  : () -> Unit,
+    viewModel: AssistantViewModel
 ) {
     val state by viewModel.uiState.collectAsState()
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -187,9 +202,7 @@ private fun AssistantScreen(
                         OutlinedTextField(
                             value = state.textInput,
                             onValueChange = viewModel::onTextInputChanged,
-                            placeholder = {
-                                Text("Mesaj yaz...", color = Color(0x66FFFFFF), fontSize = 14.sp)
-                            },
+                            placeholder = { Text("Mesaj yaz...", color = Color(0x66FFFFFF), fontSize = 14.sp) },
                             modifier = Modifier.weight(1f),
                             shape = RoundedCornerShape(24.dp),
                             colors = OutlinedTextFieldDefaults.colors(
@@ -223,9 +236,9 @@ private fun AssistantScreen(
 
                         IconButton(
                             onClick = {
-                                if (state.textInput.isEmpty()) {
+                                if (state.textInput.isEmpty())
                                     viewModel.startVoicePipeline()
-                                } else {
+                                else {
                                     viewModel.sendText()
                                     keyboardController?.hide()
                                 }
@@ -261,10 +274,7 @@ private fun SoundWave(amplitude: Float) {
         }
     }
 
-    Box(
-        modifier = Modifier.fillMaxWidth(),
-        contentAlignment = Alignment.Center
-    ) {
+    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
         Canvas(modifier = Modifier.size(width = 80.dp, height = 40.dp)) {
             val barWidth = size.width / (barCount * 2f)
             val spacing = barWidth
@@ -276,7 +286,7 @@ private fun SoundWave(amplitude: Float) {
                     color = primary.copy(alpha = (0.4f + 0.6f * amplitudes[i]).coerceIn(0f, 1f)),
                     topLeft = Offset(x, size.height - barHeight),
                     size = androidx.compose.ui.geometry.Size(barWidth, barHeight),
-                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(barWidth / 2f, barWidth / 2f)
+                    cornerRadius = CornerRadius(barWidth / 2f, barWidth / 2f)
                 )
             }
         }
@@ -298,7 +308,10 @@ private fun MessageBubble(bubble: ChatBubble) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(start = if (bubble.isUser) 48.dp else 0.dp, end = if (bubble.isUser) 0.dp else 48.dp)
+            .padding(
+                start = if (bubble.isUser) 48.dp else 0.dp,
+                end = if (bubble.isUser) 0.dp else 48.dp
+            )
     ) {
         Text(
             text = bubble.text,
