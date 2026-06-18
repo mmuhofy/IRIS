@@ -30,7 +30,7 @@ class MainActivity : ComponentActivity() {
         handleVoiceInteractionIntent(intent)
 
         setContent {
-            IrisApp(voiceInteractionCount = appViewModel.voiceInteractionCount)
+            IrisApp()
         }
     }
 

@@ -11,8 +11,9 @@ import dagger.hilt.android.AndroidEntryPoint
  * Activated when the user long-presses the power button or home button
  * and IRIS is set as the default assistant app in system settings.
  *
- * onLaunchVoiceAssist is the main entry point — it opens MainActivity
- * which then starts the voice pipeline (listening → LLM → TTS).
+ * onLaunchVoiceAssistFromKeyguard opens MainActivity on lock screen activation.
+ * Normal activation (unlocked) triggers the session's onShow, which also
+ * opens MainActivity.
  */
 @AndroidEntryPoint
 class IrisVoiceInteractionService : VoiceInteractionService() {
@@ -22,16 +23,9 @@ class IrisVoiceInteractionService : VoiceInteractionService() {
         const val EXTRA_VOICE_INTERACTION = "voice_interaction"
     }
 
-    override fun onLaunchVoiceAssist(fromKeyguard: Boolean): Boolean {
-        Log.d(TAG, "onLaunchVoiceAssist fromKeyguard=$fromKeyguard")
-        launchIrisActivity()
-        return true
-    }
-
-    override fun onLaunchVoiceAssistFromKeyguard(): Boolean {
+    override fun onLaunchVoiceAssistFromKeyguard() {
         Log.d(TAG, "onLaunchVoiceAssistFromKeyguard")
         launchIrisActivity()
-        return true
     }
 
     private fun launchIrisActivity() {
