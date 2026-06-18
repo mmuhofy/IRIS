@@ -47,7 +47,6 @@ import com.iris.assistant.ui.theme.IrisTheme
 
 @Composable
 fun HomeScreen(
-    onOpenChat    : () -> Unit,
     onOpenSettings: () -> Unit,
     viewModel     : HomeViewModel = hiltViewModel()
 ) {
@@ -88,13 +87,6 @@ fun HomeScreen(
                 Box(Modifier.size(48.dp))
 
                 Row {
-                    IconButton(onClick = onOpenChat) {
-                        Icon(
-                            PhIcons.Regular.ChatText,
-                            contentDescription = "Sohbet",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
                     IconButton(onClick = onOpenSettings) {
                         Icon(
                             PhIcons.Regular.Gear,

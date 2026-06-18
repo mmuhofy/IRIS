@@ -11,7 +11,6 @@ sealed class NavRoute(val route: String) {
 
     // Main
     data object Home                 : NavRoute("home")
-    data object Chat                 : NavRoute("chat")
     data object Settings             : NavRoute("settings")
     data object LocalModels          : NavRoute("local_models")
 }

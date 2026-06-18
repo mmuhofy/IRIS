@@ -13,7 +13,6 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.iris.assistant.ui.chat.ChatScreen
 import com.iris.assistant.ui.home.HomeScreen
 import com.iris.assistant.ui.onboarding.OnboardingAssistantScreen
 import com.iris.assistant.ui.onboarding.OnboardingBatteryScreen
@@ -120,13 +119,6 @@ fun IrisNavGraph(
         // --- Main ---
         composable(NavRoute.Home.route) {
             HomeScreen(
-                onOpenChat     = { navController.navigate(NavRoute.Chat.route) },
-                onOpenSettings = { navController.navigate(NavRoute.Settings.route) }
-            )
-        }
-        composable(NavRoute.Chat.route) {
-            ChatScreen(
-                onBack         = { navController.popBackStack() },
                 onOpenSettings = { navController.navigate(NavRoute.Settings.route) }
             )
         }
