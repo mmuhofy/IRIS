@@ -46,12 +46,23 @@ object Constants {
     }
 
     val LLM_MODELS = listOf(
+        // Gemini models
         LlmModelInfo("gemini-3.5-flash", "3.5 Flash",     LLM_PROVIDER_GEMINI),
         LlmModelInfo("gemini-3.1-flash", "3.1 Flash",     LLM_PROVIDER_GEMINI),
         LlmModelInfo("gemini-2.5-flash", "2.5 Flash",     LLM_PROVIDER_GEMINI),
         LlmModelInfo("gemini-3.5-pro",   "3.5 Pro",       LLM_PROVIDER_GEMINI),
         LlmModelInfo("gemini-2.5-pro",   "2.5 Pro",       LLM_PROVIDER_GEMINI),
-        LlmModelInfo("llama-3.3-70b-versatile", "Llama 3.3 70B", LLM_PROVIDER_GROQ),
+
+        // Groq — Production models
+        LlmModelInfo("llama-3.3-70b-versatile",          "Llama 3.3 70B",       LLM_PROVIDER_GROQ),
+        LlmModelInfo("llama-3.1-8b-instant",             "Llama 3.1 8B",        LLM_PROVIDER_GROQ),
+        LlmModelInfo("openai/gpt-oss-120b",               "GPT-OSS 120B",        LLM_PROVIDER_GROQ),
+        LlmModelInfo("openai/gpt-oss-20b",                "GPT-OSS 20B",         LLM_PROVIDER_GROQ),
+
+        // Groq — Preview models
+        LlmModelInfo("meta-llama/llama-4-scout-17b-16e-instruct", "Llama 4 Scout 17B", LLM_PROVIDER_GROQ),
+        LlmModelInfo("qwen/qwen3-32b",                    "Qwen3 32B",           LLM_PROVIDER_GROQ),
+        LlmModelInfo("qwen/qwen3.6-27b",                  "Qwen3.6 27B",         LLM_PROVIDER_GROQ),
     )
 
     fun modelsForProvider(provider: String): List<LlmModelInfo> =
