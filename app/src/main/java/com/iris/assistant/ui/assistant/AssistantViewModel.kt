@@ -29,9 +29,6 @@ data class ChatBubble(
 )
 
 data class AssistantUiState(
-    val coreState  : IrisCoreState = IrisCoreState.IDLE,
-    val amplitude  : Float         = 0f,
-    val statusText : String        = "",
     val textInput  : String        = "",
     val messages   : List<ChatBubble> = emptyList(),
     val isDone     : Boolean       = false
@@ -74,22 +71,14 @@ class AssistantViewModel @Inject constructor(
         }
 
         pipelineJob = viewModelScope.launch {
-            _uiState.update {
-                it.copy(coreState = IrisCoreState.LISTENING, statusText = "Dinliyorum...")
-            }
-
             val audioBytes = runCatching {
                 audioRecorder.recordUntilSilence(
-                    onAmplitude = { amp -> _uiState.update { it.copy(amplitude = amp) } }
+                    onAmplitude = { }
                 )
             }.getOrElse { e ->
                 Log.e(TAG, "Recording failed", e)
                 finish()
                 return@launch
-            }
-
-            _uiState.update {
-                it.copy(amplitude = 0f, coreState = IrisCoreState.THINKING, statusText = "Anlıyorum...")
             }
 
             val transcript = runCatching {
@@ -101,11 +90,7 @@ class AssistantViewModel @Inject constructor(
             }
 
             _uiState.update { state ->
-                state.copy(
-                    messages = state.messages + ChatBubble(text = transcript, isUser = true),
-                    coreState = IrisCoreState.THINKING,
-                    statusText = "Düşünüyorum..."
-                )
+                state.copy(messages = state.messages + ChatBubble(text = transcript, isUser = true))
             }
 
             val reply: String
@@ -123,29 +108,23 @@ class AssistantViewModel @Inject constructor(
             }
 
             _uiState.update { state ->
-                state.copy(
-                    messages = state.messages + ChatBubble(text = reply, isUser = false),
-                    coreState = IrisCoreState.SPEAKING,
-                    statusText = "Konuşuyorum..."
-                )
+                state.copy(messages = state.messages + ChatBubble(text = reply, isUser = false))
             }
 
             ttsProvider.speak(
                 text       = reply,
-                onProgress = { p -> _uiState.update { it.copy(amplitude = p.coerceIn(0f, 1f)) } },
+                onProgress = { },
                 onDone     = { finish() }
             )
         }
     }
 
     private fun sendMessage(text: String) {
-        _uiState.update { it.copy(textInput = "", statusText = "Düşünüyorum...") }
+        _uiState.update { it.copy(textInput = "") }
 
         pipelineJob = viewModelScope.launch {
             _uiState.update { state ->
-                state.copy(
-                    messages = state.messages + ChatBubble(text = text, isUser = true)
-                )
+                state.copy(messages = state.messages + ChatBubble(text = text, isUser = true))
             }
 
             val reply: String
@@ -159,24 +138,18 @@ class AssistantViewModel @Inject constructor(
             } catch (e: Exception) {
                 Log.e(TAG, "LLM failed", e)
                 _uiState.update { state ->
-                    state.copy(
-                        messages = state.messages + ChatBubble(text = "Bir hata oluştu.", isUser = false)
-                    )
+                    state.copy(messages = state.messages + ChatBubble(text = "Bir hata oluştu.", isUser = false))
                 }
                 return@launch
             }
 
             _uiState.update { state ->
-                state.copy(
-                    messages = state.messages + ChatBubble(text = reply, isUser = false),
-                    coreState = IrisCoreState.SPEAKING,
-                    statusText = "Konuşuyorum..."
-                )
+                state.copy(messages = state.messages + ChatBubble(text = reply, isUser = false))
             }
 
             ttsProvider.speak(
                 text       = reply,
-                onProgress = { p -> _uiState.update { it.copy(amplitude = p.coerceIn(0f, 1f)) } },
+                onProgress = { },
                 onDone     = { finish() }
             )
         }

@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -40,7 +41,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -110,22 +113,34 @@ private fun AssistantScreen(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 32.dp)
-                .heightIn(max = 540.dp)
-                .align(Alignment.Center)
-                .background(Color(0xFF1C1C1E), RoundedCornerShape(24.dp))
+                .align(Alignment.BottomCenter)
+                .padding(horizontal = 16.dp)
+                .heightIn(min = 160.dp, max = 480.dp)
+                .navigationBarsPadding()
+                .background(Color(0xFF1C1C1E), RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
                 .padding(horizontal = 16.dp, vertical = 14.dp),
             contentAlignment = Alignment.BottomCenter
         ) {
-            Column(
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                LazyColumn(
-                    modifier = Modifier.fillMaxWidth().weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    items(state.messages) { bubble ->
-                        MessageBubble(bubble)
+            Column(modifier = Modifier.fillMaxWidth()) {
+                if (state.messages.isEmpty()) {
+                    Spacer(Modifier.weight(1f))
+                    Text(
+                        text = "Nasıl yardımcı olabilirim?",
+                        color = Color(0x66FFFFFF),
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Medium,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(Modifier.weight(1f))
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxWidth().weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(state.messages) { bubble ->
+                            MessageBubble(bubble)
+                        }
                     }
                 }
 
