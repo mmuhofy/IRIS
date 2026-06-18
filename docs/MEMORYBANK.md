@@ -214,11 +214,26 @@ HomeScreen observes count → triggers startVoicePipeline()
 - `voice_interaction_service.xml` uses full class name (NOT `.prefix`) for `sessionService` to avoid `ComponentName.createRelative` prepending the debug package
 - `ComponentName.createRelative("com.iris.assistant.debug", "com.iris.assistant.service.voice.IrisVoiceInteractionSessionService")` correctly resolves
 
-### Outstanding
-- IRIS did not appear in system default assistant picker. Two fixes applied:
-  1. Removed `<uses-permission android:name="BIND_VOICE_INTERACTION" />` (ungrantable, may cause filtering)
-  2. Changed session service `android:exported="false"` → `"true"` (needed for `PackageManager.queryIntentServices`)
-- Push + test via GitHub Actions needed to verify.
+### Root Cause & Fix
+
+**Root cause:** `VoiceInteractionServiceInfo.java` requires `recognitionService` to be non-null:
+```java
+if (mRecognitionService == null) {
+    mParseError = "No recognitionService specified";  // ← IRIS was filtered here
+    return;
+}
+```
+`voice_interaction_service.xml` was missing `android:recognitionService`, so `VoiceInteractionServiceInfo` set a parse error, and the system filtered IRIS out of the assistant picker (`VoiceInputHelper.buildUi()` checks `info.getParseError() != null` and skips).
+
+**Fix (3 files changed + 2 files created):**
+1. **Created `service/voice/IrisRecognitionService.kt`** — full `RecognitionService` implementation: records audio via `AudioRecord`, sends to Groq Whisper, returns results via callback
+2. **Created `res/xml/recognition_service.xml`** — minimal recognition service metadata
+3. **Updated `res/xml/voice_interaction_service.xml`** — added `android:recognitionService="com.iris.assistant.service.voice.IrisRecognitionService"`
+4. **Updated `AndroidManifest.xml`** — declared `IrisRecognitionService` with `BIND_VOICE_INTERACTION` permission + `android.speech.RecognitionService` intent filter + `android.speech` metadata
+
+**Secondary changes (also applied):**
+- Removed `<uses-permission android:name="BIND_VOICE_INTERACTION" />` (signature-level, not grantable, may interfere)
+- Changed session service `android:exported="false"` → `"true"` (some query paths check exported flag)
 
 ---
 
@@ -289,7 +304,7 @@ HomeScreen observes count → triggers startVoicePipeline()
 
 - **Phase 1 (MVP)** ✅ COMPLETE: Wake word, STT, Gemini/Groq chat, Kokoro TTS + Android TTS, Iris Core UI, Chat mode, local history (Room), onboarding, theming, splash screen.
 - **Phase 2 (Tool-enabled)** ✅ CLOSE TO DONE: Tool system (framework ✅, 15+ tools implemented ✅, Gemini/Groq/local LLM function calling ✅, permission-on-first-use ✅, Settings redesign ✅). Remaining: local LLM performance tuning, weather tool debug.
-- **Phase 3 (Screen Intelligence)** 🔶 IN PROGRESS: ActionPreviewOverlay ✅, ScreenActionGate ✅, ClickTool/ScrollTool/TypeTool ✅, NavigateTool label fix ✅, accessibility perf fix ✅ (bg thread + debounce + node recycling), VoiceInteractionService ✅ (power button trigger). Pending: verify IRIS appears in default assistant picker, AndroidSpeechRecognizer fallback for STT.
+- **Phase 3 (Screen Intelligence)** 🔶 IN PROGRESS: ActionPreviewOverlay ✅, ScreenActionGate ✅, ClickTool/ScrollTool/TypeTool ✅, NavigateTool label fix ✅, accessibility perf fix ✅ (bg thread + debounce + node recycling), VoiceInteractionService ✅ (power button trigger). Pending: verify IRIS appears in default assistant picker (fix applied: added mandatory `recognitionService` to `voice_interaction_service.xml` — push + test needed), AndroidSpeechRecognizer fallback for STT.
 - **Phase 4**: Embedded Shell (Power Mode), macros, cross-app workflows, floating bubble.
 - **Phase 5**: Multi-language, proactive suggestions, notification filtering, light theme.
 
@@ -329,6 +344,7 @@ HomeScreen observes count → triggers startVoicePipeline()
 - ❌ Wake word foreground service — replaced by `WakeWordManager` singleton (in-app only), saves battery + avoids persistent notification
 - ❌ `<uses-permission android:name="BIND_VOICE_INTERACTION" />` — signature-level permission, not grantable to third-party apps via uses-permission; may cause system to filter app from assistant picker
 - ❌ `android:exported="false"` on session service — `VoiceInteractionServiceInfo` validates via `PackageManager.queryIntentServices()` which skips non-exported components
+- ❌ Omitting `recognitionService` from `voice_interaction_service.xml` — `VoiceInteractionServiceInfo` sets `mParseError = "No recognitionService specified"` which filters the app out of the assistant picker
 
 ---
 

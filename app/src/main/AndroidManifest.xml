@@ -103,6 +103,25 @@
             android:exported="true"
             android:permission="android.permission.BIND_VOICE_INTERACTION" />
 
+        <!--
+            RecognitionService — required by VoiceInteractionServiceInfo parser.
+            The voice_interaction_service.xml MUST specify a valid recognitionService
+            attribute, otherwise VoiceInteractionServiceInfo.getParseError() is set
+            and the assistant is filtered out of the default-assistant picker.
+            This service is also used by other apps via SpeechRecognizer.
+        -->
+        <service
+            android:name=".service.voice.IrisRecognitionService"
+            android:exported="true"
+            android:permission="android.permission.BIND_VOICE_INTERACTION">
+            <intent-filter>
+                <action android:name="android.speech.RecognitionService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.speech"
+                android:resource="@xml/recognition_service" />
+        </service>
+
     </application>
 
 </manifest>
