@@ -25,6 +25,9 @@ class ScreenInteractionRepository @Inject constructor() {
         private set
 
     fun updateRootNode(node: AccessibilityNodeInfo?) {
+        rootNode?.let {
+            if (it != node) it.recycle()
+        }
         rootNode = node
         _screenDump.value = node?.let { nodeToJson(it).toString() } ?: ""
     }

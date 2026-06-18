@@ -29,7 +29,8 @@
 - [x] ScreenActionGate (overlay üzerinden approval)
 - [ ] **Autonomy Level picker UI** — Settings'te seçici henüz yok
 - [ ] **Accessibility service aktivasyon rehberi** — Kullanıcıya adım adım açıklama ekranı gerek
-- [ ] **NavigateTool** — hala `awaitApproval("Gezinme işlemi")` koordinatsız çağırıyor
+- [x] **NavigateTool** — label iyileştirildi, koordinatsız (sistem aksiyonu)
+- [x] **Accessibility performans fix** — background thread + 150ms debounce + node recycling
 - [ ] **Sensitive app blacklist** — bankacılık/şifre uygulamaları için kara liste
 
 ## Phase 4: Henüz Başlanmadı

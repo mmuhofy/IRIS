@@ -4,12 +4,21 @@ import android.accessibilityservice.AccessibilityService
 import android.view.accessibility.AccessibilityEvent
 import com.iris.assistant.data.tools.screen.ScreenInteractionRepository
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @AndroidEntryPoint
 class IrisAccessibilityService : AccessibilityService() {
 
     @Inject lateinit var screenRepository: ScreenInteractionRepository
+
+    private val bgScope = CoroutineScope(Dispatchers.Default)
+    private var refreshJob: Job? = null
 
     override fun onServiceConnected() {
         super.onServiceConnected()
@@ -18,6 +27,7 @@ class IrisAccessibilityService : AccessibilityService() {
 
     override fun onDestroy() {
         super.onDestroy()
+        bgScope.cancel()
         instance = null
         screenRepository.clear()
     }
@@ -28,16 +38,20 @@ class IrisAccessibilityService : AccessibilityService() {
             AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED,
             AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED,
             AccessibilityEvent.TYPE_VIEW_SCROLLED -> {
-                refreshScreenDump()
+                debouncedRefresh()
             }
         }
     }
 
     override fun onInterrupt() {}
 
-    private fun refreshScreenDump() {
-        val root = rootInActiveWindow ?: return
-        screenRepository.updateRootNode(root)
+    private fun debouncedRefresh() {
+        refreshJob?.cancel()
+        refreshJob = bgScope.launch {
+            delay(150)
+            val root = rootInActiveWindow ?: return@launch
+            screenRepository.updateRootNode(root)
+        }
     }
 
     fun performGlobalActionCompat(action: Int): Boolean {

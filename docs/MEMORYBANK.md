@@ -194,7 +194,7 @@ ToolResult (Success | Error | PermissionRequired | Cancelled)
 - **FULL_AUTO**: no preview
 - Uses `suspendCancellableCoroutine` for structured concurrency
 - `ScreenActionGate` creates overlay instance, calls `.show()`, returns `ToolResult`
-- **Remaining**: navigate tool doesn't pass coordinates yet
+- **Remaining**: navigate tool improved label (no coords — system-level action)
 
 ---
 
@@ -242,7 +242,7 @@ ToolResult (Success | Error | PermissionRequired | Cancelled)
 
 - **Phase 1 (MVP)** ✅ COMPLETE: Wake word, STT, Gemini/Groq chat, Kokoro TTS + Android TTS, Iris Core UI, Chat mode, local history (Room), onboarding, theming, splash screen.
 - **Phase 2 (Tool-enabled)** ✅ CLOSE TO DONE: Tool system (framework ✅, 15+ tools implemented ✅, Gemini/Groq/local LLM function calling ✅, permission-on-first-use ✅, Settings redesign ✅). Remaining: local LLM performance tuning, weather tool debug.
-- **Phase 3 (Screen Intelligence)** 🔶 IN PROGRESS: ActionPreviewOverlay ✅, ScreenActionGate ✅, ClickTool/ScrollTool/TypeTool ✅. Pending: NavigateTool coords, Autonomy Level picker UI, accessibility activation guide.
+- **Phase 3 (Screen Intelligence)** 🔶 IN PROGRESS: ActionPreviewOverlay ✅, ScreenActionGate ✅, ClickTool/ScrollTool/TypeTool ✅, NavigateTool label fix ✅, accessibility perf fix ✅ (bg thread + debounce + node recycling). Pending: Autonomy Level picker UI, accessibility activation guide.
 - **Phase 4**: Embedded Shell (Power Mode), macros, cross-app workflows, floating bubble, default-assistant.
 - **Phase 5**: Multi-language, proactive suggestions, notification filtering, light theme, light theme.
 

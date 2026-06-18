@@ -24,10 +24,17 @@ class NavigateTool @Inject constructor(
     override val requiredPermission: String? = null
 
     override suspend fun execute(args: JSONObject): ToolResult {
-        val approval = actionGate.awaitApproval("Gezinme işlemi")
+        val action = args.optString("action", "")
+        val label = when (action) {
+            "back"    -> "Geri git"
+            "home"    -> "Ana ekrana git"
+            "recents" -> "Son uygulamalar"
+            else -> return ToolResult.Error("Geçersiz işlem: '$action'. 'back', 'home' veya 'recents' kullan.")
+        }
+
+        val approval = actionGate.awaitApproval(label)
         if (approval is ToolResult.Cancelled) return approval
 
-        val action = args.optString("action", "")
         val globalAction = when (action) {
             "back"    -> AccessibilityService.GLOBAL_ACTION_BACK
             "home"    -> AccessibilityService.GLOBAL_ACTION_HOME
