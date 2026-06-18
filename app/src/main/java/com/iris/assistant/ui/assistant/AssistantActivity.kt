@@ -16,7 +16,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -40,15 +40,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.iris.assistant.ui.home.IrisCoreAnimation
 import com.iris.assistant.ui.theme.IrisTheme
 import com.phosphor.icons.PhIcons
 import com.phosphor.icons.filled.MicrophoneFill
+import com.phosphor.icons.filled.PaperPlaneRightFill
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -94,6 +93,10 @@ private fun AssistantScreen(
         }
     }
 
+    LaunchedEffect(Unit) {
+        viewModel.startVoicePipeline()
+    }
+
     Box(modifier = Modifier.fillMaxSize()) {
         Box(
             modifier = Modifier
@@ -104,100 +107,96 @@ private fun AssistantScreen(
                 }
         )
 
-        Column(
+        Box(
             modifier = Modifier
-                .align(Alignment.BottomCenter)
                 .fillMaxWidth()
-                .background(Color(0xFF1C1C1E), RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
-                .navigationBarsPadding()
-                .padding(horizontal = 20.dp, vertical = 16.dp)
+                .padding(horizontal = 32.dp)
+                .heightIn(max = 540.dp)
+                .align(Alignment.Center)
+                .background(Color(0xFF1C1C1E), RoundedCornerShape(24.dp))
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+            contentAlignment = Alignment.BottomCenter
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
+            Column(
+                modifier = Modifier.fillMaxWidth()
             ) {
-                IconButton(
-                    onClick = {
-                        viewModel.stop()
-                        onClose()
-                    },
-                    modifier = Modifier.size(36.dp)
+                LazyColumn(
+                    modifier = Modifier.fillMaxWidth().weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Text("\u2715", color = Color(0x99FFFFFF), fontSize = 18.sp)
+                    items(state.messages) { bubble ->
+                        MessageBubble(bubble)
+                    }
                 }
 
-                Spacer(Modifier.width(12.dp))
+                Spacer(Modifier.height(10.dp))
 
-                IrisCoreAnimation(state = state.coreState, amplitude = state.amplitude, coreSize = 32.dp)
-
-                Spacer(Modifier.width(10.dp))
-
-                Text(
-                    text = state.statusText.ifEmpty { "IRIS" },
-                    color = Color(0xCCFFFFFF),
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Medium
-                )
-            }
-
-            Spacer(Modifier.height(12.dp))
-
-            LazyColumn(
-                modifier = Modifier.fillMaxWidth().weight(1f),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                items(state.messages) { bubble ->
-                    MessageBubble(bubble)
-                }
-            }
-
-            Spacer(Modifier.height(10.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                OutlinedTextField(
-                    value = state.textInput,
-                    onValueChange = viewModel::onTextInputChanged,
-                    placeholder = { Text("Mesaj yaz...", color = Color(0x66FFFFFF), fontSize = 14.sp) },
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(24.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = Color.White,
-                        unfocusedTextColor = Color.White,
-                        cursorColor = IrisTheme.colors.primary,
-                        focusedBorderColor = IrisTheme.colors.primary.copy(alpha = 0.6f),
-                        unfocusedBorderColor = Color(0x33FFFFFF),
-                        focusedContainerColor = Color(0x1AFFFFFF),
-                        unfocusedContainerColor = Color(0x1AFFFFFF)
-                    ),
-                    textStyle = androidx.compose.ui.text.TextStyle(fontSize = 14.sp),
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
-                    keyboardActions = KeyboardActions(
-                        onSend = {
-                            viewModel.sendText()
-                            keyboardController?.hide()
-                        }
-                    ),
-                    singleLine = true
-                )
-
-                Spacer(Modifier.width(8.dp))
-
-                IconButton(
-                    onClick = { viewModel.startVoicePipeline() },
-                    modifier = Modifier
-                        .size(44.dp)
-                        .clip(CircleShape)
-                        .background(IrisTheme.colors.primary)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(
-                        imageVector = PhIcons.Filled.MicrophoneFill,
-                        contentDescription = "Sesli",
-                        tint = Color.White,
-                        modifier = Modifier.size(22.dp)
+                    OutlinedTextField(
+                        value = state.textInput,
+                        onValueChange = viewModel::onTextInputChanged,
+                        placeholder = { Text("Mesaj yaz...", color = Color(0x66FFFFFF), fontSize = 14.sp) },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(24.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White,
+                            cursorColor = IrisTheme.colors.primary,
+                            focusedBorderColor = IrisTheme.colors.primary.copy(alpha = 0.6f),
+                            unfocusedBorderColor = Color(0x33FFFFFF),
+                            focusedContainerColor = Color(0x1AFFFFFF),
+                            unfocusedContainerColor = Color(0x1AFFFFFF)
+                        ),
+                        textStyle = androidx.compose.ui.text.TextStyle(fontSize = 14.sp),
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+                        keyboardActions = KeyboardActions(
+                            onSend = {
+                                viewModel.sendText()
+                                keyboardController?.hide()
+                            }
+                        ),
+                        singleLine = true
                     )
+
+                    Spacer(Modifier.width(8.dp))
+
+                    if (state.textInput.isEmpty()) {
+                        IconButton(
+                            onClick = { viewModel.startVoicePipeline() },
+                            modifier = Modifier
+                                .size(44.dp)
+                                .clip(CircleShape)
+                                .background(IrisTheme.colors.primary)
+                        ) {
+                            Icon(
+                                imageVector = PhIcons.Filled.MicrophoneFill,
+                                contentDescription = "Sesli",
+                                tint = Color.White,
+                                modifier = Modifier.size(22.dp)
+                            )
+                        }
+                    } else {
+                        IconButton(
+                            onClick = {
+                                viewModel.sendText()
+                                keyboardController?.hide()
+                            },
+                            modifier = Modifier
+                                .size(44.dp)
+                                .clip(CircleShape)
+                                .background(IrisTheme.colors.primary)
+                        ) {
+                            Icon(
+                                imageVector = PhIcons.Filled.PaperPlaneRightFill,
+                                contentDescription = "Gönder",
+                                tint = Color.White,
+                                modifier = Modifier.size(22.dp)
+                            )
+                        }
+                    }
                 }
             }
         }
