@@ -50,7 +50,7 @@ android {
     }
 
     signingConfigs {
-        create("debug") {
+        getByName("debug") {
             storeFile     = file("debug.keystore")
             storePassword = "android"
             keyAlias      = "androiddebugkey"
@@ -68,7 +68,7 @@ android {
         }
         debug {
             isMinifyEnabled   = false
-            signingConfig     = signingConfigs.getByName("debug")
+            signingConfig     = signingConfigs["debug"]
             applicationIdSuffix = ".debug"
             versionNameSuffix   = "-debug"
         }
