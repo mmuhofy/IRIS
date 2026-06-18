@@ -12,7 +12,6 @@ import com.iris.assistant.domain.model.ChatMessage
 import com.iris.assistant.domain.usecase.SendMessageUseCase
 import com.iris.assistant.domain.usecase.TranscribeAudioUseCase
 import com.iris.assistant.data.remote.tts.TtsProvider
-import com.iris.assistant.ui.home.IrisCoreState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Job
@@ -29,9 +28,13 @@ data class ChatBubble(
 )
 
 data class AssistantUiState(
-    val textInput  : String        = "",
+    val textInput  : String           = "",
     val messages   : List<ChatBubble> = emptyList(),
-    val isDone     : Boolean       = false
+    val amplitude  : Float            = 0f,
+    val isListening: Boolean          = false,
+    val isThinking : Boolean          = false,
+    val isSpeaking : Boolean          = false,
+    val isDone     : Boolean          = false
 )
 
 @HiltViewModel
@@ -71,15 +74,21 @@ class AssistantViewModel @Inject constructor(
         }
 
         pipelineJob = viewModelScope.launch {
+            _uiState.update {
+                it.copy(isListening = true, amplitude = 0f)
+            }
+
             val audioBytes = runCatching {
                 audioRecorder.recordUntilSilence(
-                    onAmplitude = { }
+                    onAmplitude = { amp -> _uiState.update { it.copy(amplitude = amp) } }
                 )
             }.getOrElse { e ->
                 Log.e(TAG, "Recording failed", e)
                 finish()
                 return@launch
             }
+
+            _uiState.update { it.copy(isListening = false, amplitude = 0f, isThinking = true) }
 
             val transcript = runCatching {
                 transcribeAudioUseCase(audioBytes)
@@ -107,20 +116,24 @@ class AssistantViewModel @Inject constructor(
                 return@launch
             }
 
+            _uiState.update { it.copy(isThinking = false, isSpeaking = true) }
             _uiState.update { state ->
                 state.copy(messages = state.messages + ChatBubble(text = reply, isUser = false))
             }
 
             ttsProvider.speak(
                 text       = reply,
-                onProgress = { },
-                onDone     = { finish() }
+                onProgress = { p -> _uiState.update { it.copy(amplitude = p.coerceIn(0f, 1f)) } },
+                onDone     = {
+                    _uiState.update { it.copy(isSpeaking = false, amplitude = 0f) }
+                    finish()
+                }
             )
         }
     }
 
     private fun sendMessage(text: String) {
-        _uiState.update { it.copy(textInput = "") }
+        _uiState.update { it.copy(textInput = "", isThinking = true) }
 
         pipelineJob = viewModelScope.launch {
             _uiState.update { state ->
@@ -137,20 +150,25 @@ class AssistantViewModel @Inject constructor(
                 ))
             } catch (e: Exception) {
                 Log.e(TAG, "LLM failed", e)
+                _uiState.update { it.copy(isThinking = false) }
                 _uiState.update { state ->
                     state.copy(messages = state.messages + ChatBubble(text = "Bir hata oluştu.", isUser = false))
                 }
                 return@launch
             }
 
+            _uiState.update { it.copy(isThinking = false, isSpeaking = true) }
             _uiState.update { state ->
                 state.copy(messages = state.messages + ChatBubble(text = reply, isUser = false))
             }
 
             ttsProvider.speak(
                 text       = reply,
-                onProgress = { },
-                onDone     = { finish() }
+                onProgress = { p -> _uiState.update { it.copy(amplitude = p.coerceIn(0f, 1f)) } },
+                onDone     = {
+                    _uiState.update { it.copy(isSpeaking = false, amplitude = 0f) }
+                    finish()
+                }
             )
         }
     }
@@ -163,7 +181,7 @@ class AssistantViewModel @Inject constructor(
     }
 
     private fun finish() {
-        _uiState.update { it.copy(isDone = true) }
+        _uiState.update { it.copy(isDone = true, isListening = false, isThinking = false, isSpeaking = false) }
     }
 
     override fun onCleared() {
