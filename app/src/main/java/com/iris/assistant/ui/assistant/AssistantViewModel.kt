@@ -102,7 +102,6 @@ class AssistantViewModel @Inject constructor(
 
             _uiState.update { state ->
                 state.copy(
-                    transcript = transcript,
                     messages = state.messages + ChatBubble(text = transcript, isUser = true),
                     coreState = IrisCoreState.THINKING,
                     statusText = "Düşünüyorum..."
@@ -125,7 +124,6 @@ class AssistantViewModel @Inject constructor(
 
             _uiState.update { state ->
                 state.copy(
-                    response = reply,
                     messages = state.messages + ChatBubble(text = reply, isUser = false),
                     coreState = IrisCoreState.SPEAKING,
                     statusText = "Konuşuyorum..."
@@ -170,7 +168,6 @@ class AssistantViewModel @Inject constructor(
 
             _uiState.update { state ->
                 state.copy(
-                    response = reply,
                     messages = state.messages + ChatBubble(text = reply, isUser = false),
                     coreState = IrisCoreState.SPEAKING,
                     statusText = "Konuşuyorum..."
