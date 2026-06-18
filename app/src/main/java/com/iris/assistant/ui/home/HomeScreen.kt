@@ -1,9 +1,7 @@
 package com.iris.assistant.ui.home
 
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -32,7 +30,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -46,7 +43,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.iris.assistant.ui.AppViewModel
 import com.iris.assistant.ui.theme.IrisTheme
 
 @Composable
@@ -58,18 +54,6 @@ fun HomeScreen(
     val uiState           by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState =  remember { SnackbarHostState() }
     val primary           =  IrisTheme.colors.primary
-
-    // Observe voice interaction trigger from default assistant (power button)
-    val activity = LocalContext.current as? ComponentActivity
-    val appViewModel: AppViewModel? = activity?.let { hiltViewModel(it) }
-    val voiceCount by appViewModel?.voiceInteractionCount?.collectAsStateWithLifecycle()
-        ?: remember { mutableStateOf(0) }
-
-    LaunchedEffect(voiceCount) {
-        if (voiceCount > 0) {
-            viewModel.startVoicePipeline()
-        }
-    }
 
     // Start wake word detection when screen is visible, stop when hidden
     DisposableEffect(Unit) {

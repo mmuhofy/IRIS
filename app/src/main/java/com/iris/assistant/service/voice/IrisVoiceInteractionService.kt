@@ -3,7 +3,7 @@ package com.iris.assistant.service.voice
 import android.content.Intent
 import android.service.voice.VoiceInteractionService
 import android.util.Log
-import com.iris.assistant.ui.MainActivity
+import com.iris.assistant.ui.assistant.AssistantActivity
 import dagger.hilt.android.AndroidEntryPoint
 
 /**
@@ -11,27 +11,24 @@ import dagger.hilt.android.AndroidEntryPoint
  * Activated when the user long-presses the power button or home button
  * and IRIS is set as the default assistant app in system settings.
  *
- * onLaunchVoiceAssistFromKeyguard opens MainActivity on lock screen activation.
- * Normal activation (unlocked) triggers the session's onShow, which also
- * opens MainActivity.
+ * Both onLaunchVoiceAssistFromKeyguard and the session's onShow open
+ * the lightweight AssistantActivity instead of the full main app.
  */
 @AndroidEntryPoint
 class IrisVoiceInteractionService : VoiceInteractionService() {
 
     companion object {
         private const val TAG = "IrisVoiceInteractionService"
-        const val EXTRA_VOICE_INTERACTION = "voice_interaction"
     }
 
     override fun onLaunchVoiceAssistFromKeyguard() {
         Log.d(TAG, "onLaunchVoiceAssistFromKeyguard")
-        launchIrisActivity()
+        launchAssistant()
     }
 
-    private fun launchIrisActivity() {
-        val intent = Intent(this, MainActivity::class.java).apply {
+    private fun launchAssistant() {
+        val intent = Intent(this, AssistantActivity::class.java).apply {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-            putExtra(EXTRA_VOICE_INTERACTION, true)
         }
         startActivity(intent)
     }

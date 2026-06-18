@@ -56,6 +56,13 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name=".ui.assistant.AssistantActivity"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:theme="@style/Theme.IRIS.Translucent"
+            android:taskAffinity="" />
+
         <!--
             WakeWordService — used ONLY by onboarding for the "Hey IRIS" test step.
             No longer a foreground service; the main app uses WakeWordManager directly.

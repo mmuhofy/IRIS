@@ -37,9 +37,6 @@ class AppViewModel @Inject constructor(
             initialValue = UserPreferences()
         )
 
-    private val _voiceInteractionCount = MutableStateFlow(0)
-    val voiceInteractionCount: StateFlow<Int> = _voiceInteractionCount.asStateFlow()
-
     init {
         viewModelScope.launch {
             preferencesRepository.preferences.first()
@@ -47,9 +44,6 @@ class AppViewModel @Inject constructor(
         }
     }
 
-    fun onVoiceInteractionTriggered() {
-        _voiceInteractionCount.value++
-    }
 }
 
 @Composable

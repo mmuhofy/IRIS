@@ -184,30 +184,34 @@ Power button long-press (system)
 IrisVoiceInteractionService (VoiceInteractionService)
     ↓ (onLaunchVoiceAssistFromKeyguard if locked)
 IrisVoiceInteractionSessionService → IrisVoiceInteractionSession
-    ↓ (onShow)
-startAssistantActivity(Intent → MainActivity)
+    ↓ (onShow — unlocked)
+startAssistantActivity(Intent → AssistantActivity)
     ↓
-EXTRA_VOICE_INTERACTION flag → AppViewModel increments voiceInteractionCount
-    ↓
-HomeScreen observes count → triggers startVoicePipeline()
+Translucent overlay launches → record → STT → LLM → TTS → close
 ```
 
 ### Key Details
 - Power button long-press ONLY (no AssistStructure — AccessibilityService handles screen reading)
-- `onLaunchVoiceAssistFromKeyguard()` — lock screen activation, opens MainActivity directly
-- `onShow()` — unlocked activation via `IrisVoiceInteractionSession`, calls `startAssistantActivity()`
+- `onLaunchVoiceAssistFromKeyguard()` — lock screen activation, opens AssistantActivity directly
+- `onShow()` — unlocked activation via `IrisVoiceInteractionSession`, calls `startAssistantActivity(Intent → AssistantActivity)`
+- AssistantActivity is a translucent overlay (`Theme.IRIS.Translucent`, `#CC1C1C1E` background) that floats over the current app
+- AssistantViewModel runs a one-shot voice pipeline: record → STT → LLM → TTS → `isDone=true` → auto-close after 1.5s
+- No conversation history, wake word, or screen control in the assistant-only flow
 - `IrisVoiceInteractionService` is `@AndroidEntryPoint` (Hilt)
 - Onboarding Step 5: "Set IRIS as default assistant" via `RoleManager.createRequestRoleIntent(ROLE_ASSISTANT)` (API 31+)
-- Session service updated: `android:exported="true"` (was `false` — `queryIntentServices` couldn't find it)
-- `BIND_VOICE_INTERACTION` uses-permission REMOVED from manifest (signature-level, not grantable to third-party apps, may filter app from picker)
+- Session service `android:exported="true"`
+- `BIND_VOICE_INTERACTION` uses-permission REMOVED from manifest (signature-level, not grantable)
 
 ### Files
-- `service/voice/IrisVoiceInteractionService.kt`
+- `service/voice/IrisVoiceInteractionService.kt` — launches AssistantActivity on keyguard trigger
 - `service/voice/IrisVoiceInteractionSessionService.kt`
-- `service/voice/IrisVoiceInteractionSession.kt`
+- `service/voice/IrisVoiceInteractionSession.kt` — `onShow` opens AssistantActivity
 - `service/voice/VoiceInteractionEntryPoint.kt`
+- `ui/assistant/AssistantActivity.kt` — translucent Compose overlay with IrisCoreAnimation, status, transcript, response, close button
+- `ui/assistant/AssistantViewModel.kt` — one-shot voice pipeline (record → STT → LLM → TTS → close)
+- `res/values/themes.xml` — added `Theme.IRIS.Translucent`
 - `res/xml/voice_interaction_service.xml`
-- Manifest: both services declared with `android:permission="BIND_VOICE_INTERACTION"`
+- Manifest: both services + AssistantActivity + IrisRecognitionService declared
 
 ### Debug Suffix Consideration
 - Debug build has `applicationIdSuffix = ".debug"` → package = `com.iris.assistant.debug`
@@ -479,6 +483,9 @@ app/src/main/java/com/iris/assistant/
 │   ├── ToolsModule.kt                       (@IntoSet multibinding)
 │   └── ...
 ├── ui/
+│   ├── assistant/
+│   │   ├── AssistantActivity.kt             (translucent overlay for power-button trigger)
+│   │   └── AssistantViewModel.kt            (one-shot voice pipeline)
 │   ├── settings/LocalModelScreen.kt         (download + select GGUF models)
 │   └── components/ (SettingsGroup, SettingsIcon, SettingsRowWithContent, etc.)
 ├── util/
@@ -489,7 +496,7 @@ app/src/main/java/com/iris/assistant/
 │   ├── voice/
 │   │   ├── IrisVoiceInteractionService.kt   (VoiceInteractionService, power button trigger)
 │   │   ├── IrisVoiceInteractionSessionService.kt
-│   │   ├── IrisVoiceInteractionSession.kt   (onShow → startAssistantActivity)
+│   │   ├── IrisVoiceInteractionSession.kt   (onShow → AssistantActivity)
 │   │   └── VoiceInteractionEntryPoint.kt    (Hilt entry point)
 │   └── wakeword/
 │       └── WakeWordManager.kt               (singleton, in-app only, no service/notification)
