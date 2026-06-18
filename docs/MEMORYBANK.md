@@ -38,6 +38,7 @@
 | KSP | 2.2.20-2.0.3 | must match Kotlin 2.2.20 |
 | AppCompat | 1.7.0 | required for Theme.MaterialComponents + SplashScreen |
 | MaterialComponents | 1.12.0 | required for Theme.MaterialComponents.DayNight.NoActionBar |
+| Debug signing | `app/debug.keystore` | committed to repo, all builds (local + CI) use same key so APKs can be installed without uninstalling |
 
 ### AI / Voice Stack
 

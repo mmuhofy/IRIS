@@ -49,6 +49,15 @@ android {
         buildConfigField("String", "GROQ_LLM_API_KEY",       apiKey("GROQ_LLM_API_KEY"))
     }
 
+    signingConfigs {
+        create("debug") {
+            storeFile     = file("debug.keystore")
+            storePassword = "android"
+            keyAlias      = "androiddebugkey"
+            keyPassword   = "android"
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = true
@@ -58,7 +67,8 @@ android {
             )
         }
         debug {
-            isMinifyEnabled = false
+            isMinifyEnabled   = false
+            signingConfig     = signingConfigs.getByName("debug")
             applicationIdSuffix = ".debug"
             versionNameSuffix   = "-debug"
         }
