@@ -62,7 +62,7 @@ import com.iris.assistant.ui.theme.IrisTheme
 import com.phosphor.icons.PhIcons
 import com.phosphor.icons.filled.MicrophoneFill
 import com.phosphor.icons.filled.PaperPlaneRightFill
-import dagger.hilt.EntryPointAccessors
+import dagger.hilt.android.EntryPointAccessors
 import kotlin.math.sin
 
 class AssistantActivity : ComponentActivity() {

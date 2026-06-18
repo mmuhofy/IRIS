@@ -10,7 +10,7 @@ import android.speech.SpeechRecognizer
 import android.util.Log
 import com.iris.assistant.BuildConfig
 import com.iris.assistant.util.Constants
-import dagger.hilt.EntryPointAccessors
+import dagger.hilt.android.EntryPointAccessors
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
