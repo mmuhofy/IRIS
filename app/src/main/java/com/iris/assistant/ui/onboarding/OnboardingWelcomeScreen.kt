@@ -54,7 +54,7 @@ fun OnboardingWelcomeScreen(
             .padding(horizontal = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        StepIndicator(currentStep = 1, totalSteps = 5)
+        StepIndicator(currentStep = 1, totalSteps = 6)
 
         Spacer(Modifier.weight(1f))
 

@@ -104,13 +104,7 @@ object Constants {
     //   - embedding_model.onnx    (openWakeWord v0.5.1)
     //
     // WAKE_WORD_COOLDOWN_MS: prevents repeated triggers from a single detection event.
-    // Delay between sending ACTION_PAUSE to WakeWordService and opening AudioRecorder.
-    // Intent dispatch to a service is async — this gives WakeWordEngine time to call
-    // engine.release() and free AudioRecord before AudioRecorder.startRecording() is called.
-    // 150ms is conservative; tune down if latency is noticeable.
-    const val WAKE_WORD_PAUSE_DELAY_MS = 150L
-
-    const val WAKE_WORD_COOLDOWN_MS   = 1500L
+    const val WAKE_WORD_COOLDOWN_MS = 1500L
 
     val WAKE_WORD_MODELS = listOf(
         WakeWordModelEntry("hey_jarvis", "hey_jarvis.onnx", 0.5f),
@@ -122,13 +116,6 @@ object Constants {
         val file: String,
         val threshold: Float,
     )
-
-    // --- Notifications ---
-    const val NOTIFICATION_CHANNEL_ID_WAKE   = "iris_wake_word_channel"
-    const val NOTIFICATION_CHANNEL_NAME_WAKE = "IRIS Arka Plan"
-    const val NOTIFICATION_TITLE_WAKE        = "IRIS aktif"
-    const val NOTIFICATION_TEXT_WAKE         = "\"Hey Jarvis\" / \"Hey IRIS\" dinleniyor"
-    const val NOTIFICATION_ID_WAKE           = 1001
 
     // --- Room ---
     const val DATABASE_NAME    = "iris_database"

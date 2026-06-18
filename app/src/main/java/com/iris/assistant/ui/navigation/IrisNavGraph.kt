@@ -15,6 +15,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.iris.assistant.ui.chat.ChatScreen
 import com.iris.assistant.ui.home.HomeScreen
+import com.iris.assistant.ui.onboarding.OnboardingAssistantScreen
 import com.iris.assistant.ui.onboarding.OnboardingBatteryScreen
 import com.iris.assistant.ui.onboarding.OnboardingDemoScreen
 import com.iris.assistant.ui.onboarding.OnboardingMicScreen
@@ -82,6 +83,18 @@ fun IrisNavGraph(
             popExitTransition   = { slideOutHorizontally(tween(ANIM_DURATION)) + fadeOut(tween(ANIM_DURATION)) }
         ) {
             OnboardingDemoScreen(
+                onNext = { navController.navigate(NavRoute.OnboardingAssistant.route) },
+                onBack = { navController.popBackStack() }
+            )
+        }
+        composable(
+            route            = NavRoute.OnboardingAssistant.route,
+            enterTransition  = { slideInHorizontally(tween(ANIM_DURATION)) + fadeIn(tween(ANIM_DURATION)) },
+            exitTransition   = { slideOutHorizontally(tween(ANIM_DURATION)) { -it / 4 } + fadeOut(tween(ANIM_DURATION)) },
+            popEnterTransition = { slideInHorizontally(tween(ANIM_DURATION)) { -it / 4 } + fadeIn(tween(ANIM_DURATION)) },
+            popExitTransition   = { slideOutHorizontally(tween(ANIM_DURATION)) + fadeOut(tween(ANIM_DURATION)) }
+        ) {
+            OnboardingAssistantScreen(
                 onNext = { navController.navigate(NavRoute.OnboardingBattery.route) },
                 onBack = { navController.popBackStack() }
             )

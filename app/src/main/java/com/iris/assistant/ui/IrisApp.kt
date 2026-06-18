@@ -37,11 +37,18 @@ class AppViewModel @Inject constructor(
             initialValue = UserPreferences()
         )
 
+    private val _voiceInteractionCount = MutableStateFlow(0)
+    val voiceInteractionCount: StateFlow<Int> = _voiceInteractionCount.asStateFlow()
+
     init {
         viewModelScope.launch {
             preferencesRepository.preferences.first()
             _isReady.value = true
         }
+    }
+
+    fun onVoiceInteractionTriggered() {
+        _voiceInteractionCount.value++
     }
 }
 
@@ -50,7 +57,6 @@ fun IrisApp(
     viewModel: AppViewModel = hiltViewModel()
 ) {
     val isReady by viewModel.isReady.collectAsStateWithLifecycle()
-
     if (!isReady) return
 
     val preferences by viewModel.preferences.collectAsStateWithLifecycle()

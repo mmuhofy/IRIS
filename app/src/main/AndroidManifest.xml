@@ -36,6 +36,7 @@
 
     <!-- Phase 3 -->
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <uses-permission android:name="android.permission.BIND_VOICE_INTERACTION" />
 
     <application
         android:name=".IrisApplication"
@@ -57,15 +58,12 @@
         </activity>
 
         <!--
-            WakeWordService — foreground service for continuous wake word detection.
-            foregroundServiceType="microphone" required on Android 10+ for audio recording
-            in background. Declared here to satisfy Android 14+ strict foreground service
-            type enforcement (targetSdk 34+).
+            WakeWordService — used ONLY by onboarding for the "Hey IRIS" test step.
+            No longer a foreground service; the main app uses WakeWordManager directly.
         -->
         <service
             android:name=".service.WakeWordService"
-            android:exported="false"
-            android:foregroundServiceType="microphone" />
+            android:exported="false" />
 
         <receiver
             android:name=".service.AlarmReceiver"
@@ -82,6 +80,29 @@
                 android:name="android.accessibilityservice"
                 android:resource="@xml/accessibility_service_config" />
         </service>
+
+        <!--
+            VoiceInteractionService — system-bound default assistant services.
+            Activated when user long-presses power button with IRIS set as default assistant.
+            Requires android.permission.BIND_VOICE_INTERACTION (signature-level, auto-granted
+            to the default assistant app).
+        -->
+        <service
+            android:name=".service.voice.IrisVoiceInteractionService"
+            android:exported="true"
+            android:permission="android.permission.BIND_VOICE_INTERACTION">
+            <intent-filter>
+                <action android:name="android.service.voice.VoiceInteractionService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.voice_interaction"
+                android:resource="@xml/voice_interaction_service" />
+        </service>
+
+        <service
+            android:name=".service.voice.IrisVoiceInteractionSessionService"
+            android:exported="false"
+            android:permission="android.permission.BIND_VOICE_INTERACTION" />
 
     </application>
 

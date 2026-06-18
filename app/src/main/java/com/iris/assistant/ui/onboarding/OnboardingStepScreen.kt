@@ -92,7 +92,7 @@ private fun OnboardingStepLayout(
                 Spacer(Modifier.size(48.dp))
             }
             Spacer(Modifier.weight(1f))
-            StepIndicator(currentStep = step, totalSteps = 5)
+            StepIndicator(currentStep = step, totalSteps = 6)
             Spacer(Modifier.weight(1f))
             Spacer(Modifier.size(48.dp))
         }
@@ -231,7 +231,8 @@ fun OnboardingWakeWordScreen(
             when (testState) {
                 WakeWordTestState.IDLE -> {
                     testState = WakeWordTestState.LISTENING
-                    context.startForegroundService(Intent(context, WakeWordService::class.java).apply {
+                    @Suppress("DEPRECATION")
+                    context.startService(Intent(context, WakeWordService::class.java).apply {
                         action = WakeWordService.ACTION_START
                     })
                 }
@@ -308,6 +309,39 @@ fun OnboardingDemoScreen(
         onNext = onNext,
         onBack = onBack
     )
+}
+
+@Composable
+fun OnboardingAssistantScreen(
+    onNext: () -> Unit,
+    onBack: () -> Unit
+) {
+    val context = LocalContext.current
+
+    OnboardingStepLayout(
+        step = 5,
+        icon = PhIcons.Regular.MagicWand,
+        title = "Varsayılan Asistan",
+        description = "IRIS'i varsayılan asistan yapmak için\nAyarlar > Uygulamalar > Varsayılan Uygulamalar\n> Dijital Asistan Uygulaması yolunu izle\nve IRIS'i seç.",
+        buttonLabel = "Ayarlara Git",
+        onNext = {
+            val intent = Intent(Settings.ACTION_VOICE_INPUT_SETTINGS).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            runCatching { context.startActivity(intent) }
+        },
+        onBack = onBack,
+        secondaryLabel = "Atla",
+        onSecondary = onNext
+    ) {
+        Spacer(Modifier.height(12.dp))
+        Text(
+            text = "Böylece güç düğmesine uzun basarak\nIRIS'i açabilirsin.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center
+        )
+    }
 }
 
 @Composable
