@@ -61,7 +61,8 @@
             android:exported="true"
             android:excludeFromRecents="true"
             android:theme="@style/Theme.IRIS.Translucent"
-            android:taskAffinity="" />
+            android:taskAffinity=""
+            android:windowSoftInputMode="adjustResize" />
 
         <!--
             WakeWordService — used ONLY by onboarding for the "Hey IRIS" test step.
