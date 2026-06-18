@@ -175,6 +175,53 @@ ToolResult (Success | Error | PermissionRequired | Cancelled)
 
 ---
 
+## 5a. VoiceInteractionService (Power Button Assistant)
+
+### Architecture
+```
+Power button long-press (system)
+    ↓
+IrisVoiceInteractionService (VoiceInteractionService)
+    ↓ (onLaunchVoiceAssistFromKeyguard if locked)
+IrisVoiceInteractionSessionService → IrisVoiceInteractionSession
+    ↓ (onShow)
+startAssistantActivity(Intent → MainActivity)
+    ↓
+EXTRA_VOICE_INTERACTION flag → AppViewModel increments voiceInteractionCount
+    ↓
+HomeScreen observes count → triggers startVoicePipeline()
+```
+
+### Key Details
+- Power button long-press ONLY (no AssistStructure — AccessibilityService handles screen reading)
+- `onLaunchVoiceAssistFromKeyguard()` — lock screen activation, opens MainActivity directly
+- `onShow()` — unlocked activation via `IrisVoiceInteractionSession`, calls `startAssistantActivity()`
+- `IrisVoiceInteractionService` is `@AndroidEntryPoint` (Hilt)
+- Onboarding Step 5: "Set IRIS as default assistant" via `RoleManager.createRequestRoleIntent(ROLE_ASSISTANT)` (API 31+)
+- Session service updated: `android:exported="true"` (was `false` — `queryIntentServices` couldn't find it)
+- `BIND_VOICE_INTERACTION` uses-permission REMOVED from manifest (signature-level, not grantable to third-party apps, may filter app from picker)
+
+### Files
+- `service/voice/IrisVoiceInteractionService.kt`
+- `service/voice/IrisVoiceInteractionSessionService.kt`
+- `service/voice/IrisVoiceInteractionSession.kt`
+- `service/voice/VoiceInteractionEntryPoint.kt`
+- `res/xml/voice_interaction_service.xml`
+- Manifest: both services declared with `android:permission="BIND_VOICE_INTERACTION"`
+
+### Debug Suffix Consideration
+- Debug build has `applicationIdSuffix = ".debug"` → package = `com.iris.assistant.debug`
+- `voice_interaction_service.xml` uses full class name (NOT `.prefix`) for `sessionService` to avoid `ComponentName.createRelative` prepending the debug package
+- `ComponentName.createRelative("com.iris.assistant.debug", "com.iris.assistant.service.voice.IrisVoiceInteractionSessionService")` correctly resolves
+
+### Outstanding
+- IRIS did not appear in system default assistant picker. Two fixes applied:
+  1. Removed `<uses-permission android:name="BIND_VOICE_INTERACTION" />` (ungrantable, may cause filtering)
+  2. Changed session service `android:exported="false"` → `"true"` (needed for `PackageManager.queryIntentServices`)
+- Push + test via GitHub Actions needed to verify.
+
+---
+
 ## 6. Screen Reading & Control (Phase 3)
 
 - **Primary**: Accessibility Tree (`AccessibilityNodeInfo` traversal)
@@ -242,9 +289,9 @@ ToolResult (Success | Error | PermissionRequired | Cancelled)
 
 - **Phase 1 (MVP)** ✅ COMPLETE: Wake word, STT, Gemini/Groq chat, Kokoro TTS + Android TTS, Iris Core UI, Chat mode, local history (Room), onboarding, theming, splash screen.
 - **Phase 2 (Tool-enabled)** ✅ CLOSE TO DONE: Tool system (framework ✅, 15+ tools implemented ✅, Gemini/Groq/local LLM function calling ✅, permission-on-first-use ✅, Settings redesign ✅). Remaining: local LLM performance tuning, weather tool debug.
-- **Phase 3 (Screen Intelligence)** 🔶 IN PROGRESS: ActionPreviewOverlay ✅, ScreenActionGate ✅, ClickTool/ScrollTool/TypeTool ✅, NavigateTool label fix ✅, accessibility perf fix ✅ (bg thread + debounce + node recycling). Pending: Autonomy Level picker UI, accessibility activation guide.
-- **Phase 4**: Embedded Shell (Power Mode), macros, cross-app workflows, floating bubble, default-assistant.
-- **Phase 5**: Multi-language, proactive suggestions, notification filtering, light theme, light theme.
+- **Phase 3 (Screen Intelligence)** 🔶 IN PROGRESS: ActionPreviewOverlay ✅, ScreenActionGate ✅, ClickTool/ScrollTool/TypeTool ✅, NavigateTool label fix ✅, accessibility perf fix ✅ (bg thread + debounce + node recycling), VoiceInteractionService ✅ (power button trigger). Pending: verify IRIS appears in default assistant picker, AndroidSpeechRecognizer fallback for STT.
+- **Phase 4**: Embedded Shell (Power Mode), macros, cross-app workflows, floating bubble.
+- **Phase 5**: Multi-language, proactive suggestions, notification filtering, light theme.
 
 ---
 
@@ -259,8 +306,11 @@ ToolResult (Success | Error | PermissionRequired | Cancelled)
 - Splash: `androidx.core.splashscreen` API, background `#18181B`, fade-in
 
 ### Background Access
-- Wake-word listening: Foreground Service + persistent "IRIS aktif" notification (Phase 2)
-- User can disable in Settings
+- Wake-word listening: `WakeWordManager` singleton (in-app only — inference only when app visible)
+  - `startListening()` / `stopListening()` called by `HomeViewModel.onScreenVisible/Hidden()`
+  - No foreground service, no notification, no persistent background wake word
+- WakeWordService: simplified to bare minimum — only used by onboarding "Hey IRIS" test step. No foreground/notification.
+- STOP_KEYWORDS: `{"dur", "yeter", "kes", "tamam", "stop", "tamammı"}` — stops TTS mid-speech when detected via STT pipeline
 
 ---
 
@@ -276,6 +326,9 @@ ToolResult (Success | Error | PermissionRequired | Cancelled)
 - ❌ Gradle wrapper < 8.13 (AGP 8.11.1 requires 8.13 minimum)
 - ❌ Qwen2.5 GGUF models (unsupported in llama-kotlin-android 0.1.5 — use Llama-3.2)
 - ❌ Native Groq function calling (`tools` API param) — Llama 3.3 70B generates malformed XML. Switched to JSON-based calling in `buildGroqSystemPrompt()`.
+- ❌ Wake word foreground service — replaced by `WakeWordManager` singleton (in-app only), saves battery + avoids persistent notification
+- ❌ `<uses-permission android:name="BIND_VOICE_INTERACTION" />` — signature-level permission, not grantable to third-party apps via uses-permission; may cause system to filter app from assistant picker
+- ❌ `android:exported="false"` on session service — `VoiceInteractionServiceInfo` validates via `PackageManager.queryIntentServices()` which skips non-exported components
 
 ---
 
@@ -412,7 +465,17 @@ app/src/main/java/com/iris/assistant/
 ├── ui/
 │   ├── settings/LocalModelScreen.kt         (download + select GGUF models)
 │   └── components/ (SettingsGroup, SettingsIcon, SettingsRowWithContent, etc.)
-└── util/
-    ├── Constants.kt                         (growth_llm_model, provider names)
-    └── DownloadState.kt                     (Idle/Connecting/Downloading/Ready/Error)
+├── util/
+│   ├── Constants.kt                         (growth_llm_model, provider names)
+│   └── DownloadState.kt                     (Idle/Connecting/Downloading/Ready/Error)
+│   └── ToolCallParser.kt                    (brace-depth parser for JSON tool calls)
+├── service/
+│   ├── voice/
+│   │   ├── IrisVoiceInteractionService.kt   (VoiceInteractionService, power button trigger)
+│   │   ├── IrisVoiceInteractionSessionService.kt
+│   │   ├── IrisVoiceInteractionSession.kt   (onShow → startAssistantActivity)
+│   │   └── VoiceInteractionEntryPoint.kt    (Hilt entry point)
+│   └── wakeword/
+│       └── WakeWordManager.kt               (singleton, in-app only, no service/notification)
+└── ...
 ```

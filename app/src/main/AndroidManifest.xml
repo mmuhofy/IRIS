@@ -36,7 +36,6 @@
 
     <!-- Phase 3 -->
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
-    <uses-permission android:name="android.permission.BIND_VOICE_INTERACTION" />
 
     <application
         android:name=".IrisApplication"
@@ -101,7 +100,7 @@
 
         <service
             android:name=".service.voice.IrisVoiceInteractionSessionService"
-            android:exported="false"
+            android:exported="true"
             android:permission="android.permission.BIND_VOICE_INTERACTION" />
 
     </application>
