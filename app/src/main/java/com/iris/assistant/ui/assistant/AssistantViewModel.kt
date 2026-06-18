@@ -8,7 +8,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.iris.assistant.data.audio.AudioRecorder
-import com.iris.assistant.domain.model.IrisException
+import com.iris.assistant.domain.model.ChatMessage
 import com.iris.assistant.domain.usecase.SendMessageUseCase
 import com.iris.assistant.domain.usecase.TranscribeAudioUseCase
 import com.iris.assistant.data.remote.tts.TtsProvider
@@ -23,12 +23,17 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+data class ChatBubble(
+    val text: String,
+    val isUser: Boolean
+)
+
 data class AssistantUiState(
     val coreState  : IrisCoreState = IrisCoreState.IDLE,
     val amplitude  : Float         = 0f,
     val statusText : String        = "",
-    val transcript : String        = "",
-    val response   : String        = "",
+    val textInput  : String        = "",
+    val messages   : List<ChatBubble> = emptyList(),
     val isDone     : Boolean       = false
 )
 
@@ -50,11 +55,21 @@ class AssistantViewModel @Inject constructor(
 
     private var pipelineJob: Job? = null
 
-    fun start() {
+    fun onTextInputChanged(text: String) {
+        _uiState.update { it.copy(textInput = text) }
+    }
+
+    fun sendText() {
+        val text = _uiState.value.textInput.trim()
+        if (text.isEmpty()) return
+        sendMessage(text)
+    }
+
+    fun startVoicePipeline() {
         if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO)
             != PackageManager.PERMISSION_GRANTED
         ) {
-            _uiState.update { it.copy(isDone = true) }
+            finish()
             return
         }
 
@@ -69,7 +84,7 @@ class AssistantViewModel @Inject constructor(
                 )
             }.getOrElse { e ->
                 Log.e(TAG, "Recording failed", e)
-                _uiState.update { it.copy(isDone = true) }
+                finish()
                 return@launch
             }
 
@@ -81,34 +96,91 @@ class AssistantViewModel @Inject constructor(
                 transcribeAudioUseCase(audioBytes)
             }.getOrElse { e ->
                 Log.e(TAG, "STT failed", e)
-                _uiState.update { it.copy(isDone = true) }
+                finish()
                 return@launch
             }
 
-            _uiState.update { it.copy(transcript = transcript, statusText = "Düşünüyorum...") }
+            _uiState.update { state ->
+                state.copy(
+                    transcript = transcript,
+                    messages = state.messages + ChatBubble(text = transcript, isUser = true),
+                    coreState = IrisCoreState.THINKING,
+                    statusText = "Düşünüyorum..."
+                )
+            }
 
             val reply: String
             try {
                 reply = sendMessageUseCase(listOf(
-                    com.iris.assistant.domain.model.ChatMessage(
-                        role = com.iris.assistant.domain.model.ChatMessage.Role.USER,
+                    ChatMessage(
+                        role = ChatMessage.Role.USER,
                         content = transcript
                     )
                 ))
             } catch (e: Exception) {
                 Log.e(TAG, "LLM failed", e)
-                _uiState.update { it.copy(isDone = true) }
+                finish()
                 return@launch
             }
 
-            _uiState.update { it.copy(response = reply, coreState = IrisCoreState.SPEAKING, statusText = "Konuşuyorum...") }
+            _uiState.update { state ->
+                state.copy(
+                    response = reply,
+                    messages = state.messages + ChatBubble(text = reply, isUser = false),
+                    coreState = IrisCoreState.SPEAKING,
+                    statusText = "Konuşuyorum..."
+                )
+            }
 
             ttsProvider.speak(
                 text       = reply,
                 onProgress = { p -> _uiState.update { it.copy(amplitude = p.coerceIn(0f, 1f)) } },
-                onDone     = {
-                    _uiState.update { it.copy(isDone = true) }
+                onDone     = { finish() }
+            )
+        }
+    }
+
+    private fun sendMessage(text: String) {
+        _uiState.update { it.copy(textInput = "", statusText = "Düşünüyorum...") }
+
+        pipelineJob = viewModelScope.launch {
+            _uiState.update { state ->
+                state.copy(
+                    messages = state.messages + ChatBubble(text = text, isUser = true)
+                )
+            }
+
+            val reply: String
+            try {
+                reply = sendMessageUseCase(listOf(
+                    ChatMessage(
+                        role = ChatMessage.Role.USER,
+                        content = text
+                    )
+                ))
+            } catch (e: Exception) {
+                Log.e(TAG, "LLM failed", e)
+                _uiState.update { state ->
+                    state.copy(
+                        messages = state.messages + ChatBubble(text = "Bir hata oluştu.", isUser = false)
+                    )
                 }
+                return@launch
+            }
+
+            _uiState.update { state ->
+                state.copy(
+                    response = reply,
+                    messages = state.messages + ChatBubble(text = reply, isUser = false),
+                    coreState = IrisCoreState.SPEAKING,
+                    statusText = "Konuşuyorum..."
+                )
+            }
+
+            ttsProvider.speak(
+                text       = reply,
+                onProgress = { p -> _uiState.update { it.copy(amplitude = p.coerceIn(0f, 1f)) } },
+                onDone     = { finish() }
             )
         }
     }
@@ -117,6 +189,10 @@ class AssistantViewModel @Inject constructor(
         pipelineJob?.cancel()
         pipelineJob = null
         ttsProvider.stop()
+        finish()
+    }
+
+    private fun finish() {
         _uiState.update { it.copy(isDone = true) }
     }
 
