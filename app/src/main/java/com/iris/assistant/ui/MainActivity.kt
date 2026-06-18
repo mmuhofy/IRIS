@@ -1,6 +1,8 @@
 package com.iris.assistant.ui
 
+import android.app.role.RoleManager
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
@@ -28,6 +30,7 @@ class MainActivity : ComponentActivity() {
         splashScreen.setKeepOnScreenCondition { !appViewModel.isReady.value }
 
         handleVoiceInteractionIntent(intent)
+        requestAssistantRole()
 
         setContent {
             IrisApp()
@@ -37,6 +40,20 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         handleVoiceInteractionIntent(intent)
+    }
+
+    private fun requestAssistantRole() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            try {
+                val roleManager = getSystemService(android.app.role.RoleManager::class.java)
+                if (roleManager != null && !roleManager.isRoleHeld(android.app.role.RoleManager.ROLE_ASSISTANT)) {
+                    val intent = roleManager.createRequestRoleIntent(android.app.role.RoleManager.ROLE_ASSISTANT)
+                    startActivity(intent)
+                }
+            } catch (_: Exception) {
+                // Silently ignore — RoleManager not available on this device
+            }
+        }
     }
 
     private fun handleVoiceInteractionIntent(intent: Intent?) {
