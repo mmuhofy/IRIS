@@ -9,6 +9,7 @@ import com.iris.assistant.domain.repository.LlmRepository
 import com.iris.assistant.domain.tools.ToolRegistry
 import com.iris.assistant.domain.tools.ToolResult
 import com.iris.assistant.util.Constants
+import com.iris.assistant.util.ToolCallParser
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -33,10 +34,6 @@ class GroqLlmRepository @Inject constructor(
     companion object {
         private const val TAG = "GroqLlmRepository"
         private const val MAX_TOOL_ROUNDS = 10
-        private val TOOL_CALL_PATTERN = Regex(
-            """(\{[^}]*"tool"\s*:\s*"[^"]*"[^}]*\})""",
-            RegexOption.DOT_MATCHES_ALL
-        )
     }
 
     override suspend fun chat(
@@ -138,9 +135,9 @@ RULES:
                     val content = message.optString("content", "").trim()
 
                     if (finishReason == "stop" || content.isNotEmpty()) {
-                        val toolCall = parseToolCall(content)
+                        val toolCall = ToolCallParser.extractFirst(content)
                         if (toolCall == null) {
-                            return@withContext cleanOutput(content)
+                            return@withContext ToolCallParser.stripAll(content)
                         }
                         Log.d(TAG, "round=$round: toolCall=${toolCall.first} args=${toolCall.second}")
                         val toolResult = toolRegistry.execute(toolCall.first, toolCall.second)
@@ -201,24 +198,5 @@ RULES:
         }
 
         return descriptions.toString(2)
-    }
-
-    private fun parseToolCall(output: String): Pair<String, JSONObject>? {
-        val match = TOOL_CALL_PATTERN.find(output) ?: return null
-        val jsonStr = match.value
-
-        return try {
-            val json = JSONObject(jsonStr)
-            val name = json.optString("tool", "")
-            if (name.isBlank()) return null
-            val args = json.optJSONObject("args") ?: JSONObject()
-            Pair(name, args)
-        } catch (_: Exception) {
-            null
-        }
-    }
-
-    private fun cleanOutput(output: String): String {
-        return output.replace(TOOL_CALL_PATTERN, "").trim()
     }
 }

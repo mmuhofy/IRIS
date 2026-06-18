@@ -43,11 +43,12 @@
 
 | Function | Choice | Detail |
 |---|---|---|
-| LLM (primary) | Gemini | `gemini-3.5-flash` — verify at implementation time. Function calling integrated. |
-| LLM (fallback) | Groq (Llama) | `llama-3.3-70b-versatile` — confirm via Groq docs |
+| LLM (primary) | Gemini | `gemini-3.5-flash` — verify at implementation time. Function calling via `functionDeclarations`. |
+| LLM (fallback) | Groq (Llama) | `llama-3.3-70b-versatile`. JSON `{"tool":"name","args":{}}` in text (NOT native function calling — see TODO). |
+| LLM (local) | llama-kotlin-android 0.1.5 | Llama-3.2-1B GGUF. JSON tool calling in text. Qwen2.5 models NOT supported (missing arch). |
 | STT | Groq Whisper | `whisper-large-v3`, `language=tr` |
 | TTS | See §3a | Multi-provider, user-selectable |
-| Wake Word | openWakeWord (ONNX) | Two models loaded simultaneously: prebuilt `hey_jarvis.onnx` + custom-trained `hey_iris.onnx` via Colab. Custom training tuned: max_negative_weight 50, batch 64/32/32. Threshold lowered to 0.01 for debugging. |
+| Wake Word | openWakeWord (ONNX) | Two models loaded simultaneously: prebuilt `hey_jarvis.onnx` + custom-trained `hey_iris.onnx` via Colab. |
 | Icons | Phosphor Icons | Regular weight default, Fill for active states |
 
 ### Backend
@@ -141,43 +142,59 @@ Bottom: 🎤 Mic toggle | ⏹ Stop/interrupt | 📺 Screen-control toggle
 
 ### Architecture
 ```
-Gemini function_call
+Gemini / Groq / Local LLM
     ↓
 ToolRegistry.execute(name, args)
     ↓
 JarvisTool implementation
     ↓ (if screen action)
-ActionPreviewOverlay (per Autonomy Level)
+ActionPreviewOverlay (spotlight highlight + countdown + cancel per Autonomy Level)
     ↓
-Native API / AccessibilityService / Embedded Shell
+Native API / AccessibilityService
     ↓
 ToolResult (Success | Error | PermissionRequired | Cancelled)
 ```
 
+- Three LLM providers: Gemini (native `functionDeclarations`), Groq (JSON `{"tool":"name","args":{}}` in text), Local (same JSON format).
 - Tools added one at a time, per Muhofy's spec.
 - Permissions requested on first use of each tool.
+- Screen tools: ClickTool, ScrollTool, TypeTool pass coordinates to `ScreenActionGate.awaitApproval()` for spotlight highlight. NavigateTool still needs coordination update.
 
 ### Tool Categories (Phase 2)
 - **Communication**: make_call, send_sms, read_notifications, open_whatsapp_chat
-- **Productivity**: set_alarm, create_reminder, add_calendar_event, get_today_schedule, create_note
+- **Productivity**: set_alarm, create_reminder, add_calendar_event, get_today_schedule, create_note (via kosekull)
 - **System**: open_app, set_volume, set_brightness, toggle_wifi, toggle_bluetooth, toggle_flashlight, get_battery_status
 - **Information**: get_weather, web_search, get_news, calculate, get_current_time
+
+### Screen Tools (Phase 3)
+- **click(x, y, description)**: taps node, highlights via ActionPreviewOverlay
+- **type(text)**: types into focused node
+- **scroll(x, y, direction)**: swipes at coordinates
+- **navigate_back(action)**: go back/recents/home
+- **read_screen**: returns accessibility tree as JSON
 
 ---
 
 ## 6. Screen Reading & Control (Phase 3)
 
 - **Primary**: Accessibility Tree (`AccessibilityNodeInfo` traversal)
-- **Fallback**: Screenshot + Gemini vision (MediaProjection)
+- **Fallback**: Screenshot + Gemini vision (MediaProjection) — NOT IMPLEMENTED
+- **Service**: `IrisAccessibilityService` — singleton via `companion object instance`, tools access through it
+- **Node matching**: text/contentDescription first, coordinate fallback
 
-### Action Confirmation — "Action Preview Overlay"
-- SAFE (default): every action gets 1s preview + cancel
-- BALANCED: normal actions instant; destructive get preview+cancel
-- FULL_AUTO: no previews; one-time warning dialog
-- CUSTOM: per-category config
-- Destructive keywords: sil, gönder, onayla, satın al, ödeme, kabul
-- No max-step limit on read→decide→act loops
-- Sensitive app blacklist: screen control disabled for banking/password managers
+### Action Confirmation — "Action Preview Overlay" ✅
+- `ActionPreviewOverlay` — `WindowManager` overlay with `TYPE_APPLICATION_OVERLAY`
+- Full-screen dark overlay (`#CC000000`)
+- **Spotlight**: `RadialGradient` at click coordinates with animation
+- **Countdown**: center text (3...2...1...), auto-confirms at 0
+- **Cancel button**: top-right "✕" immediately cancels
+- **Ripple**: circular reveal animation on confirm
+- **SAFE** (default): 3s preview + cancel button
+- **BALANCED**: 1s preview
+- **FULL_AUTO**: no preview
+- Uses `suspendCancellableCoroutine` for structured concurrency
+- `ScreenActionGate` creates overlay instance, calls `.show()`, returns `ToolResult`
+- **Remaining**: navigate tool doesn't pass coordinates yet
 
 ---
 
@@ -223,11 +240,11 @@ ToolResult (Success | Error | PermissionRequired | Cancelled)
 
 ## 11. Phase Roadmap
 
-- **Phase 1 (MVP)** ✅ COMPLETE: Wake word (manual mic), STT, Gemini chat, Android TTS, Iris Core UI, Chat mode, local history (Room), DataStore preferences, onboarding, theming, splash screen.
-- **Phase 2**: Tool system (framework ✅, function-calling integration ✅, permission-on-first-use ✅) + TTS upgrade (XTTS v2 or Gemini Live) + background service + openWakeWord integration.
-- **Phase 3**: Screen reading/control + Action Preview Overlay + Autonomy Levels.
+- **Phase 1 (MVP)** ✅ COMPLETE: Wake word, STT, Gemini/Groq chat, Kokoro TTS + Android TTS, Iris Core UI, Chat mode, local history (Room), onboarding, theming, splash screen.
+- **Phase 2 (Tool-enabled)** ✅ CLOSE TO DONE: Tool system (framework ✅, 15+ tools implemented ✅, Gemini/Groq/local LLM function calling ✅, permission-on-first-use ✅, Settings redesign ✅). Remaining: local LLM performance tuning, weather tool debug.
+- **Phase 3 (Screen Intelligence)** 🔶 IN PROGRESS: ActionPreviewOverlay ✅, ScreenActionGate ✅, ClickTool/ScrollTool/TypeTool ✅. Pending: NavigateTool coords, Autonomy Level picker UI, accessibility activation guide.
 - **Phase 4**: Embedded Shell (Power Mode), macros, cross-app workflows, floating bubble, default-assistant.
-- **Phase 5**: Multi-language, proactive suggestions, notification filtering, light theme.
+- **Phase 5**: Multi-language, proactive suggestions, notification filtering, light theme, light theme.
 
 ---
 
@@ -257,6 +274,8 @@ ToolResult (Success | Error | PermissionRequired | Cancelled)
 - ❌ Separate Termux app
 - ❌ Hilt 2.59.2 (incompatible with AGP 8.x — use 2.57.1)
 - ❌ Gradle wrapper < 8.13 (AGP 8.11.1 requires 8.13 minimum)
+- ❌ Qwen2.5 GGUF models (unsupported in llama-kotlin-android 0.1.5 — use Llama-3.2)
+- ❌ Native Groq function calling (`tools` API param) — Llama 3.3 70B generates malformed XML. Switched to JSON-based calling in `buildGroqSystemPrompt()`.
 
 ---
 
@@ -325,7 +344,7 @@ app/src/main/java/com/iris/assistant/
 │       │   └── GeminiRepository.kt
 │       ├── groq/
 │       │   ├── WhisperRepository.kt
-│       │   └── GroqLlmRepository.kt        (stub — Phase 2)
+│   │   └── GroqLlmRepository.kt        (JSON tool calling — no native tools param)
 │       └── tts/
 │           ├── TtsProvider.kt
 │           └── AndroidTtsClient.kt
@@ -352,4 +371,48 @@ gradle/
 
 .github/workflows/ci.yml
 local.properties.example
+```
+
+## 15. Phase 2–3 — Additional Implemented Files
+
+```
+app/src/main/java/com/iris/assistant/
+├── domain/
+│   ├── model/SystemPrompt.kt               (English, tool-calling focused)
+│   ├── repository/LlmRepository.kt          (interface)
+│   └── tools/
+│       ├── JarvisTool.kt                    (interface)
+│       ├── ToolRegistry.kt                  (Gemini + OpenAI tool payloads)
+│       └── ToolResult.kt                    (sealed class: Success/Error/PermissionRequired/Cancelled)
+├── data/
+│   ├── remote/
+│   │   ├── gemini/GeminiRepository.kt       (native functionDeclarations)
+│   │   ├── groq/GroqLlmRepository.kt        (JSON tool calling in text)
+│   │   ├── local/
+│   │   │   ├── LocalLlmRepository.kt        (llama-kotlin-android)
+│   │   │   ├── LocalModelManifest.kt        (4 bundled GGUF models)
+│   │   │   └── ModelDownloader.kt           (app-scoped singleton, progress)
+│   │   └── router/LlmProviderRouter.kt
+│   ├── tools/
+│   │   ├── ClickTool.kt                     (findTargetRect + coords to overlay)
+│   │   ├── ScrollTool.kt                    (scroll coords)
+│   │   ├── TypeTool.kt                      (focused node bounds)
+│   │   ├── NavigateTool.kt                  (no coords yet)
+│   │   ├── ReadScreenTool.kt                (accessibility tree dump)
+│   │   └── screen/ScreenInteractionRepository.kt
+│   └── local/datastore/ (preferences for autonomy level, model selection)
+├── service/
+│   ├── accessibility/IrisAccessibilityService.kt
+│   └── overlay/
+│       ├── ActionPreviewOverlay.kt          (WindowManager, spotlight, countdown, ripple)
+│       └── ScreenActionGate.kt              (awaitApproval via overlay)
+├── di/
+│   ├── ToolsModule.kt                       (@IntoSet multibinding)
+│   └── ...
+├── ui/
+│   ├── settings/LocalModelScreen.kt         (download + select GGUF models)
+│   └── components/ (SettingsGroup, SettingsIcon, SettingsRowWithContent, etc.)
+└── util/
+    ├── Constants.kt                         (growth_llm_model, provider names)
+    └── DownloadState.kt                     (Idle/Connecting/Downloading/Ready/Error)
 ```

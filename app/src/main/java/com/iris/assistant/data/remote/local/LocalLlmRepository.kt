@@ -18,6 +18,7 @@ import org.codeshipping.llamakotlin.LlamaModel
 import org.codeshipping.llamakotlin.exception.LlamaException
 import org.json.JSONArray
 import org.json.JSONObject
+import com.iris.assistant.util.ToolCallParser
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -32,11 +33,6 @@ class LocalLlmRepository @Inject constructor(
         private const val TAG = "LocalLlmRepository"
         private const val MAX_TOOL_ROUNDS = 5
         private const val MAX_PROMPT_CHARS = 6000
-
-        private val TOOL_CALL_PATTERN = Regex(
-            """(\{[^}]*"tool"\s*:\s*"[^"]*"[^}]*\})""",
-            RegexOption.DOT_MATCHES_ALL
-        )
     }
 
     private var loadedModelPath: String? = null
@@ -84,10 +80,10 @@ class LocalLlmRepository @Inject constructor(
 
             Log.d(TAG, "round=$round output=${output.take(200)}")
 
-            val toolCall = parseToolCall(output)
+            val toolCall = ToolCallParser.extractFirst(output)
 
             if (toolCall == null) {
-                return@withContext cleanOutput(output)
+                return@withContext ToolCallParser.stripAll(output)
             }
 
             Log.d(TAG, "round=$round: toolCall=${toolCall.first} args=${toolCall.second}")
@@ -360,22 +356,4 @@ RULES:
         return sb.toString()
     }
 
-    private fun parseToolCall(output: String): Pair<String, JSONObject>? {
-        val match = TOOL_CALL_PATTERN.find(output) ?: return null
-        val jsonStr = match.value
-
-        return try {
-            val json = JSONObject(jsonStr)
-            val name = json.optString("tool", "")
-            if (name.isBlank()) return null
-            val args = json.optJSONObject("args") ?: JSONObject()
-            Pair(name, args)
-        } catch (_: Exception) {
-            null
-        }
-    }
-
-    private fun cleanOutput(output: String): String {
-        return output.replace(TOOL_CALL_PATTERN, "").trim()
-    }
 }
