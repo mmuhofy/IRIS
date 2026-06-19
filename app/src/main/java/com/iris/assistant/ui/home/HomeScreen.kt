@@ -191,6 +191,28 @@ fun HomeScreen(
                         textAlign = TextAlign.Center
                     )
                 }
+
+                uiState.captionText?.let { caption ->
+                    Spacer(Modifier.height(16.dp))
+                    Surface(
+                        shape = RoundedCornerShape(14.dp),
+                        color = Color.Black.copy(alpha = 0.45f),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 32.dp)
+                    ) {
+                        Text(
+                            text = caption,
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                fontWeight = FontWeight.Normal,
+                                lineHeight = 22.sp
+                            ),
+                            color = Color.White.copy(alpha = 0.9f),
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.padding(horizontal = 18.dp, vertical = 12.dp)
+                        )
+                    }
+                }
             }
 
             val permissionRequest = uiState.permissionRequest

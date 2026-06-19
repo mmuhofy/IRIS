@@ -44,6 +44,7 @@ data class HomeUiState(
     val isScreenCtrl     : Boolean            = false,
     val statusText       : String             = "Dinlemeye hazır",
     val modelName        : String             = Constants.GEMINI_MODEL,
+    val captionText      : String?            = null,
     val errorMessage     : String?            = null,
     val permissionRequest: PermissionRequest? = null
 )
@@ -263,7 +264,11 @@ class HomeViewModel @Inject constructor(
 
                 // Step 12 — SPEAKING (TTS)
                 _uiState.update {
-                    it.copy(coreState = IrisCoreState.SPEAKING, statusText = "Konuşuyorum...")
+                    it.copy(
+                        coreState   = IrisCoreState.SPEAKING,
+                        statusText  = "Konuşuyorum...",
+                        captionText = reply
+                    )
                 }
 
                 try {
@@ -276,12 +281,14 @@ class HomeViewModel @Inject constructor(
                                 it.copy(
                                     coreState   = IrisCoreState.IDLE,
                                     ttsProgress = 0f,
-                                    statusText  = if (muted) "Sessize alındı" else "Dinlemeye hazır"
+                                    statusText  = if (muted) "Sessize alındı" else "Dinlemeye hazır",
+                                    captionText = null
                                 )
                             }
                         }
                     )
                 } catch (e: Exception) {
+                    _uiState.update { it.copy(captionText = null) }
                     handleError("Konuşma hatası", e)
                 }
             } finally {
@@ -303,10 +310,11 @@ class HomeViewModel @Inject constructor(
         val muted = _uiState.value.isMuted
         _uiState.update {
             it.copy(
-                coreState   = IrisCoreState.IDLE,
-                amplitude   = 0f,
-                ttsProgress = 0f,
-                statusText  = if (muted) "Sessize alındı" else "Dinlemeye hazır"
+                coreState    = IrisCoreState.IDLE,
+                amplitude    = 0f,
+                ttsProgress  = 0f,
+                statusText   = if (muted) "Sessize alındı" else "Dinlemeye hazır",
+                captionText  = null
             )
         }
     }
