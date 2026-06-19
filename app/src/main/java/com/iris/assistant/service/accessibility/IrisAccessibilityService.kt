@@ -10,6 +10,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -49,8 +50,10 @@ class IrisAccessibilityService : AccessibilityService() {
         refreshJob?.cancel()
         refreshJob = bgScope.launch {
             delay(150)
-            val root = rootInActiveWindow ?: return@launch
-            screenRepository.updateRootNode(root)
+            withContext(Dispatchers.Main) {
+                val root = rootInActiveWindow ?: return@withContext
+                screenRepository.updateRootNode(root)
+            }
         }
     }
 
