@@ -14,7 +14,9 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
 import com.iris.assistant.domain.tools.ToolResult
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withContext
 import kotlin.coroutines.resume
 
 class ActionPreviewOverlay(
@@ -25,7 +27,8 @@ class ActionPreviewOverlay(
         x: Int? = null,
         y: Int? = null,
         previewMs: Long = 3000L
-    ): ToolResult = suspendCancellableCoroutine { continuation ->
+    ): ToolResult = withContext(Dispatchers.Main) {
+        suspendCancellableCoroutine { continuation ->
         val windowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
         val metrics = DisplayMetrics().also { windowManager.defaultDisplay.getMetrics(it) }
 
@@ -61,6 +64,7 @@ class ActionPreviewOverlay(
 
         continuation.invokeOnCancellation {
             try { windowManager.removeView(overlayView) } catch (_: Exception) {}
+        }
         }
     }
 
