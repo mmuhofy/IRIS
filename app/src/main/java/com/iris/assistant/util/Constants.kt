@@ -6,7 +6,7 @@ object Constants {
     const val BUTTON_HEIGHT        = 52
     const val CARD_CORNER_RADIUS   = 18
     const val BUTTON_CORNER_RADIUS = 16
-    const val IRIS_CORE_SIZE       = 180
+    const val IRIS_CORE_SIZE       = 220
 
     // --- User ---
     const val USER_NAME = "Muhofy"
