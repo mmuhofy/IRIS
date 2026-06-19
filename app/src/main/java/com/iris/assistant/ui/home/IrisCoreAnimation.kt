@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import com.iris.assistant.ui.theme.IrisTheme
 import com.iris.assistant.util.Constants
 import kotlinx.coroutines.delay
+import kotlin.math.cos
 import kotlin.math.sin
 
 @Composable
@@ -59,6 +60,18 @@ fun IrisCoreAnimation(
         IrisCoreState.THINKING -> 0.8f
         IrisCoreState.SPEAKING -> 0.65f
     }
+    val targetNebulaAlpha = when (state) {
+        IrisCoreState.IDLE -> 0.4f
+        IrisCoreState.LISTENING -> 0.65f
+        IrisCoreState.THINKING -> 0.75f
+        IrisCoreState.SPEAKING -> 0.55f
+    }
+    val targetNebulaSpeed = when (state) {
+        IrisCoreState.IDLE -> 1f
+        IrisCoreState.LISTENING -> 1.5f
+        IrisCoreState.THINKING -> 2.5f
+        IrisCoreState.SPEAKING -> 1.8f
+    }
     val targetSweep = when (state) {
         IrisCoreState.THINKING -> 280f
         else -> 360f
@@ -76,6 +89,8 @@ fun IrisCoreAnimation(
 
     val ringScale by animateFloatAsState(targetScale, tween(500), label = "scale")
     val ringAlpha by animateFloatAsState(targetAlpha, tween(400), label = "alpha")
+    val nebulaAlpha by animateFloatAsState(targetNebulaAlpha, tween(500), label = "nebulaAlpha")
+    val nebulaSpeed by animateFloatAsState(targetNebulaSpeed, tween(600), label = "nebulaSpeed")
     val ringSweep by animateFloatAsState(targetSweep, tween(600), label = "sweep")
     val ringThickness by animateFloatAsState(targetThickness, tween(400), label = "thickness")
     val glowAlpha by animateFloatAsState(targetGlowAlpha, tween(400), label = "glowAlpha")
@@ -99,11 +114,13 @@ fun IrisCoreAnimation(
         val cx = size.width / 2f
         val cy = size.height / 2f
         val minDim = size.minDimension
-        val baseRadius = minDim * 0.38f
+        val baseRadius = minDim * 0.42f
         val currentRadius = baseRadius * (ringScale + idlePulse + speakingWave * 0.02f)
         val currentThickness = (ringThickness + speakingWave * 1.5f).coerceAtLeast(1f)
         val baseAlpha = (ringAlpha + idleAlphaPulse).coerceIn(0f, 1f)
+        val innerRadius = currentRadius - currentThickness / 2f
 
+        // Center glow
         val glowRadius = currentRadius + currentThickness * 4
         drawCircle(
             brush = Brush.radialGradient(
@@ -119,6 +136,62 @@ fun IrisCoreAnimation(
             center = Offset(cx, cy)
         )
 
+        // Nebula blobs
+        val blobAlpha = (nebulaAlpha + idleAlphaPulse).coerceIn(0f, 1f)
+        val speed = nebulaSpeed
+
+        val b1a = time * 0.8f * speed
+        val b1x = cx + cos(b1a) * innerRadius * 0.5f
+        val b1y = cy + sin(b1a * 1.15f) * innerRadius * 0.5f
+        val b1r = innerRadius * 0.4f
+        drawCircle(
+            brush = Brush.radialGradient(
+                colors = listOf(
+                    primary.copy(alpha = blobAlpha * 0.5f),
+                    primary.copy(alpha = 0f)
+                ),
+                center = Offset(b1x, b1y),
+                radius = b1r
+            ),
+            radius = b1r,
+            center = Offset(b1x, b1y)
+        )
+
+        val b2a = -time * 0.5f * speed + 2.1f
+        val b2x = cx + cos(b2a) * innerRadius * 0.35f
+        val b2y = cy + sin(b2a * 0.85f) * innerRadius * 0.35f
+        val b2r = innerRadius * 0.3f
+        drawCircle(
+            brush = Brush.radialGradient(
+                colors = listOf(
+                    gradientEnd.copy(alpha = blobAlpha * 0.6f),
+                    gradientEnd.copy(alpha = 0f)
+                ),
+                center = Offset(b2x, b2y),
+                radius = b2r
+            ),
+            radius = b2r,
+            center = Offset(b2x, b2y)
+        )
+
+        val b3a = time * 0.35f * speed + 4.3f
+        val b3x = cx + cos(b3a) * innerRadius * 0.25f
+        val b3y = cy + sin(b3a * 1.3f) * innerRadius * 0.25f
+        val b3r = innerRadius * 0.2f
+        drawCircle(
+            brush = Brush.radialGradient(
+                colors = listOf(
+                    secondary.copy(alpha = blobAlpha * 0.4f),
+                    secondary.copy(alpha = 0f)
+                ),
+                center = Offset(b3x, b3y),
+                radius = b3r
+            ),
+            radius = b3r,
+            center = Offset(b3x, b3y)
+        )
+
+        // Outer ripple for LISTENING
         if (state == IrisCoreState.LISTENING && amplitude > 0.01f) {
             val rippleRadius = currentRadius + amplitude * minDim * 0.15f
             val rippleAlpha = (baseAlpha * amplitude * 0.5f).coerceIn(0f, 0.3f)
@@ -130,6 +203,7 @@ fun IrisCoreAnimation(
             )
         }
 
+        // Main ring
         val sweepAngle = if (state == IrisCoreState.IDLE) 360f else ringSweep
         val startAngle = thinkingRotation
 
@@ -154,6 +228,7 @@ fun IrisCoreAnimation(
             size = Size(currentRadius * 2, currentRadius * 2)
         )
 
+        // Bright leading edge for THINKING
         if (state == IrisCoreState.THINKING) {
             val headAngle = startAngle + ringSweep
             drawArc(
