@@ -78,12 +78,12 @@ class AssistantViewModel(
                 )
             }.getOrElse { e ->
                 Log.e(TAG, "Recording failed", e)
-                finish()
+                _uiState.update { it.copy(isListening = false) }
                 return@launch
             }
 
             if (audioBytes.isEmpty()) {
-                finish()
+                _uiState.update { it.copy(isListening = false) }
                 return@launch
             }
 
@@ -93,7 +93,7 @@ class AssistantViewModel(
                 transcribeAudioUseCase(audioBytes)
             }.getOrElse { e ->
                 Log.e(TAG, "STT failed", e)
-                finish()
+                _uiState.update { it.copy(isThinking = false) }
                 return@launch
             }
 
@@ -108,7 +108,10 @@ class AssistantViewModel(
                 ))
             } catch (e: Exception) {
                 Log.e(TAG, "LLM failed", e)
-                finish()
+                _uiState.update { it.copy(isThinking = false) }
+                _uiState.update { state ->
+                    state.copy(messages = state.messages + ChatBubble(text = "Bir hata oluştu.", isUser = false))
+                }
                 return@launch
             }
 
@@ -122,7 +125,6 @@ class AssistantViewModel(
                 onProgress = { p -> _uiState.update { it.copy(amplitude = p.coerceIn(0f, 1f)) } },
                 onDone     = {
                     _uiState.update { it.copy(isSpeaking = false, amplitude = 0f) }
-                    finish()
                 }
             )
         }
@@ -160,7 +162,6 @@ class AssistantViewModel(
                 onProgress = { p -> _uiState.update { it.copy(amplitude = p.coerceIn(0f, 1f)) } },
                 onDone     = {
                     _uiState.update { it.copy(isSpeaking = false, amplitude = 0f) }
-                    finish()
                 }
             )
         }
