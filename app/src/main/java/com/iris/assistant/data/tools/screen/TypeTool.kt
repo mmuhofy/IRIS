@@ -14,7 +14,7 @@ class TypeTool @Inject constructor(
 ) : JarvisTool {
 
     override val name = "type"
-    override val description = "Odaklanmış metin kutusuna yazı yaz. Önce odaklanılacak alanı click ile seç, sonra type ile yaz."
+    override val description = "Odaklanmış metin kutusuna yazı yaz. Önce read_screen ile metin kutusunun text/description değerini bul, click(text: ...) ile seç, sonra type(text: ...) ile yaz. Kullanıcıya 'neye yazayım' diye sorma."
     override val parameters = JSONObject("""
         {"type":"object","properties":{
             "text":{"type":"string","description":"Yazılacak metin"}

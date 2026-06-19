@@ -15,7 +15,7 @@ class NavigateTool @Inject constructor(
 ) : JarvisTool {
 
     override val name = "navigate"
-    override val description = "Sistem gezinme işlemleri: 'back' (geri), 'home' (ana ekran), 'recents' (son uygulamalar)."
+    override val description = "Sistem gezinme işlemleri: 'back' (geri git), 'home' (ana ekran), 'recents' (son uygulamalar). Kullanıcı 'geri dön' veya 'ana ekrana git' gibi bir şey söylerse doğrudan çağır, önce read_screen gerekmez."
     override val parameters = JSONObject("""
         {"type":"object","properties":{
             "action":{"type":"string","description":"Yapılacak işlem: 'back', 'home', 'recents'"}

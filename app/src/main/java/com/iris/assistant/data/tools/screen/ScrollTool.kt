@@ -14,7 +14,7 @@ class ScrollTool @Inject constructor(
 ) : JarvisTool {
 
     override val name = "scroll"
-    override val description = "Ekranda aşağı veya yukarı kaydır. direction: 'down' veya 'up'."
+    override val description = "Ekranda aşağı veya yukarı kaydır. direction: 'down' (aşağı) veya 'up' (yukarı). Kullanıcı senden kaydırmanı isterse önce read_screen ile ekranın durumunu kontrol et, sonra scroll çağır."
     override val parameters = JSONObject("""
         {"type":"object","properties":{
             "direction":{"type":"string","description":"Kaydırma yönü: 'down' (aşağı) veya 'up' (yukarı)"}

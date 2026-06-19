@@ -14,7 +14,7 @@ class ClickTool @Inject constructor(
 ) : JarvisTool {
 
     override val name = "click"
-    override val description = "Ekranda bir buton veya öğeye tıkla. Öğeyi metniyle (text) veya açıklamasıyla (description) belirt. Eşleşen öğe bulunamazsa koordinat (x, y) dene."
+    override val description = "Ekranda bir buton veya öğeye tıkla. Öğeyi metniyle (text) veya açıklamasıyla (description) belirt. Kullanıcıya 'nerede' diye sorma — önce read_screen ile text/description değerini bul, sonra buraya geç. Eşleşen öğe bulunamazsa koordinat (x, y) dene."
     override val parameters = JSONObject("""
         {"type":"object","properties":{
             "text":{"type":"string","description":"Tıklanacak öğenin metni (buton üzerindeki yazı)"},

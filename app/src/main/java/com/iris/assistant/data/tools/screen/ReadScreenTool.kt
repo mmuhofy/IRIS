@@ -12,7 +12,7 @@ class ReadScreenTool @Inject constructor(
 ) : JarvisTool {
 
     override val name = "read_screen"
-    override val description = "Ekrandaki tüm görünür metinleri, butonları ve etkileşimli öğeleri listele. Hangi butonlara basılabileceğini, hangi metinlerin okunabileceğini söyler."
+    override val description = "Ekrandaki tüm görünür metinleri, butonları ve etkileşimli öğeleri JSON formatında listele. Her öğe için text, description, bounds, className bilgilerini döndürür. Bir ekran işlemi yapmadan ÖNCE mutlaka çağır. Sonuçtaki text/description değerlerini click, type veya scroll tool'larında kullan."
     override val parameters = JSONObject("""{"type":"object","properties":{},"required":[]}""")
     override val requiredPermission: String? = null
 
