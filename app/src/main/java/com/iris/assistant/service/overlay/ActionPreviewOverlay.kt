@@ -40,6 +40,7 @@ class ActionPreviewOverlay(
             previewMs, metrics.widthPixels, metrics.heightPixels,
             onComplete = { result ->
                 if (continuation.isActive) continuation.resume(result)
+                try { windowManager.removeView(overlayView) } catch (_: Exception) {}
             }
         )
 
@@ -80,7 +81,7 @@ class ActionPreviewOverlay(
     ) : View(context) {
 
         private val bgPaint = Paint().apply {
-            color = 0xE6000000.toInt()
+            color = 0x99000000.toInt()
         }
 
         private val spotlightPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
