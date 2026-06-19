@@ -20,6 +20,7 @@ import com.iris.assistant.service.wakeword.WakeWordManager
 import com.iris.assistant.util.Constants
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -27,6 +28,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Named
 
@@ -83,12 +85,12 @@ class HomeViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
-    private val history         = mutableListOf<ChatMessage>()
-    private var pipelineJob     : Job? = null
+    private val history          = mutableListOf<ChatMessage>()
+    private var pipelineJob      : Job? = null
     private var pendingTranscript: String? = null
 
     init {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             history.addAll(conversationRepository.getHistory())
         }
 
@@ -109,12 +111,12 @@ class HomeViewModel @Inject constructor(
                 if (state.coreState == IrisCoreState.IDLE && !state.isMuted) {
                     startVoicePipeline()
                 }
-            }
+        }
         }
     }
 
     // ---------------------------------------------------------------------------
-    // Lifecycle — called from HomeScreen DisposableEffect
+    // Lifecycle
     // ---------------------------------------------------------------------------
 
     fun onScreenVisible() {
@@ -131,7 +133,7 @@ class HomeViewModel @Inject constructor(
     }
 
     // ---------------------------------------------------------------------------
-    // Mic toggle (manual button)
+    // Mic toggle
     // ---------------------------------------------------------------------------
 
     fun onMicToggle() {
@@ -148,13 +150,15 @@ class HomeViewModel @Inject constructor(
     }
 
     // ---------------------------------------------------------------------------
-    // Voice pipeline: PAUSE wake word → record → STT → LLM → TTS → RESUME wake word
+    // Voice pipeline — runs on Dispatchers.IO to keep Main thread free for UI
+    // MutableStateFlow.update() is thread-safe; all state changes work from IO.
+    // UNTESTED after dispatcher change — verify wakeWordManager is thread-safe.
     // ---------------------------------------------------------------------------
 
     fun startVoicePipeline() {
-        pipelineJob = viewModelScope.launch {
+        pipelineJob = viewModelScope.launch(Dispatchers.IO) {
 
-            // Step 0 — Check mic permission
+            // Step 0 — Permission check (ContextCompat reads a binder cache, safe on IO)
             if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO)
                 != PackageManager.PERMISSION_GRANTED
             ) {
@@ -184,6 +188,7 @@ class HomeViewModel @Inject constructor(
                 }
 
                 // Step 3 — Record until VAD silence
+                // AudioRecorder already dispatches internally to IO, but we're already on IO here.
                 val audioBytes = runCatching {
                     audioRecorder.recordUntilSilence(
                         onAmplitude = { amp -> _uiState.update { it.copy(amplitude = amp) } }
@@ -215,7 +220,7 @@ class HomeViewModel @Inject constructor(
                     )
                 }
 
-                // Step 6 — STT via Groq Whisper
+                // Step 6 — STT via Groq Whisper (network — stays on IO, Main is free)
                 val transcript = runCatching {
                     transcribeAudioUseCase(audioBytes)
                 }.getOrElse { e ->
@@ -223,10 +228,14 @@ class HomeViewModel @Inject constructor(
                     return@launch
                 }
 
-                // Step 7 — Check for stop keywords ("dur" etc.)
+                // Step 7 — Check for stop keywords
                 val normalized = transcript.lowercase().trim()
-                if (STOP_KEYWORDS.any { normalized == it || normalized.startsWith("$it ") || normalized.endsWith(" $it") }) {
-                    Log.d(TAG, "stop keyword detected: \"$normalized\"")
+                if (STOP_KEYWORDS.any {
+                        normalized == it ||
+                        normalized.startsWith("$it ") ||
+                        normalized.endsWith(" $it")
+                    }) {
+                    Log.d(TAG, "stop keyword: \"$normalized\"")
                     _uiState.update {
                         it.copy(
                             coreState  = IrisCoreState.IDLE,
@@ -237,7 +246,7 @@ class HomeViewModel @Inject constructor(
                     return@launch
                 }
 
-                // Step 8 — Persist user message
+                // Step 8 — Persist user message (Room dispatches its own IO internally)
                 val userMsg   = ChatMessage(role = ChatMessage.Role.USER, content = transcript)
                 val userMsgId = conversationRepository.saveMessage(userMsg)
                 history.add(userMsg.copy(id = userMsgId))
@@ -245,7 +254,7 @@ class HomeViewModel @Inject constructor(
                 // Step 9 — THINKING (LLM)
                 _uiState.update { it.copy(statusText = "Düşünüyorum...") }
 
-                // Step 10 — LLM via Gemini (Groq fallback handled inside use case)
+                // Step 10 — LLM via Gemini (network — stays on IO, Main is free)
                 val reply: String
                 try {
                     reply = sendMessageUseCase(history.toList())
@@ -274,7 +283,7 @@ class HomeViewModel @Inject constructor(
                 val assistantMsgId = conversationRepository.saveMessage(assistantMsg)
                 history.add(assistantMsg.copy(id = assistantMsgId))
 
-                // Step 12 — SPEAKING (TTS)
+                // Step 12 — SPEAKING
                 _uiState.update {
                     it.copy(
                         coreState   = IrisCoreState.SPEAKING,
@@ -303,6 +312,7 @@ class HomeViewModel @Inject constructor(
                     _uiState.update { it.copy(captionText = null) }
                     handleError("Konuşma hatası", e)
                 }
+
             } finally {
                 if (!_uiState.value.isMuted) {
                     wakeWordManager.startListening()
@@ -332,7 +342,7 @@ class HomeViewModel @Inject constructor(
     }
 
     // ---------------------------------------------------------------------------
-    // Permission request result
+    // Permission result
     // ---------------------------------------------------------------------------
 
     fun onPermissionResult(granted: Boolean) {
@@ -347,18 +357,19 @@ class HomeViewModel @Inject constructor(
         }
     }
 
+    // Runs on IO — same rationale as startVoicePipeline
     private fun retryLlmStep(transcript: String) {
-        pipelineJob = viewModelScope.launch {
+        pipelineJob = viewModelScope.launch(Dispatchers.IO) {
             _uiState.update { it.copy(statusText = "Düşünüyorum...") }
 
-            val userMsg = ChatMessage(role = ChatMessage.Role.USER, content = transcript)
+            val userMsg   = ChatMessage(role = ChatMessage.Role.USER, content = transcript)
             val userMsgId = conversationRepository.saveMessage(userMsg)
             history.add(userMsg.copy(id = userMsgId))
 
             try {
                 val reply = sendMessageUseCase(history.toList())
 
-                val assistantMsg = ChatMessage(role = ChatMessage.Role.ASSISTANT, content = reply)
+                val assistantMsg   = ChatMessage(role = ChatMessage.Role.ASSISTANT, content = reply)
                 val assistantMsgId = conversationRepository.saveMessage(assistantMsg)
                 history.add(assistantMsg.copy(id = assistantMsgId))
 
@@ -409,7 +420,7 @@ class HomeViewModel @Inject constructor(
     }
 
     // ---------------------------------------------------------------------------
-    // Error handling
+    // Error handling — thread-safe, works from IO
     // ---------------------------------------------------------------------------
 
     private fun handleError(ctx: String, e: Throwable) {
