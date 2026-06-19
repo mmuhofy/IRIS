@@ -35,7 +35,8 @@ class ActionPreviewOverlay(
         val highlightX = x
         val highlightY = y
 
-        val overlayView = OverlayView(
+        lateinit var overlayView: View
+        overlayView = OverlayView(
             context, actionLabel, highlightX, highlightY,
             previewMs, metrics.widthPixels, metrics.heightPixels,
             onComplete = { result ->
