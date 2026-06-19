@@ -34,6 +34,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -193,7 +194,11 @@ private fun AssistantScreen(
                     viewModel.sendText()
                     keyboardController?.hide()
                 },
-                onMicClick         = viewModel::startVoicePipeline
+                onMicClick         = viewModel::startVoicePipeline,
+                onClose            = {
+                    viewModel.stop()
+                    onClose()
+                }
             )
         }
     }
@@ -207,7 +212,8 @@ private fun AssistantSheet(
     state: AssistantUiState,
     onTextChanged: (String) -> Unit,
     onSendText: () -> Unit,
-    onMicClick: () -> Unit
+    onMicClick: () -> Unit,
+    onClose: () -> Unit
 ) {
     val listState = rememberLazyListState()
 
@@ -230,6 +236,7 @@ private fun AssistantSheet(
             modifier = Modifier
                 .fillMaxWidth()
                 .navigationBarsPadding()
+                .imePadding()
                 .padding(bottom = 16.dp)
         ) {
             // Drag handle
@@ -277,6 +284,18 @@ private fun AssistantSheet(
                     else -> {
                         IdlePrompt()
                     }
+                }
+
+                // Tap empty content area (idle/listening/thinking) to dismiss
+                if (!state.messages.isNotEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clickable(
+                                indication        = null,
+                                interactionSource = remember { MutableInteractionSource() }
+                            ) { onClose() }
+                    )
                 }
             }
 
