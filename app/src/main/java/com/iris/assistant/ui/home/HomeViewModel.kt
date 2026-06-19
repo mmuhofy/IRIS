@@ -171,7 +171,20 @@ class HomeViewModel @Inject constructor(
                 return@launch
             }
 
-            // Step 4 — THINKING (STT)
+            // Step 4 — Skip if no audio detected
+            if (audioBytes.isEmpty()) {
+                Log.d(TAG, "no speech detected")
+                _uiState.update {
+                    it.copy(
+                        coreState  = IrisCoreState.IDLE,
+                        amplitude  = 0f,
+                        statusText = "Dinlemeye hazır"
+                    )
+                }
+                return@launch
+            }
+
+            // Step 5 — THINKING (STT)
             _uiState.update {
                 it.copy(
                     amplitude  = 0f,
@@ -180,7 +193,7 @@ class HomeViewModel @Inject constructor(
                 )
             }
 
-            // Step 5 — STT via Groq Whisper
+            // Step 6 — STT via Groq Whisper
             val transcript = runCatching {
                 transcribeAudioUseCase(audioBytes)
             }.getOrElse { e ->
@@ -188,7 +201,7 @@ class HomeViewModel @Inject constructor(
                 return@launch
             }
 
-            // Step 6 — Check for stop keywords ("dur" etc.)
+            // Step 7 — Check for stop keywords ("dur" etc.)
             val normalized = transcript.lowercase().trim()
             if (STOP_KEYWORDS.any { normalized == it || normalized.startsWith("$it ") || normalized.endsWith(" $it") }) {
                 Log.d(TAG, "stop keyword detected: \"$normalized\"")
@@ -202,15 +215,15 @@ class HomeViewModel @Inject constructor(
                 return@launch
             }
 
-            // Step 7 — Persist user message
+            // Step 8 — Persist user message
             val userMsg   = ChatMessage(role = ChatMessage.Role.USER, content = transcript)
             val userMsgId = conversationRepository.saveMessage(userMsg)
             history.add(userMsg.copy(id = userMsgId))
 
-            // Step 8 — THINKING (LLM)
+            // Step 9 — THINKING (LLM)
             _uiState.update { it.copy(statusText = "Düşünüyorum...") }
 
-            // Step 9 — LLM via Gemini (Groq fallback handled inside use case)
+            // Step 10 — LLM via Gemini (Groq fallback handled inside use case)
             val reply: String
             try {
                 reply = sendMessageUseCase(history.toList())
@@ -234,12 +247,12 @@ class HomeViewModel @Inject constructor(
                 return@launch
             }
 
-            // Step 10 — Persist assistant message
+            // Step 11 — Persist assistant message
             val assistantMsg   = ChatMessage(role = ChatMessage.Role.ASSISTANT, content = reply)
             val assistantMsgId = conversationRepository.saveMessage(assistantMsg)
             history.add(assistantMsg.copy(id = assistantMsgId))
 
-            // Step 11 — SPEAKING (TTS)
+            // Step 12 — SPEAKING (TTS)
             _uiState.update {
                 it.copy(coreState = IrisCoreState.SPEAKING, statusText = "Konuşuyorum...")
             }
