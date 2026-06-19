@@ -48,6 +48,7 @@ import androidx.compose.ui.unit.TextUnitType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.iris.assistant.domain.model.AutonomyLevel
 import com.iris.assistant.domain.model.TtsVoice
 import com.iris.assistant.ui.components.IrisButtonDestructive
 import com.iris.assistant.ui.theme.ColorSchemeOption
@@ -180,6 +181,26 @@ fun SettingsScreen(
                     checked = uiState.backgroundListening,
                     onCheckedChange = viewModel::onBackgroundListeningChange,
                 )
+            }
+
+            // ── Otonomi ────────────────────────────────────────────────────────
+            SettingsGroup(title = "Otonomi") {
+                SettingsRowWithContent(
+                    icon = PhIcons.Regular.Shield,
+                    label = "Otonomi seviyesi",
+                    description = uiState.autonomyLevel.let { level ->
+                        when (level) {
+                            AutonomyLevel.SAFE      -> "3sn önizleme, yıkıcı işlemler için onay"
+                            AutonomyLevel.BALANCED  -> "1sn önizleme, yıkıcı işlemler için onay"
+                            AutonomyLevel.FULL_AUTO -> "Önizlemesiz, tüm işlemler otomatik"
+                        }
+                    },
+                ) {
+                    AutonomyLevelSelector(
+                        current  = uiState.autonomyLevel,
+                        onChange = viewModel::onAutonomyLevelChange,
+                    )
+                }
             }
 
             // ── Veri ───────────────────────────────────────────────────────────
@@ -497,6 +518,39 @@ private fun ProviderSelector(
                         fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
                     )
                 }
+            }
+        }
+    }
+}
+
+// ── Autonomy level selector ──────────────────────────────────────────────────
+
+@Composable
+private fun AutonomyLevelSelector(
+    current : AutonomyLevel,
+    onChange: (AutonomyLevel) -> Unit,
+) {
+    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        AutonomyLevel.entries.forEach { level ->
+            val selected = level == current
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(
+                        if (selected) IrisTheme.colors.primary
+                        else MaterialTheme.colorScheme.surfaceVariant
+                    )
+                    .clickable { onChange(level) }
+                    .padding(horizontal = 10.dp, vertical = 6.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = level.displayName,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = if (selected) MaterialTheme.colorScheme.background
+                            else ColorTextPrimary,
+                    fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+                )
             }
         }
     }

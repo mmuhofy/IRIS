@@ -3,6 +3,7 @@ package com.iris.assistant.ui.settings
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.iris.assistant.data.local.datastore.PreferencesRepository
+import com.iris.assistant.domain.model.AutonomyLevel
 import com.iris.assistant.domain.model.TtsVoice
 import com.iris.assistant.domain.repository.ConversationRepository
 import com.iris.assistant.ui.theme.ColorSchemeOption
@@ -21,6 +22,7 @@ data class SettingsUiState(
     val ttsVoice           : TtsVoice           = TtsVoice.DEFAULT,
     val llmProvider        : String             = Constants.LLM_PROVIDER_GEMINI,
     val llmModel           : String             = Constants.GEMINI_MODEL,
+    val autonomyLevel      : AutonomyLevel      = AutonomyLevel.SAFE,
     val historyCleared     : Boolean            = false,
     val localModelName     : String             = "",
     val localModelPath     : String             = ""
@@ -40,6 +42,7 @@ class SettingsViewModel @Inject constructor(
                 ttsVoice            = prefs.ttsVoice,
                 llmProvider         = prefs.llmProvider,
                 llmModel            = prefs.llmModel,
+                autonomyLevel       = prefs.autonomyLevel,
                 localModelName      = prefs.localModelName,
                 localModelPath      = prefs.localModelPath
             )
@@ -74,6 +77,10 @@ class SettingsViewModel @Inject constructor(
 
     fun onLlmModelChange(model: String) {
         viewModelScope.launch { preferencesRepository.setLlmModel(model) }
+    }
+
+    fun onAutonomyLevelChange(level: AutonomyLevel) {
+        viewModelScope.launch { preferencesRepository.setAutonomyLevel(level) }
     }
 
     fun onClearHistory() {
