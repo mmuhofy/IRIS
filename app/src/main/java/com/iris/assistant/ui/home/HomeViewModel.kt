@@ -16,6 +16,7 @@ import com.iris.assistant.domain.repository.ConversationRepository
 import com.iris.assistant.domain.usecase.SendMessageUseCase
 import com.iris.assistant.domain.usecase.TranscribeAudioUseCase
 import com.iris.assistant.service.wakeword.WakeWordManager
+import com.iris.assistant.util.Constants
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Job
@@ -42,6 +43,7 @@ data class HomeUiState(
     val isMuted          : Boolean            = false,
     val isScreenCtrl     : Boolean            = false,
     val statusText       : String             = "Dinlemeye hazır",
+    val modelName        : String             = Constants.GEMINI_MODEL,
     val errorMessage     : String?            = null,
     val permissionRequest: PermissionRequest? = null
 )
@@ -80,6 +82,12 @@ class HomeViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             history.addAll(conversationRepository.getHistory())
+        }
+
+        viewModelScope.launch {
+            preferencesRepository.preferences.collect { prefs ->
+                _uiState.update { it.copy(modelName = prefs.llmModel) }
+            }
         }
 
         viewModelScope.launch {

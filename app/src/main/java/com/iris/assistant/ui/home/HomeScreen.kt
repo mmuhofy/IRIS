@@ -92,14 +92,11 @@ fun HomeScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .align(Alignment.TopCenter)
-                    .padding(horizontal = 8.dp, vertical = 10.dp),
+                    .padding(horizontal = 8.dp, vertical = 12.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.Top
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(start = 12.dp)
-                ) {
+                Column(modifier = Modifier.padding(start = 12.dp)) {
                     Text(
                         text = "IRIS",
                         style = MaterialTheme.typography.titleLarge.copy(
@@ -108,18 +105,37 @@ fun HomeScreen(
                         ),
                         color = primary
                     )
-                    Spacer(Modifier.width(6.dp))
-                    Text(
-                        text = "|",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = primary.copy(alpha = 0.3f)
-                    )
-                    Spacer(Modifier.width(6.dp))
-                    Text(
-                        text = "Dinlemeye hazır",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                    )
+                    Spacer(Modifier.height(2.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Surface(
+                            shape = RoundedCornerShape(4.dp),
+                            color = primary.copy(alpha = 0.1f),
+                        ) {
+                            Text(
+                                text = uiState.modelName
+                                    .replace("-", " ")
+                                    .replaceFirstChar { it.uppercase() },
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.Medium,
+                                    letterSpacing = 0.3.sp
+                                ),
+                                color = primary.copy(alpha = 0.7f),
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
+                        }
+                        Spacer(Modifier.width(6.dp))
+                        Text(
+                            text = "·",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
+                        )
+                        Spacer(Modifier.width(6.dp))
+                        Text(
+                            text = uiState.statusText.lowercase(),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                        )
+                    }
                 }
 
                 Surface(
