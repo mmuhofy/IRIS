@@ -247,12 +247,16 @@ private fun AssistantSheet(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Content area
+            // Content area — tap to dismiss (children consume their own events)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
-                    .padding(horizontal = 20.dp),
+                    .padding(horizontal = 20.dp)
+                    .clickable(
+                        indication        = null,
+                        interactionSource = remember { MutableInteractionSource() }
+                    ) { onClose() },
                 contentAlignment = Alignment.Center
             ) {
                 when {
@@ -284,18 +288,6 @@ private fun AssistantSheet(
                     else -> {
                         IdlePrompt()
                     }
-                }
-
-                // Tap empty content area (idle/listening/thinking) to dismiss
-                if (!state.messages.isNotEmpty()) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .clickable(
-                                indication        = null,
-                                interactionSource = remember { MutableInteractionSource() }
-                            ) { onClose() }
-                    )
                 }
             }
 
