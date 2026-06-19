@@ -151,129 +151,135 @@ class HomeViewModel @Inject constructor(
             // Step 1 — Pause wake word detection to free the mic
             wakeWordManager.stopListening()
 
-            // Step 2 — LISTENING state
-            _uiState.update {
-                it.copy(
-                    isMuted      = false,
-                    coreState    = IrisCoreState.LISTENING,
-                    statusText   = "Dinliyorum...",
-                    errorMessage = null
-                )
-            }
-
-            // Step 3 — Record until VAD silence
-            val audioBytes = runCatching {
-                audioRecorder.recordUntilSilence(
-                    onAmplitude = { amp -> _uiState.update { it.copy(amplitude = amp) } }
-                )
-            }.getOrElse { e ->
-                handleError("Kayıt hatası", e)
-                return@launch
-            }
-
-            // Step 4 — Skip if no audio detected
-            if (audioBytes.isEmpty()) {
-                Log.d(TAG, "no speech detected")
-                _uiState.update {
-                    it.copy(
-                        coreState  = IrisCoreState.IDLE,
-                        amplitude  = 0f,
-                        statusText = "Dinlemeye hazır"
-                    )
-                }
-                return@launch
-            }
-
-            // Step 5 — THINKING (STT)
-            _uiState.update {
-                it.copy(
-                    amplitude  = 0f,
-                    coreState  = IrisCoreState.THINKING,
-                    statusText = "Anlıyorum..."
-                )
-            }
-
-            // Step 6 — STT via Groq Whisper
-            val transcript = runCatching {
-                transcribeAudioUseCase(audioBytes)
-            }.getOrElse { e ->
-                handleError("Ses anlaşılamadı", e)
-                return@launch
-            }
-
-            // Step 7 — Check for stop keywords ("dur" etc.)
-            val normalized = transcript.lowercase().trim()
-            if (STOP_KEYWORDS.any { normalized == it || normalized.startsWith("$it ") || normalized.endsWith(" $it") }) {
-                Log.d(TAG, "stop keyword detected: \"$normalized\"")
-                _uiState.update {
-                    it.copy(
-                        coreState  = IrisCoreState.IDLE,
-                        amplitude  = 0f,
-                        statusText = "Dinlemeye hazır"
-                    )
-                }
-                return@launch
-            }
-
-            // Step 8 — Persist user message
-            val userMsg   = ChatMessage(role = ChatMessage.Role.USER, content = transcript)
-            val userMsgId = conversationRepository.saveMessage(userMsg)
-            history.add(userMsg.copy(id = userMsgId))
-
-            // Step 9 — THINKING (LLM)
-            _uiState.update { it.copy(statusText = "Düşünüyorum...") }
-
-            // Step 10 — LLM via Gemini (Groq fallback handled inside use case)
-            val reply: String
             try {
-                reply = sendMessageUseCase(history.toList())
-            } catch (e: IrisException.PermissionRequiredException) {
-                history.removeLastOrNull()
-                pendingTranscript = transcript
+                // Step 2 — LISTENING state
                 _uiState.update {
                     it.copy(
-                        coreState         = IrisCoreState.IDLE,
-                        statusText        = "İzin gerekiyor",
-                        permissionRequest = PermissionRequest(
-                            permission = e.permission,
-                            rationale  = e.rationale
+                        isMuted      = false,
+                        coreState    = IrisCoreState.LISTENING,
+                        statusText   = "Dinliyorum...",
+                        errorMessage = null
+                    )
+                }
+
+                // Step 3 — Record until VAD silence
+                val audioBytes = runCatching {
+                    audioRecorder.recordUntilSilence(
+                        onAmplitude = { amp -> _uiState.update { it.copy(amplitude = amp) } }
+                    )
+                }.getOrElse { e ->
+                    handleError("Kayıt hatası", e)
+                    return@launch
+                }
+
+                // Step 4 — Skip if no audio detected
+                if (audioBytes.isEmpty()) {
+                    Log.d(TAG, "no speech detected")
+                    _uiState.update {
+                        it.copy(
+                            coreState  = IrisCoreState.IDLE,
+                            amplitude  = 0f,
+                            statusText = "Dinlemeye hazır"
                         )
+                    }
+                    return@launch
+                }
+
+                // Step 5 — THINKING (STT)
+                _uiState.update {
+                    it.copy(
+                        amplitude  = 0f,
+                        coreState  = IrisCoreState.THINKING,
+                        statusText = "Anlıyorum..."
                     )
                 }
-                return@launch
-            } catch (e: Exception) {
-                history.removeLastOrNull()
-                handleError("Yanıt alınamadı", e)
-                return@launch
-            }
 
-            // Step 11 — Persist assistant message
-            val assistantMsg   = ChatMessage(role = ChatMessage.Role.ASSISTANT, content = reply)
-            val assistantMsgId = conversationRepository.saveMessage(assistantMsg)
-            history.add(assistantMsg.copy(id = assistantMsgId))
+                // Step 6 — STT via Groq Whisper
+                val transcript = runCatching {
+                    transcribeAudioUseCase(audioBytes)
+                }.getOrElse { e ->
+                    handleError("Ses anlaşılamadı", e)
+                    return@launch
+                }
 
-            // Step 12 — SPEAKING (TTS)
-            _uiState.update {
-                it.copy(coreState = IrisCoreState.SPEAKING, statusText = "Konuşuyorum...")
-            }
-
-            try {
-                ttsProvider.speak(
-                    text       = reply,
-                    onProgress = { p -> _uiState.update { it.copy(ttsProgress = p.coerceIn(0f, 1f)) } },
-                    onDone     = {
-                        val muted = _uiState.value.isMuted
-                        _uiState.update {
-                            it.copy(
-                                coreState   = IrisCoreState.IDLE,
-                                ttsProgress = 0f,
-                                statusText  = if (muted) "Sessize alındı" else "Dinlemeye hazır"
-                            )
-                        }
+                // Step 7 — Check for stop keywords ("dur" etc.)
+                val normalized = transcript.lowercase().trim()
+                if (STOP_KEYWORDS.any { normalized == it || normalized.startsWith("$it ") || normalized.endsWith(" $it") }) {
+                    Log.d(TAG, "stop keyword detected: \"$normalized\"")
+                    _uiState.update {
+                        it.copy(
+                            coreState  = IrisCoreState.IDLE,
+                            amplitude  = 0f,
+                            statusText = "Dinlemeye hazır"
+                        )
                     }
-                )
-            } catch (e: Exception) {
-                handleError("Konuşma hatası", e)
+                    return@launch
+                }
+
+                // Step 8 — Persist user message
+                val userMsg   = ChatMessage(role = ChatMessage.Role.USER, content = transcript)
+                val userMsgId = conversationRepository.saveMessage(userMsg)
+                history.add(userMsg.copy(id = userMsgId))
+
+                // Step 9 — THINKING (LLM)
+                _uiState.update { it.copy(statusText = "Düşünüyorum...") }
+
+                // Step 10 — LLM via Gemini (Groq fallback handled inside use case)
+                val reply: String
+                try {
+                    reply = sendMessageUseCase(history.toList())
+                } catch (e: IrisException.PermissionRequiredException) {
+                    history.removeLastOrNull()
+                    pendingTranscript = transcript
+                    _uiState.update {
+                        it.copy(
+                            coreState         = IrisCoreState.IDLE,
+                            statusText        = "İzin gerekiyor",
+                            permissionRequest = PermissionRequest(
+                                permission = e.permission,
+                                rationale  = e.rationale
+                            )
+                        )
+                    }
+                    return@launch
+                } catch (e: Exception) {
+                    history.removeLastOrNull()
+                    handleError("Yanıt alınamadı", e)
+                    return@launch
+                }
+
+                // Step 11 — Persist assistant message
+                val assistantMsg   = ChatMessage(role = ChatMessage.Role.ASSISTANT, content = reply)
+                val assistantMsgId = conversationRepository.saveMessage(assistantMsg)
+                history.add(assistantMsg.copy(id = assistantMsgId))
+
+                // Step 12 — SPEAKING (TTS)
+                _uiState.update {
+                    it.copy(coreState = IrisCoreState.SPEAKING, statusText = "Konuşuyorum...")
+                }
+
+                try {
+                    ttsProvider.speak(
+                        text       = reply,
+                        onProgress = { p -> _uiState.update { it.copy(ttsProgress = p.coerceIn(0f, 1f)) } },
+                        onDone     = {
+                            val muted = _uiState.value.isMuted
+                            _uiState.update {
+                                it.copy(
+                                    coreState   = IrisCoreState.IDLE,
+                                    ttsProgress = 0f,
+                                    statusText  = if (muted) "Sessize alındı" else "Dinlemeye hazır"
+                                )
+                            }
+                        }
+                    )
+                } catch (e: Exception) {
+                    handleError("Konuşma hatası", e)
+                }
+            } finally {
+                if (!_uiState.value.isMuted) {
+                    wakeWordManager.startListening()
+                }
             }
         }
     }

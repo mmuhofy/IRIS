@@ -304,12 +304,12 @@ private fun ControlButton(
     )
 
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Box {
+        Box(modifier = Modifier.size(56.dp)) {
             if (pulse) {
                 Surface(
                     shape = CircleShape,
                     color = primary.copy(alpha = 0.15f * pulseAnim),
-                    modifier = Modifier.size(56.dp * (1f + 0.12f * pulseAnim))
+                    modifier = Modifier.fillMaxSize()
                 ) {}
             }
             Surface(
