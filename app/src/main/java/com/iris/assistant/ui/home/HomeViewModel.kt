@@ -257,20 +257,24 @@ class HomeViewModel @Inject constructor(
                 it.copy(coreState = IrisCoreState.SPEAKING, statusText = "Konuşuyorum...")
             }
 
-            ttsProvider.speak(
-                text       = reply,
-                onProgress = { p -> _uiState.update { it.copy(ttsProgress = p.coerceIn(0f, 1f)) } },
-                onDone     = {
-                    val muted = _uiState.value.isMuted
-                    _uiState.update {
-                        it.copy(
-                            coreState   = IrisCoreState.IDLE,
-                            ttsProgress = 0f,
-                            statusText  = if (muted) "Sessize alındı" else "Dinlemeye hazır"
-                        )
+            try {
+                ttsProvider.speak(
+                    text       = reply,
+                    onProgress = { p -> _uiState.update { it.copy(ttsProgress = p.coerceIn(0f, 1f)) } },
+                    onDone     = {
+                        val muted = _uiState.value.isMuted
+                        _uiState.update {
+                            it.copy(
+                                coreState   = IrisCoreState.IDLE,
+                                ttsProgress = 0f,
+                                statusText  = if (muted) "Sessize alındı" else "Dinlemeye hazır"
+                            )
+                        }
                     }
-                }
-            )
+                )
+            } catch (e: Exception) {
+                handleError("Konuşma hatası", e)
+            }
         }
     }
 
@@ -381,6 +385,7 @@ class HomeViewModel @Inject constructor(
             is IrisException.AuthException      -> "$ctx: API anahtarı eksik"
             is IrisException.SttException       -> "$ctx: ${e.message}"
             is IrisException.LlmException       -> "$ctx: ${e.message}"
+            is IrisException.TtsException       -> "$ctx: ${e.message}"
             else                                -> "$ctx: Bilinmeyen hata"
         }
         Log.e(TAG, "handleError: $msg", e)

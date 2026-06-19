@@ -7,6 +7,7 @@ import android.util.Base64
 import android.util.Log
 import com.iris.assistant.BuildConfig
 import com.iris.assistant.data.local.datastore.PreferencesRepository
+import com.iris.assistant.domain.model.IrisException
 import com.iris.assistant.domain.model.TtsVoice
 import com.iris.assistant.util.Constants
 import kotlinx.coroutines.Dispatchers
@@ -79,11 +80,10 @@ class GeminiTtsClient @Inject constructor(
         // Read user's preferred voice from DataStore — .first() takes the current snapshot
         val voice = preferencesRepository.preferences.first().ttsVoice
 
-        val pcmBytes = fetchPcmWithRetry(text, voice) ?: run {
-            Log.e(TAG, "speak: failed to fetch audio after ${Constants.GEMINI_TTS_MAX_RETRIES} retries")
-            onDone()
-            return
-        }
+        val pcmBytes = fetchPcmWithRetry(text, voice)
+            ?: throw IrisException.TtsException(
+                "TTS failed after ${Constants.GEMINI_TTS_MAX_RETRIES} retries"
+            )
 
         playPcm(pcmBytes, onProgress, onDone)
     }
