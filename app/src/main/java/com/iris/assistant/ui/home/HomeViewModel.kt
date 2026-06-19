@@ -11,6 +11,7 @@ import com.iris.assistant.data.audio.AudioRecorder
 import com.iris.assistant.data.local.datastore.PreferencesRepository
 import com.iris.assistant.data.remote.tts.TtsProvider
 import com.iris.assistant.domain.model.ChatMessage
+import com.iris.assistant.domain.model.TtsProviderType
 import com.iris.assistant.domain.model.IrisException
 import com.iris.assistant.domain.repository.ConversationRepository
 import com.iris.assistant.domain.usecase.SendMessageUseCase
@@ -27,6 +28,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import javax.inject.Named
 
 // ---------------------------------------------------------------------------
 // UI State
@@ -59,10 +61,15 @@ class HomeViewModel @Inject constructor(
     private val transcribeAudioUseCase               : TranscribeAudioUseCase,
     private val sendMessageUseCase                   : SendMessageUseCase,
     private val conversationRepository               : ConversationRepository,
-    private val ttsProvider                          : TtsProvider,
+    @Named("gemini")  private val geminiTts          : TtsProvider,
+    @Named("mms")     private val mmsTts             : TtsProvider,
+    @Named("android") private val androidTts         : TtsProvider,
     private val wakeWordManager                      : WakeWordManager,
     private val preferencesRepository                : PreferencesRepository
 ) : ViewModel() {
+
+    private var activeTtsProvider: TtsProvider = geminiTts
+        private set
 
     companion object {
         private const val TAG = "HomeViewModel"
@@ -88,6 +95,11 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             preferencesRepository.preferences.collect { prefs ->
                 _uiState.update { it.copy(modelName = prefs.llmModel) }
+                activeTtsProvider = when (prefs.ttsProvider) {
+                    TtsProviderType.GEMINI  -> geminiTts
+                    TtsProviderType.MMS     -> mmsTts
+                    TtsProviderType.ANDROID -> androidTts
+                }
             }
         }
 
@@ -272,7 +284,7 @@ class HomeViewModel @Inject constructor(
                 }
 
                 try {
-                    ttsProvider.speak(
+                    activeTtsProvider.speak(
                         text       = reply,
                         onProgress = { p -> _uiState.update { it.copy(ttsProgress = p.coerceIn(0f, 1f)) } },
                         onDone     = {
@@ -306,7 +318,7 @@ class HomeViewModel @Inject constructor(
     fun onStop() {
         pipelineJob?.cancel()
         pipelineJob = null
-        ttsProvider.stop()
+        activeTtsProvider.stop()
         val muted = _uiState.value.isMuted
         _uiState.update {
             it.copy(
@@ -354,7 +366,7 @@ class HomeViewModel @Inject constructor(
                     it.copy(coreState = IrisCoreState.SPEAKING, statusText = "Konuşuyorum...")
                 }
 
-                ttsProvider.speak(
+                activeTtsProvider.speak(
                     text       = reply,
                     onProgress = { p -> _uiState.update { it.copy(ttsProgress = p.coerceIn(0f, 1f)) } },
                     onDone     = {
@@ -425,6 +437,6 @@ class HomeViewModel @Inject constructor(
     override fun onCleared() {
         super.onCleared()
         pipelineJob?.cancel()
-        ttsProvider.release()
+        activeTtsProvider.release()
     }
 }

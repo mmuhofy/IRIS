@@ -8,6 +8,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.iris.assistant.domain.model.AutonomyLevel
+import com.iris.assistant.domain.model.TtsProviderType
 import com.iris.assistant.domain.model.TtsVoice
 import com.iris.assistant.ui.theme.ColorSchemeOption
 import com.iris.assistant.util.Constants
@@ -35,6 +36,7 @@ class PreferencesRepository @Inject constructor(
         val AUTONOMY_LEVEL       = stringPreferencesKey("autonomy_level")
         val LOCAL_MODEL_NAME     = stringPreferencesKey("local_model_name")
         val LOCAL_MODEL_PATH     = stringPreferencesKey("local_model_path")
+        val TTS_PROVIDER         = stringPreferencesKey("tts_provider")
     }
 
     val preferences: Flow<UserPreferences> = context.dataStore.data.map { prefs ->
@@ -54,7 +56,10 @@ class PreferencesRepository @Inject constructor(
                 ?.let { runCatching { AutonomyLevel.valueOf(it) }.getOrDefault(AutonomyLevel.SAFE) }
                 ?: AutonomyLevel.SAFE,
             localModelName = prefs[Keys.LOCAL_MODEL_NAME] ?: "",
-            localModelPath = prefs[Keys.LOCAL_MODEL_PATH] ?: ""
+            localModelPath = prefs[Keys.LOCAL_MODEL_PATH] ?: "",
+            ttsProvider = prefs[Keys.TTS_PROVIDER]
+                ?.let { TtsProviderType.fromKey(it) }
+                ?: TtsProviderType.GEMINI
         )
     }
 
@@ -84,6 +89,10 @@ class PreferencesRepository @Inject constructor(
 
     suspend fun setLlmProvider(provider: String) {
         context.dataStore.edit { it[Keys.LLM_PROVIDER] = provider }
+    }
+
+    suspend fun setTtsProvider(provider: TtsProviderType) {
+        context.dataStore.edit { it[Keys.TTS_PROVIDER] = TtsProviderType.keyOf(provider) }
     }
 
     suspend fun setAutonomyLevel(level: AutonomyLevel) {

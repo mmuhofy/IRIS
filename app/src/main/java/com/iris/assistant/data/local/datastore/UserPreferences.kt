@@ -1,6 +1,7 @@
 package com.iris.assistant.data.local.datastore
 
 import com.iris.assistant.domain.model.AutonomyLevel
+import com.iris.assistant.domain.model.TtsProviderType
 import com.iris.assistant.domain.model.TtsVoice
 import com.iris.assistant.ui.theme.ColorSchemeOption
 import com.iris.assistant.util.Constants
@@ -15,5 +16,6 @@ data class UserPreferences(
     val llmModel            : String            = Constants.GEMINI_MODEL,
     val autonomyLevel       : AutonomyLevel     = AutonomyLevel.SAFE,
     val localModelName      : String            = "",
-    val localModelPath      : String            = ""
+    val localModelPath      : String            = "",
+    val ttsProvider         : TtsProviderType   = TtsProviderType.GEMINI
 )

@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.iris.assistant.data.local.datastore.PreferencesRepository
 import com.iris.assistant.domain.model.AutonomyLevel
+import com.iris.assistant.domain.model.TtsProviderType
 import com.iris.assistant.domain.model.TtsVoice
 import com.iris.assistant.domain.repository.ConversationRepository
 import com.iris.assistant.ui.theme.ColorSchemeOption
@@ -23,6 +24,7 @@ data class SettingsUiState(
     val llmProvider        : String             = Constants.LLM_PROVIDER_GEMINI,
     val llmModel           : String             = Constants.GEMINI_MODEL,
     val autonomyLevel      : AutonomyLevel      = AutonomyLevel.SAFE,
+    val ttsProvider        : TtsProviderType    = TtsProviderType.GEMINI,
     val historyCleared     : Boolean            = false,
     val localModelName     : String             = "",
     val localModelPath     : String             = ""
@@ -40,6 +42,7 @@ class SettingsViewModel @Inject constructor(
                 colorScheme         = prefs.colorScheme,
                 backgroundListening = prefs.backgroundListening,
                 ttsVoice            = prefs.ttsVoice,
+                ttsProvider         = prefs.ttsProvider,
                 llmProvider         = prefs.llmProvider,
                 llmModel            = prefs.llmModel,
                 autonomyLevel       = prefs.autonomyLevel,
@@ -63,6 +66,10 @@ class SettingsViewModel @Inject constructor(
 
     fun onTtsVoiceChange(voice: TtsVoice) {
         viewModelScope.launch { preferencesRepository.setTtsVoice(voice) }
+    }
+
+    fun onTtsProviderChange(provider: TtsProviderType) {
+        viewModelScope.launch { preferencesRepository.setTtsProvider(provider) }
     }
 
     fun onLlmProviderChange(provider: String) {

@@ -4,6 +4,7 @@
 # Never commit local.properties.
 
 GEMINI_API_KEY=
+HF_API_KEY=          # HuggingFace Inference API (MMS TTS, optional)
 GROQ_API_KEY=        # Whisper STT
 GROQ_LLM_API_KEY=    # Groq LLM (separate from Whisper key)
 WEATHER_API_KEY=

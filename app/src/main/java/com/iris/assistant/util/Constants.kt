@@ -84,6 +84,14 @@ object Constants {
     const val GEMINI_TTS_MAX_RETRIES     = 3
     const val GEMINI_TTS_RETRY_DELAY_MS  = 1000L
 
+    // --- TTS — MMS (HuggingFace) ---
+    // Model: facebook/mms-tts-tur (Meta MMS, only Turkish)
+    // Endpoint: https://api-inference.huggingface.co/models/{model}
+    // Output: WAV, parsed to PCM for AudioTrack playback
+    // API key: BuildConfig.HF_API_KEY
+    const val HF_API_ENDPOINT  = "https://api-inference.huggingface.co/models"
+    const val MMS_TTS_MODEL    = "facebook/mms-tts-tur"
+
     // --- Info Tools ---
     const val TAVILY_SEARCH_ENDPOINT = "https://api.tavily.com/search"
     const val NEWS_API_ENDPOINT     = "https://newsapi.org/v2"

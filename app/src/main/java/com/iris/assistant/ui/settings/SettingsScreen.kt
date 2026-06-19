@@ -49,6 +49,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.iris.assistant.domain.model.AutonomyLevel
+import com.iris.assistant.domain.model.TtsProviderType
 import com.iris.assistant.domain.model.TtsVoice
 import com.iris.assistant.ui.components.IrisButtonDestructive
 import com.iris.assistant.ui.theme.ColorSchemeOption
@@ -131,6 +132,16 @@ fun SettingsScreen(
                     VoiceSelector(
                         current  = uiState.ttsVoice,
                         onChange = viewModel::onTtsVoiceChange,
+                    )
+                }
+                SettingsGroupDivider()
+                SettingsRowWithContent(
+                    icon = PhIcons.Regular.Robot,
+                    label = "TTS sağlayıcısı",
+                ) {
+                    TtsProviderSelector(
+                        current  = uiState.ttsProvider,
+                        onChange = viewModel::onTtsProviderChange,
                     )
                 }
             }
@@ -518,6 +529,39 @@ private fun ProviderSelector(
                         fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
                     )
                 }
+            }
+        }
+    }
+}
+
+// ── TTS provider selector ────────────────────────────────────────────────────
+
+@Composable
+private fun TtsProviderSelector(
+    current : TtsProviderType,
+    onChange: (TtsProviderType) -> Unit,
+) {
+    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        TtsProviderType.entries.forEach { provider ->
+            val selected = provider == current
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(
+                        if (selected) IrisTheme.colors.primary
+                        else MaterialTheme.colorScheme.surfaceVariant
+                    )
+                    .clickable { onChange(provider) }
+                    .padding(horizontal = 10.dp, vertical = 6.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = provider.displayName,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = if (selected) MaterialTheme.colorScheme.background
+                            else ColorTextPrimary,
+                    fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+                )
             }
         }
     }

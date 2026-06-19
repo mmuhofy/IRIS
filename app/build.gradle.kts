@@ -47,6 +47,7 @@ android {
         buildConfigField("String", "TAVILY_API_KEY",         apiKey("TAVILY_API_KEY"))
         buildConfigField("String", "NEWS_API_KEY",           apiKey("NEWS_API_KEY"))
         buildConfigField("String", "GROQ_LLM_API_KEY",       apiKey("GROQ_LLM_API_KEY"))
+        buildConfigField("String", "HF_API_KEY",             apiKey("HF_API_KEY"))
     }
 
     signingConfigs {
