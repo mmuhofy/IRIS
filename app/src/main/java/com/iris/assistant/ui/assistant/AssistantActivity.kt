@@ -327,7 +327,7 @@ private fun DragHandle() {
 @Composable
 private fun SheetHeader(state: AssistantUiState) {
     val primary = IrisTheme.colors.primary
-    val gradient = IrisTheme.colors.gradient
+    val gradient = IrisTheme.colors.gradientEnd
 
     Row(
         modifier = Modifier
@@ -452,7 +452,7 @@ private fun IdlePrompt() {
 @Composable
 private fun ListeningWave(amplitude: Float) {
     val primary  = IrisTheme.colors.primary
-    val gradient = IrisTheme.colors.gradient
+    val gradient = IrisTheme.colors.gradientEnd
     val barCount = 7
 
     // Per-bar animated heights using staggered infinite loops
