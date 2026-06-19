@@ -193,8 +193,7 @@ private fun AssistantScreen(
                     viewModel.sendText()
                     keyboardController?.hide()
                 },
-                onMicClick         = viewModel::startVoicePipeline,
-                onSheetClick       = { /* consume — don't dismiss */ }
+                onMicClick         = viewModel::startVoicePipeline
             )
         }
     }
@@ -208,8 +207,7 @@ private fun AssistantSheet(
     state: AssistantUiState,
     onTextChanged: (String) -> Unit,
     onSendText: () -> Unit,
-    onMicClick: () -> Unit,
-    onSheetClick: () -> Unit
+    onMicClick: () -> Unit
 ) {
     val listState = rememberLazyListState()
 
@@ -223,12 +221,7 @@ private fun AssistantSheet(
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(min = 200.dp, max = 520.dp)
-            .clickable(
-                indication        = null,
-                interactionSource = remember { MutableInteractionSource() },
-                onClick           = onSheetClick
-            ),
+            .heightIn(min = 200.dp, max = 520.dp),
         shape = RoundedCornerShape(topStart = SHEET_TOP_RADIUS, topEnd = SHEET_TOP_RADIUS),
         color = Color(0xFF1C1C1E),
         tonalElevation = 0.dp
