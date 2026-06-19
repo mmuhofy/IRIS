@@ -25,7 +25,6 @@ import com.iris.assistant.util.Constants
 import kotlinx.coroutines.delay
 import kotlin.math.cos
 import kotlin.math.sin
-import kotlin.math.PI
 
 @Composable
 fun IrisCoreAnimation(
@@ -55,29 +54,23 @@ fun IrisCoreAnimation(
         IrisCoreState.THINKING -> 1f
         IrisCoreState.SPEAKING -> 1.01f
     }
-    val targetAlpha = when (state) {
-        IrisCoreState.IDLE -> 0.5f
-        IrisCoreState.LISTENING -> 0.8f
+    val targetBaseAlpha = when (state) {
+        IrisCoreState.IDLE -> 0.6f
+        IrisCoreState.LISTENING -> 0.85f
         IrisCoreState.THINKING -> 0.9f
         IrisCoreState.SPEAKING -> 0.75f
     }
-    val targetFluidAlpha = when (state) {
-        IrisCoreState.IDLE -> 0.35f
-        IrisCoreState.LISTENING -> 0.55f
-        IrisCoreState.THINKING -> 0.65f
-        IrisCoreState.SPEAKING -> 0.5f
+    val targetIntensity = when (state) {
+        IrisCoreState.IDLE -> 0.5f
+        IrisCoreState.LISTENING -> 0.7f
+        IrisCoreState.THINKING -> 0.85f
+        IrisCoreState.SPEAKING -> 0.65f
     }
-    val targetFluidSpeed = when (state) {
-        IrisCoreState.IDLE -> 1f
-        IrisCoreState.LISTENING -> 1.6f
-        IrisCoreState.THINKING -> 2.5f
-        IrisCoreState.SPEAKING -> 1.8f
-    }
-    val targetNeuralSpeed = when (state) {
+    val targetFlowSpeed = when (state) {
         IrisCoreState.IDLE -> 1f
         IrisCoreState.LISTENING -> 1.5f
-        IrisCoreState.THINKING -> 2.8f
-        IrisCoreState.SPEAKING -> 2f
+        IrisCoreState.THINKING -> 2.4f
+        IrisCoreState.SPEAKING -> 1.8f
     }
     val targetSweep = when (state) {
         IrisCoreState.THINKING -> 270f
@@ -87,21 +80,20 @@ fun IrisCoreAnimation(
         IrisCoreState.LISTENING -> 4.5f
         else -> 3f
     }
-    val targetGlowAlpha = when (state) {
-        IrisCoreState.IDLE -> 0.12f
-        IrisCoreState.LISTENING -> 0.22f
-        IrisCoreState.THINKING -> 0.28f
-        IrisCoreState.SPEAKING -> 0.18f
+    val targetGlow = when (state) {
+        IrisCoreState.IDLE -> 0.15f
+        IrisCoreState.LISTENING -> 0.25f
+        IrisCoreState.THINKING -> 0.3f
+        IrisCoreState.SPEAKING -> 0.2f
     }
 
     val ringScale by animateFloatAsState(targetScale, tween(500), label = "scale")
-    val ringAlpha by animateFloatAsState(targetAlpha, tween(400), label = "alpha")
-    val fluidAlpha by animateFloatAsState(targetFluidAlpha, tween(500), label = "fluidAlpha")
-    val fluidSpeed by animateFloatAsState(targetFluidSpeed, tween(600), label = "fluidSpeed")
-    val neuralSpeed by animateFloatAsState(targetNeuralSpeed, tween(500), label = "neuralSpeed")
+    val baseAlpha by animateFloatAsState(targetBaseAlpha, tween(400), label = "baseAlpha")
+    val intensity by animateFloatAsState(targetIntensity, tween(500), label = "intensity")
+    val flowSpeed by animateFloatAsState(targetFlowSpeed, tween(600), label = "flowSpeed")
     val ringSweep by animateFloatAsState(targetSweep, tween(600), label = "sweep")
     val ringThickness by animateFloatAsState(targetThickness, tween(400), label = "thickness")
-    val glowAlpha by animateFloatAsState(targetGlowAlpha, tween(400), label = "glowAlpha")
+    val glowIntensity by animateFloatAsState(targetGlow, tween(400), label = "glowIntensity")
 
     val idlePulse = if (state == IrisCoreState.IDLE) sin(time * 2f) * 0.03f else 0f
     val idleAlphaPulse = if (state == IrisCoreState.IDLE) sin(time * 2f) * 0.08f else 0f
@@ -125,280 +117,166 @@ fun IrisCoreAnimation(
         val baseRadius = minDim * 0.42f
         val currentRadius = baseRadius * (ringScale + idlePulse + speakingWave * 0.02f)
         val currentThickness = (ringThickness + speakingWave * 1.5f).coerceAtLeast(1f)
-        val baseAlpha = (ringAlpha + idleAlphaPulse).coerceIn(0f, 1f)
-        val innerRadius = (currentRadius - currentThickness / 2f).coerceAtLeast(1f)
-        val fAlpha = (fluidAlpha + idleAlphaPulse * 0.3f).coerceIn(0f, 1f)
-        val nSpeed = neuralSpeed
-        val fSpeed = fluidSpeed
+        val alpha = (baseAlpha + idleAlphaPulse).coerceIn(0f, 1f)
+        val innerR = (currentRadius - currentThickness / 2f).coerceAtLeast(1f)
+        val fillI = (intensity + idleAlphaPulse * 0.2f).coerceIn(0f, 1f)
+        val flow = flowSpeed
 
         // =====================================================================
-        // LAYER 1 — Center glow
+        // OUTER GLOW
         // =====================================================================
-        val glowRadius = currentRadius + currentThickness * 4
+        val glowR = currentRadius + currentThickness * 4
         drawCircle(
             brush = Brush.radialGradient(
                 colors = listOf(
-                    ringColor.copy(alpha = baseAlpha * glowAlpha * 0.7f),
-                    ringColor.copy(alpha = baseAlpha * glowAlpha * 0.2f),
+                    ringColor.copy(alpha = alpha * glowIntensity * 0.8f),
+                    ringColor.copy(alpha = alpha * glowIntensity * 0.2f),
                     Color.Transparent
                 ),
                 center = Offset(cx, cy),
-                radius = glowRadius
+                radius = glowR
             ),
-            radius = glowRadius,
+            radius = glowR,
             center = Offset(cx, cy)
         )
 
         // =====================================================================
-        // LAYER 2 — Fluid gradient base (3 orbiting sources)
+        // FLUID CORE — single continuous gradient field
         // =====================================================================
-        val fs = fSpeed
-        val ir = innerRadius
+        val s = flow
+        val ir = innerR
+        val fi = fillI
 
-        val src1x = sin(time * 0.37f * fs) * ir * 0.4f
-        val src1y = cos(time * 0.53f * fs) * ir * 0.4f
+        // Lissajous motion creates complex organic flow patterns.
+        // Each gradient source moves on a 2-frequency Lissajous curve,
+        // producing non-repeating, fluid-like motion.
 
-        val src2x = cos(time * 0.43f * fs + 2.1f) * ir * 0.32f
-        val src2y = sin(time * 0.61f * fs + 2.1f) * ir * 0.32f
+        // Source A — dominant gradient center
+        val aCx = cx + (sin(time * 0.37f * s) * 0.35f + sin(time * 0.53f * s * 1.7f) * 0.12f) * ir
+        val aCy = cy + (cos(time * 0.53f * s) * 0.35f + cos(time * 0.43f * s * 1.7f) * 0.12f) * ir
 
-        val src3x = sin(time * 0.71f * fs + 3.8f) * ir * 0.24f
-        val src3y = cos(time * 0.49f * fs + 3.8f) * ir * 0.24f
+        // Source B — counter-phase secondary
+        val bCx = cx + (cos(time * 0.43f * s + 2.1f) * 0.32f + cos(time * 0.61f * s * 1.5f + 1.2f) * 0.1f) * ir
+        val bCy = cy + (sin(time * 0.61f * s + 2.1f) * 0.32f + sin(time * 0.37f * s * 1.5f + 1.2f) * 0.1f) * ir
 
-        // Ambient fill
+        // Source C — tertiary accent (faster, smaller orbit)
+        val cCx = cx + sin(time * 0.71f * s + 3.8f) * ir * 0.24f
+        val cCy = cy + cos(time * 0.49f * s + 3.8f) * ir * 0.24f
+
+        // Source D — micro accent (small, fast, for shimmer)
+        val dCx = cx + cos(time * 0.79f * s + 5.2f) * ir * 0.15f
+        val dCy = cy + sin(time * 0.83f * s + 5.2f) * ir * 0.15f
+
+        // --- Neural firing modulation ---
+        // Compound sine creates pseudo-random firing events
+        val neuralFire = (
+            sin(time * 5.3f * s) * 0.5f +
+            sin(time * 11.7f * s + 1.4f) * 0.3f +
+            sin(time * 19.3f * s + 3.7f) * 0.2f
+        ) / (0.5f + 0.3f + 0.2f) * 0.5f + 0.5f
+
+        val fireBoost = 1f + neuralFire * 0.35f * fi
+
+        // --- Ambient base fill ---
+        val ambA = (fi * 0.15f).coerceAtMost(0.18f)
+        drawCircle(
+            color = ringColor.copy(alpha = ambA * alpha),
+            radius = ir,
+            center = Offset(cx, cy)
+        )
+
+        // --- Main gradient field (Source A) ---
         drawCircle(
             brush = Brush.radialGradient(
-                colors = listOf(
-                    ringColor.copy(alpha = (fAlpha * 0.2f).coerceAtMost(0.2f)),
-                    ringColor.copy(alpha = (fAlpha * 0.05f).coerceAtMost(0.08f)),
-                    Color.Transparent
+                colorStops = arrayOf(
+                    0.0f to ringColor.copy(alpha = (0.5f * fi * fireBoost).coerceIn(0f, 0.65f)),
+                    0.3f to gradientEnd.copy(alpha = (0.3f * fi * fireBoost).coerceIn(0f, 0.4f)),
+                    0.6f to ringColor.copy(alpha = (0.12f * fi).coerceAtMost(0.15f)),
+                    1.0f to Color.Transparent
                 ),
-                center = Offset(cx, cy),
+                center = Offset(aCx, aCy),
                 radius = ir
             ),
             radius = ir,
             center = Offset(cx, cy)
         )
 
-        // Layer A — dominant
+        // --- Secondary field (Source B) ---
         drawCircle(
             brush = Brush.radialGradient(
-                colors = listOf(
-                    ringColor.copy(alpha = (fAlpha * 0.55f).coerceAtMost(0.55f)),
-                    gradientEnd.copy(alpha = (fAlpha * 0.2f).coerceAtMost(0.25f)),
-                    Color.Transparent
+                colorStops = arrayOf(
+                    0.0f to gradientEnd.copy(alpha = (0.45f * fi * fireBoost).coerceIn(0f, 0.55f)),
+                    0.4f to ringColor.copy(alpha = (0.2f * fi * fireBoost).coerceIn(0f, 0.3f)),
+                    0.7f to gradientEnd.copy(alpha = (0.08f * fi).coerceAtMost(0.12f)),
+                    1.0f to Color.Transparent
                 ),
-                center = Offset(cx + src1x, cy + src1y),
-                radius = ir * 0.7f
+                center = Offset(bCx, bCy),
+                radius = ir * 0.9f
             ),
-            radius = ir * 0.7f,
-            center = Offset(cx + src1x, cy + src1y)
+            radius = ir * 0.9f,
+            center = Offset(cx, cy)
         )
 
-        // Layer B — counter-orbit
+        // --- Accent layer (Source C) ---
         drawCircle(
             brush = Brush.radialGradient(
                 colors = listOf(
-                    gradientEnd.copy(alpha = (fAlpha * 0.4f).coerceAtMost(0.45f)),
-                    ringColor.copy(alpha = (fAlpha * 0.15f).coerceAtMost(0.2f)),
+                    ringColor.copy(alpha = (0.3f * fi).coerceIn(0f, 0.35f)),
                     Color.Transparent
                 ),
-                center = Offset(cx + src2x, cy + src2y),
-                radius = ir * 0.6f
+                center = Offset(cCx, cCy),
+                radius = ir * 0.55f
             ),
-            radius = ir * 0.6f,
-            center = Offset(cx + src2x, cy + src2y)
+            radius = ir * 0.55f,
+            center = Offset(cCx, cCy)
         )
 
-        // Layer C — accent
+        // --- Shimmer dot (Source D) ---
         drawCircle(
             brush = Brush.radialGradient(
                 colors = listOf(
-                    ringColor.copy(alpha = (fAlpha * 0.35f).coerceAtMost(0.4f)),
+                    ringColor.copy(alpha = (0.5f * fi * (neuralFire * 0.5f + 0.5f)).coerceIn(0f, 0.55f)),
                     Color.Transparent
                 ),
-                center = Offset(cx + src3x, cy + src3y),
-                radius = ir * 0.45f
+                center = Offset(dCx, dCy),
+                radius = ir * 0.2f
             ),
-            radius = ir * 0.45f,
-            center = Offset(cx + src3x, cy + src3y)
+            radius = ir * 0.2f,
+            center = Offset(dCx, dCy)
         )
 
         // =====================================================================
-        // LAYER 3 — Neural wave rings (concentric pulsing)
+        // NEURAL WAVE SHIMMER — concentric wave rings
         // =====================================================================
-        val waveColor = ringColor
+        val waveAlpha = (0.06f + sin(time * 1.8f * s) * 0.03f) * fi * alpha
         for (i in 0..3) {
             val phase = i * 1.6f
-            val waveRadius = ir * (0.15f + i * 0.22f + sin(time * 1.8f * fs + phase) * 0.08f)
-            val waveAlpha = (0.04f + sin(time * 2.2f * fs + phase) * 0.025f + 0.025f) * fAlpha * 2f
+            val wR = ir * (0.15f + i * 0.24f + sin(time * 1.8f * s + phase) * 0.06f)
+            val wA = (0.05f + sin(time * 2.2f * s + phase) * 0.025f) * fi * alpha
             drawCircle(
-                color = waveColor.copy(alpha = waveAlpha.coerceIn(0f, 0.12f)),
-                radius = waveRadius,
+                color = ringColor.copy(alpha = wA.coerceIn(0f, 0.1f)),
+                radius = wR,
                 center = Offset(cx, cy),
-                style = Stroke(width = 0.8f)
+                style = Stroke(width = 1f)
             )
         }
 
         // =====================================================================
-        // LAYER 4 — Neural mesh (nodes + connections)
-        // =====================================================================
-        val nodeRadius = ir * 0.55f
-        val centerNode = Offset(cx, cy)
-        val nodeCount = 6
-        val nodeAngles = (0 until nodeCount).map { i ->
-            i * (2f * PI.toFloat()) / nodeCount - PI.toFloat() / 2f
-        }
-        val outerNodes = nodeAngles.map { angle ->
-            Offset(
-                cx + cos(angle) * nodeRadius,
-                cy + sin(angle) * nodeRadius
-            )
-        }
-
-        // Activation wave cycles through 7 positions (6 outer + 1 center)
-        val cycleDur = when (state) {
-            IrisCoreState.IDLE -> 2.8f / nSpeed
-            IrisCoreState.LISTENING -> 1.8f / nSpeed
-            IrisCoreState.THINKING -> 1.2f / nSpeed
-            IrisCoreState.SPEAKING -> 1.6f / nSpeed
-        }
-        val rawActivation = (time / cycleDur) % 1f
-        val totalSteps = (nodeCount + 1).toFloat() // 7
-        val rawPos = rawActivation * totalSteps
-        val actIdx = rawPos.toInt().coerceAtMost(nodeCount) // 0..6
-        val actProg = rawPos - actIdx.toFloat()
-
-        val pulseCurve = sin(actProg * PI.toFloat()).coerceIn(0f, 1f)
-
-        // --- Connections (behind nodes) ---
-        // Radial: center → each outer
-        for (i in 0 until nodeCount) {
-            val isActive = i == actIdx || actIdx == nodeCount
-            val baseConn = 0.06f
-            val firingConn = pulseCurve * 0.65f
-            val a = baseConn + firingConn * if (isActive) 1f else 0f
-
-            drawLine(
-                color = ringColor.copy(alpha = a.coerceIn(0f, 0.7f)),
-                start = centerNode,
-                end = outerNodes[i],
-                strokeWidth = 1.5f
-            )
-        }
-
-        // Ring: outer → adjacent
-        for (i in 0 until nodeCount) {
-            val j = (i + 1) % nodeCount
-            val isActive = i == actIdx || j == actIdx || actIdx == nodeCount
-            val baseConn = 0.04f
-            val firingConn = pulseCurve * 0.45f
-            val a = baseConn + firingConn * if (isActive) 1f else 0f
-
-            drawLine(
-                color = ringColor.copy(alpha = a.coerceIn(0f, 0.5f)),
-                start = outerNodes[i],
-                end = outerNodes[j],
-                strokeWidth = 1f
-            )
-        }
-
-        // --- Outer nodes ---
-        for (i in 0 until nodeCount) {
-            val isFiring = i == actIdx
-            val nodeBaseAlpha = 0.25f
-            val nodeFiringAlpha = nodeBaseAlpha + pulseCurve * 0.6f
-            val nodeA = if (isFiring) nodeFiringAlpha else nodeBaseAlpha
-
-            val nodeBaseR = ir * 0.045f
-            val nodeFiringR = nodeBaseR * (1f + pulseCurve * 0.6f)
-            val nodeR = if (isFiring) nodeFiringR else nodeBaseR
-
-            drawCircle(
-                brush = Brush.radialGradient(
-                    colors = listOf(
-                        ringColor.copy(alpha = nodeA.coerceIn(0f, 0.85f)),
-                        ringColor.copy(alpha = 0f)
-                    ),
-                    center = outerNodes[i],
-                    radius = nodeR
-                ),
-                radius = nodeR,
-                center = outerNodes[i]
-            )
-
-            // Firing glow
-            if (isFiring && pulseCurve > 0.1f) {
-                val glowR = nodeR * (1f + pulseCurve * 1.5f)
-                drawCircle(
-                    brush = Brush.radialGradient(
-                        colors = listOf(
-                            ringColor.copy(alpha = (pulseCurve * 0.2f).coerceIn(0f, 0.3f)),
-                            ringColor.copy(alpha = 0f)
-                        ),
-                        center = outerNodes[i],
-                        radius = glowR
-                    ),
-                    radius = glowR,
-                    center = outerNodes[i]
-                )
-            }
-        }
-
-        // --- Center node ---
-        val centerFiring = actIdx == nodeCount
-        val cBaseAlpha = 0.3f
-        val cFiringAlpha = cBaseAlpha + pulseCurve * 0.6f
-        val cA = if (centerFiring) cFiringAlpha else cBaseAlpha
-
-        val cBaseR = ir * 0.055f
-        val cFiringR = cBaseR * (1f + pulseCurve * 0.6f)
-        val cR = if (centerFiring) cFiringR else cBaseR
-
-        drawCircle(
-            brush = Brush.radialGradient(
-                colors = listOf(
-                    ringColor.copy(alpha = cA.coerceIn(0f, 0.9f)),
-                    ringColor.copy(alpha = 0f)
-                ),
-                center = centerNode,
-                radius = cR
-            ),
-            radius = cR,
-            center = centerNode
-        )
-
-        if (centerFiring && pulseCurve > 0.1f) {
-            val cGlowR = cR * (1f + pulseCurve * 2f)
-            drawCircle(
-                brush = Brush.radialGradient(
-                    colors = listOf(
-                        ringColor.copy(alpha = (pulseCurve * 0.25f).coerceIn(0f, 0.35f)),
-                        ringColor.copy(alpha = 0f)
-                    ),
-                    center = centerNode,
-                    radius = cGlowR
-                ),
-                radius = cGlowR,
-                center = centerNode
-            )
-        }
-
-        // =====================================================================
-        // LAYER 5 — Outer ripple (LISTENING only)
+        // LISTENING RIPPLE
         // =====================================================================
         if (state == IrisCoreState.LISTENING && amplitude > 0.01f) {
-            val rippleRadius = currentRadius + amplitude * minDim * 0.15f
-            val rippleAlpha = (baseAlpha * amplitude * 0.5f).coerceIn(0f, 0.3f)
+            val rippleR = currentRadius + amplitude * minDim * 0.15f
+            val rippleA = (alpha * amplitude * 0.4f).coerceIn(0f, 0.28f)
             drawCircle(
-                color = gradientEnd.copy(alpha = rippleAlpha),
-                radius = rippleRadius,
+                color = gradientEnd.copy(alpha = rippleA),
+                radius = rippleR,
                 center = Offset(cx, cy),
                 style = Stroke(width = 1.5f)
             )
         }
 
         // =====================================================================
-        // LAYER 6 — Main outer ring
+        // OUTER RING
         // =====================================================================
         val sweepAngle = if (state == IrisCoreState.IDLE) 360f else ringSweep
         val startAngle = thinkingRotation
@@ -406,9 +284,9 @@ fun IrisCoreAnimation(
         drawArc(
             brush = Brush.linearGradient(
                 colors = listOf(
-                    ringColor.copy(alpha = baseAlpha * 0.9f),
-                    gradientEnd.copy(alpha = baseAlpha * 0.6f),
-                    ringColor.copy(alpha = baseAlpha * 0.9f)
+                    ringColor.copy(alpha = alpha * 0.9f),
+                    gradientEnd.copy(alpha = alpha * 0.5f),
+                    ringColor.copy(alpha = alpha * 0.9f)
                 ),
                 start = Offset(cx - currentRadius, cy - currentRadius),
                 end = Offset(cx + currentRadius, cy + currentRadius)
@@ -427,7 +305,7 @@ fun IrisCoreAnimation(
         if (state == IrisCoreState.THINKING) {
             val headAngle = startAngle + ringSweep
             drawArc(
-                color = ringColor.copy(alpha = (baseAlpha * 0.9f).coerceIn(0f, 1f)),
+                color = ringColor.copy(alpha = (alpha * 0.9f).coerceIn(0f, 1f)),
                 startAngle = headAngle - 10f,
                 sweepAngle = 10f,
                 useCenter = false,
