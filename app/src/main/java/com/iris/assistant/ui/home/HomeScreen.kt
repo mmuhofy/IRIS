@@ -122,12 +122,20 @@ fun HomeScreen(
                     )
                 }
 
-                IconButton(onClick = onOpenSettings) {
-                    Icon(
-                        PhIcons.Regular.Gear,
-                        contentDescription = "Ayarlar",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                Surface(
+                    onClick = onOpenSettings,
+                    shape = CircleShape,
+                    color = primary.copy(alpha = 0.12f),
+                    modifier = Modifier.size(40.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            PhIcons.Regular.Gear,
+                            contentDescription = "Ayarlar",
+                            tint = primary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
                 }
             }
 
