@@ -135,7 +135,7 @@ fun IrisNavGraph(
     ) {
         NavHost(
             navController    = navController,
-            startDestination = NavRoute.Settings.route,
+            startDestination = startDestination,
             // Global defaults — applied whenever a composable() below does not
             // override enter/exit/popEnter/popExit itself. Per Navigation Compose
             // docs: a destination returning null for a transition causes it to
