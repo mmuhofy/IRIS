@@ -1,0 +1,36 @@
+name: Generate IRIS App Icon
+
+on:
+  workflow_dispatch:
+
+jobs:
+  generate-icon:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          # 'cache: pip' satırını kaldırdık, hata çözüldü.
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install google-genai pillow
+
+      - name: Run Icon Generator Script
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          python tools/generate_app_icon.py
+
+      - name: Upload Icon Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: iris-app-icon-set
+          path: icon_output/
+          retention-days: 7
