@@ -37,6 +37,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import com.phosphor.icons.PhIcons
 import com.phosphor.icons.regular.*
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.DropdownMenu
@@ -74,6 +75,7 @@ import com.iris.assistant.util.Constants
 @Composable
 fun HomeScreen(
     onOpenSettings: () -> Unit,
+    onOpenDrawer: () -> Unit,
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -118,10 +120,16 @@ fun HomeScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(
-                    modifier = Modifier.padding(start = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+            	     IconButton(onClick = onOpenDrawer) {
+            	     	Icon(
+            	     	    imageVector = PhIcons.Regular.List,
+                             contentDescription = "Menü",
+                             tint = primary
+                        )
+                    }
+
+                    Spacer(Modifier.width(8.dp)) // 2. Buton ile IRIS arasına boşluk
+                    
                     Text(
                         text = "IRIS",
                         style = MaterialTheme.typography.titleLarge.copy(
