@@ -87,8 +87,15 @@ fun SettingsScreen(
         )
     }
 
+    // NOTE: containerColor (Scaffold AND TopAppBar) changed from
+    // MaterialTheme.colorScheme.background to Color.Transparent. Same root
+    // cause as HomeScreen.kt: an opaque background here was painting over
+    // the exiting screen during IrisNavGraph.kt's scale+fade transition,
+    // hiding the animation entirely (confirmed against Peristyle's Home.kt
+    // reference). The real background color now lives once, in the Box
+    // wrapping NavHost in IrisNavGraph.kt. Nothing else in this file changed.
     Scaffold(
-        containerColor = MaterialTheme.colorScheme.background,
+        containerColor = Color.Transparent,
         topBar = {
             TopAppBar(
                 title = {
@@ -108,7 +115,7 @@ fun SettingsScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background,
+                    containerColor = Color.Transparent,
                 ),
             )
         },

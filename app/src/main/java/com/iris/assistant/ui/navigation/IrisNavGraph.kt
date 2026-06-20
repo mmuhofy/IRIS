@@ -9,8 +9,13 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
@@ -30,27 +35,32 @@ import com.iris.assistant.ui.settings.SettingsScreen
 import com.iris.assistant.util.Constants
 
 /**
- * IMPORTANT — Predictive Back, corrected (see commit history for prior
- * mistake): we previously added a manual PredictiveBackHandler() composable
- * here that registered its own android.window.OnBackInvokedCallback at the
- * NavGraph level.
+ * ROOT CAUSE FOUND (confirmed against Peristyle's Home.kt as a working
+ * reference implementation — github.com/Hamza417/Peristyle, not assumed):
  *
- * That was WRONG and has been removed. Per official Android docs
- * (developer.android.com/codelabs/predictive-back):
- * "If your app intercepts the back event with BackHandler,
- * PredictiveBackHandler, OnBackPressedCallback or OnBackInvokedCallback at
- * the root activity (e.g. MainActivity.kt) [or, as we were doing, in the nav
- * graph], your users will not see the predictive back-to-home animation."
+ * Each main-flow screen (HomeScreen.kt, SettingsScreen.kt, LocalModelScreen.kt)
+ * wraps its content in Scaffold(containerColor = MaterialTheme.colorScheme.background, ...).
+ * That paints a fully OPAQUE rectangle the instant the destination enters
+ * composition. Navigation Compose's AnimatedContent renders the entering and
+ * exiting screen in the same z-stack during a transition — but because the
+ * entering screen's Scaffold is opaque, it instantly covers the exiting
+ * screen. Our mainEnter()/mainExit()/mainPopEnter()/mainPopExit() scale+fade
+ * specs were running correctly, but had nothing visible to animate through:
+ * the new opaque Scaffold simply appears on top, frame one. This is also why
+ * only the system's predictive-back gesture preview was visible (it animates
+ * the outgoing screen's content as a snapshot, before our own Scaffold paints
+ * over it) while our own transitions never were — exactly what Muhofy
+ * observed.
  *
- * Navigation Compose 2.9.0 (confirmed in gradle/libs.versions.toml) already
- * auto-applies predictive back support to enterTransition/exitTransition/
- * popEnterTransition/popExitTransition as soon as
- * android:enableOnBackInvokedCallback="true" is set in AndroidManifest.xml
- * (already done — see app/src/main/AndroidManifest.xml). No manual callback
- * registration is needed or wanted. The manual callback we added was
- * fighting Navigation Compose's own back handling, which is the most likely
- * cause of the abrupt ("küt") transition Muhofy reported — confirmed present
- * on both forward and back navigation, on an API 33+ device.
+ * Peristyle's Home() composable (ui/screens/Home.kt) has NO Scaffold and NO
+ * per-screen background paint — it starts directly with
+ * Column(Modifier.fillMaxSize()...), relying on a single background source
+ * higher in the view hierarchy. We apply the same fix: the real background
+ * color now lives ONCE, in the Box wrapping NavHost below. Each screen's
+ * Scaffold is kept as-is (snackbarHost etc. still work) but its
+ * containerColor must be Color.Transparent — see HomeScreen.kt /
+ * SettingsScreen.kt / LocalModelScreen.kt (containerColor changed, nothing
+ * else in those files touched).
  */
 
 /**
@@ -82,9 +92,7 @@ private fun onboardingPopExit(): ExitTransition =
  * Forward navigation: incoming screen scales up from NAV_SCALE_ENTER_FROM -> 1f
  * while fading in; outgoing screen scales down to NAV_SCALE_EXIT_TO while
  * fading out (recedes "behind" the new screen). Back navigation mirrors this
- * in reverse. Scale delta widened from an initial 0.95f/0.92f attempt — per
- * Muhofy's on-device testing, that delta was "barely visible, sometimes
- * nothing." Current values match Peristyle's perceptible range.
+ * in reverse.
  */
 private fun mainEnter(): EnterTransition =
     scaleIn(
@@ -117,119 +125,128 @@ fun IrisNavGraph(
 ) {
     val onboardingViewModel: OnboardingViewModel = hiltViewModel()
 
-    NavHost(
-        navController    = navController,
-        startDestination = startDestination,
-        // Global defaults — applied whenever a composable() below does not
-        // override enter/exit/popEnter/popExit itself. Per Navigation Compose
-        // docs: a destination returning null for a transition causes it to
-        // fall back to the parent (NavHost-level) transition. We define
-        // per-destination transitions explicitly below instead of relying on
-        // this fallback, so these act as a safety net only.
-        enterTransition    = { mainEnter() },
-        exitTransition      = { mainExit() },
-        popEnterTransition  = { mainPopEnter() },
-        popExitTransition   = { mainPopExit() }
+    // Single background paint source for the whole nav graph — see root
+    // cause note above. NavHost itself stays transparent; this Box behind it
+    // is what every screen renders against during transitions.
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
     ) {
-        // --- Onboarding ---
-        composable(
-            route             = NavRoute.OnboardingWelcome.route,
-            enterTransition   = { onboardingEnter() },
-            exitTransition    = { onboardingExit() }
+        NavHost(
+            navController    = navController,
+            startDestination = startDestination,
+            // Global defaults — applied whenever a composable() below does not
+            // override enter/exit/popEnter/popExit itself. Per Navigation Compose
+            // docs: a destination returning null for a transition causes it to
+            // fall back to the parent (NavHost-level) transition. We define
+            // per-destination transitions explicitly below instead of relying on
+            // this fallback, so these act as a safety net only.
+            enterTransition    = { mainEnter() },
+            exitTransition      = { mainExit() },
+            popEnterTransition  = { mainPopEnter() },
+            popExitTransition   = { mainPopExit() }
         ) {
-            val userName by onboardingViewModel.userName.collectAsStateWithLifecycle()
-            OnboardingWelcomeScreen(
-                userName         = userName,
-                onUserNameChange  = onboardingViewModel::setUserName,
-                onNext            = { navController.navigate(NavRoute.OnboardingMic.route) }
-            )
-        }
-        composable(
-            route              = NavRoute.OnboardingMic.route,
-            enterTransition    = { onboardingEnter() },
-            exitTransition     = { onboardingExit() },
-            popEnterTransition = { onboardingPopEnter() },
-            popExitTransition  = { onboardingPopExit() }
-        ) {
-            OnboardingMicScreen(
-                onNext = { navController.navigate(NavRoute.OnboardingWakeWord.route) },
-                onBack = { navController.popBackStack() }
-            )
-        }
-        composable(
-            route              = NavRoute.OnboardingWakeWord.route,
-            enterTransition    = { onboardingEnter() },
-            exitTransition     = { onboardingExit() },
-            popEnterTransition = { onboardingPopEnter() },
-            popExitTransition  = { onboardingPopExit() }
-        ) {
-            OnboardingWakeWordScreen(
-                onNext = { navController.navigate(NavRoute.OnboardingDemo.route) },
-                onBack = { navController.popBackStack() }
-            )
-        }
-        composable(
-            route              = NavRoute.OnboardingDemo.route,
-            enterTransition    = { onboardingEnter() },
-            exitTransition     = { onboardingExit() },
-            popEnterTransition = { onboardingPopEnter() },
-            popExitTransition  = { onboardingPopExit() }
-        ) {
-            OnboardingDemoScreen(
-                onNext = { navController.navigate(NavRoute.OnboardingAssistant.route) },
-                onBack = { navController.popBackStack() }
-            )
-        }
-        composable(
-            route              = NavRoute.OnboardingAssistant.route,
-            enterTransition    = { onboardingEnter() },
-            exitTransition     = { onboardingExit() },
-            popEnterTransition = { onboardingPopEnter() },
-            popExitTransition  = { onboardingPopExit() }
-        ) {
-            OnboardingAssistantScreen(
-                onNext = { navController.navigate(NavRoute.OnboardingBattery.route) },
-                onBack = { navController.popBackStack() }
-            )
-        }
-        composable(
-            route              = NavRoute.OnboardingBattery.route,
-            enterTransition    = { onboardingEnter() },
-            // Exit uses main scale+fade since the only forward destination
-            // from here is Home (a main-flow route).
-            exitTransition     = { mainExit() },
-            popEnterTransition = { onboardingPopEnter() },
-            popExitTransition  = { onboardingPopExit() }
-        ) {
-            OnboardingBatteryScreen(
-                onFinish = {
-                    navController.navigate(NavRoute.Home.route) {
-                        popUpTo(NavRoute.OnboardingWelcome.route) { inclusive = true }
-                    }
-                },
-                onBack    = { navController.popBackStack() },
-                viewModel = onboardingViewModel
-            )
-        }
+            // --- Onboarding ---
+            composable(
+                route             = NavRoute.OnboardingWelcome.route,
+                enterTransition   = { onboardingEnter() },
+                exitTransition    = { onboardingExit() }
+            ) {
+                val userName by onboardingViewModel.userName.collectAsStateWithLifecycle()
+                OnboardingWelcomeScreen(
+                    userName         = userName,
+                    onUserNameChange  = onboardingViewModel::setUserName,
+                    onNext            = { navController.navigate(NavRoute.OnboardingMic.route) }
+                )
+            }
+            composable(
+                route              = NavRoute.OnboardingMic.route,
+                enterTransition    = { onboardingEnter() },
+                exitTransition     = { onboardingExit() },
+                popEnterTransition = { onboardingPopEnter() },
+                popExitTransition  = { onboardingPopExit() }
+            ) {
+                OnboardingMicScreen(
+                    onNext = { navController.navigate(NavRoute.OnboardingWakeWord.route) },
+                    onBack = { navController.popBackStack() }
+                )
+            }
+            composable(
+                route              = NavRoute.OnboardingWakeWord.route,
+                enterTransition    = { onboardingEnter() },
+                exitTransition     = { onboardingExit() },
+                popEnterTransition = { onboardingPopEnter() },
+                popExitTransition  = { onboardingPopExit() }
+            ) {
+                OnboardingWakeWordScreen(
+                    onNext = { navController.navigate(NavRoute.OnboardingDemo.route) },
+                    onBack = { navController.popBackStack() }
+                )
+            }
+            composable(
+                route              = NavRoute.OnboardingDemo.route,
+                enterTransition    = { onboardingEnter() },
+                exitTransition     = { onboardingExit() },
+                popEnterTransition = { onboardingPopEnter() },
+                popExitTransition  = { onboardingPopExit() }
+            ) {
+                OnboardingDemoScreen(
+                    onNext = { navController.navigate(NavRoute.OnboardingAssistant.route) },
+                    onBack = { navController.popBackStack() }
+                )
+            }
+            composable(
+                route              = NavRoute.OnboardingAssistant.route,
+                enterTransition    = { onboardingEnter() },
+                exitTransition     = { onboardingExit() },
+                popEnterTransition = { onboardingPopEnter() },
+                popExitTransition  = { onboardingPopExit() }
+            ) {
+                OnboardingAssistantScreen(
+                    onNext = { navController.navigate(NavRoute.OnboardingBattery.route) },
+                    onBack = { navController.popBackStack() }
+                )
+            }
+            composable(
+                route              = NavRoute.OnboardingBattery.route,
+                enterTransition    = { onboardingEnter() },
+                // Exit uses main scale+fade since the only forward destination
+                // from here is Home (a main-flow route).
+                exitTransition     = { mainExit() },
+                popEnterTransition = { onboardingPopEnter() },
+                popExitTransition  = { onboardingPopExit() }
+            ) {
+                OnboardingBatteryScreen(
+                    onFinish = {
+                        navController.navigate(NavRoute.Home.route) {
+                            popUpTo(NavRoute.OnboardingWelcome.route) { inclusive = true }
+                        }
+                    },
+                    onBack    = { navController.popBackStack() },
+                    viewModel = onboardingViewModel
+                )
+            }
 
-        // --- Main ---
-        // No per-destination transition overrides here: these three routes
-        // rely on the NavHost-level scale+fade defaults declared above.
-        composable(NavRoute.Home.route) {
-            HomeScreen(
-                onOpenSettings = { navController.navigate(NavRoute.Settings.route) }
-            )
-        }
-        composable(NavRoute.Settings.route) {
-            SettingsScreen(
-                onBack            = { navController.popBackStack() },
-                onOpenLocalModels = { navController.navigate(NavRoute.LocalModels.route) }
-            )
-        }
-        composable(NavRoute.LocalModels.route) {
-            LocalModelScreen(
-                onBack = { navController.popBackStack() }
-            )
+            // --- Main ---
+            // No per-destination transition overrides here: these three routes
+            // rely on the NavHost-level scale+fade defaults declared above.
+            composable(NavRoute.Home.route) {
+                HomeScreen(
+                    onOpenSettings = { navController.navigate(NavRoute.Settings.route) }
+                )
+            }
+            composable(NavRoute.Settings.route) {
+                SettingsScreen(
+                    onBack            = { navController.popBackStack() },
+                    onOpenLocalModels = { navController.navigate(NavRoute.LocalModels.route) }
+                )
+            }
+            composable(NavRoute.LocalModels.route) {
+                LocalModelScreen(
+                    onBack = { navController.popBackStack() }
+                )
+            }
         }
     }
 }
