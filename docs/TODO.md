@@ -27,7 +27,7 @@
 - [x] Screen tools: click, type, scroll, navigate_back, read_screen
 - [x] ActionPreviewOverlay (spotlight, countdown, ripple, cancel)
 - [x] ScreenActionGate (overlay üzerinden approval)
-- [ ] **Autonomy Level picker UI** — Settings'te seçici henüz yok
+- [x] **Autonomy Level picker UI** — Settings'te seçici henüz yok
 - [ ] **Accessibility service aktivasyon rehberi** — Kullanıcıya adım adım açıklama ekranı gerek
 - [x] **NavigateTool** — label iyileştirildi, koordinatsız (sistem aksiyonu)
 - [x] **Accessibility performans fix** — background thread + 150ms debounce + node recycling

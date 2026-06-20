@@ -12,15 +12,35 @@ class ReadScreenTool @Inject constructor(
 ) : JarvisTool {
 
     override val name = "read_screen"
-    override val description = "Ekrandaki tüm görünür metinleri, butonları ve etkileşimli öğeleri JSON formatında listele. Her öğe için text, description, bounds, className bilgilerini döndürür. Bir ekran işlemi yapmadan ÖNCE mutlaka çağır. Sonuçtaki text/description değerlerini click, type veya scroll tool'larında kullan."
+
+    override val description = """
+        Returns all visible and interactive elements on the current screen as a JSON array.
+        ALWAYS call this before click, type, or scroll.
+        Each element has:
+          - id (integer): use this in click(nodeId=...) — guaranteed, never guess text
+          - text: visible label if present
+          - desc: contentDescription if present (used for icon-only buttons)
+          - hint: input field placeholder if present
+          - type: button | input | icon_button | checkbox | toggle | text | list | view
+          - clickable / focusable / checked / enabled: boolean flags
+          - bounds: "left,top,right,bottom" in screen pixels
+        Strategy: find the element by text/desc/hint, then pass its id to click(nodeId=...).
+        If no element matches by text, try desc or hint fields.
+    """.trimIndent()
+
     override val parameters = JSONObject("""{"type":"object","properties":{},"required":[]}""")
     override val requiredPermission: String? = null
 
     override suspend fun execute(args: JSONObject): ToolResult {
         val dump = screenRepository.screenDump.value
         if (dump.isBlank()) {
-            return ToolResult.Error("Ekran bilgisi alınamadı. Erişilebilirlik servisinin açık olduğundan emin ol.")
+            return ToolResult.Error(
+                "Screen data unavailable. Make sure the Accessibility Service is enabled."
+            )
         }
-        return ToolResult.Success("Ekran içeriği alındı. İşte ekrandaki öğeler:\n$dump", data = mapOf("screen" to dump))
+        return ToolResult.Success(
+            message = "Screen elements retrieved. Use the 'id' field in click(nodeId=...) — do not guess by text alone.\n$dump",
+            data = mapOf("screen" to dump)
+        )
     }
 }

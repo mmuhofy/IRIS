@@ -15,7 +15,7 @@ import javax.inject.Singleton
 class ScreenInteractionRepository @Inject constructor() {
 
     companion object {
-        private const val MAX_DUMP_CHARS = 5000
+        private const val MAX_NODES = 80 // Max interactive nodes to expose to LLM
     }
 
     private val _screenDump = MutableStateFlow("")
@@ -24,36 +24,180 @@ class ScreenInteractionRepository @Inject constructor() {
     var rootNode: AccessibilityNodeInfo? = null
         private set
 
+    // nodeId → AccessibilityNodeInfo map, rebuilt on every screen update
+    // Key is the integer id assigned during flattenNode traversal
+    private val nodeMap = HashMap<Int, AccessibilityNodeInfo>()
+
     fun updateRootNode(node: AccessibilityNodeInfo?) {
-        rootNode?.let {
-            if (it != node) it.recycle()
-        }
+        rootNode?.let { if (it != node) it.recycle() }
         rootNode = node
-        _screenDump.value = node?.let { nodeToJson(it).toString() } ?: ""
+        nodeMap.clear()
+        _screenDump.value = node?.let { buildDump(it) } ?: ""
     }
 
+    // ------------------------------------------------------------------
+    // Node lookup — primary path for ClickTool / TypeTool
+    // ------------------------------------------------------------------
+
+    /** Look up a node by the integer id assigned in the last read_screen dump. */
+    fun findNodeBySemanticId(id: Int): AccessibilityNodeInfo? = nodeMap[id]
+
+    /** Fallback: find by visible text or contentDescription (case-insensitive, contains). */
     fun findNodeByText(text: String): AccessibilityNodeInfo? {
         val root = rootNode ?: return null
         return findNodeByTextRecursive(root, text)
     }
 
+    /** Fallback: find by viewIdResourceName fragment. */
     fun findNodeById(viewId: String): AccessibilityNodeInfo? {
         val root = rootNode ?: return null
         return findNodeByIdRecursive(root, viewId)
     }
 
-    fun findNodeByViewTag(tag: String): AccessibilityNodeInfo? {
-        val root = rootNode ?: return null
-        return findNodeByViewTagRecursive(root, tag)
+    // ------------------------------------------------------------------
+    // Actions
+    // ------------------------------------------------------------------
+
+    fun performClick(node: AccessibilityNodeInfo): Boolean =
+        node.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+
+    fun performLongClick(node: AccessibilityNodeInfo): Boolean =
+        node.performAction(AccessibilityNodeInfo.ACTION_LONG_CLICK)
+
+    fun typeText(chars: CharSequence): Boolean {
+        val root = rootNode ?: return false
+        val focused = findFocusedNode(root)
+        val args = Bundle().apply {
+            putCharSequence(
+                AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE,
+                chars
+            )
+        }
+        return focused?.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, args) ?: false
     }
 
-    private fun findNodeByTextRecursive(node: AccessibilityNodeInfo, text: String): AccessibilityNodeInfo? {
+    fun findFocusedNode(): AccessibilityNodeInfo? {
+        val root = rootNode ?: return null
+        return findFocusedNode(root)
+    }
+
+    // ------------------------------------------------------------------
+    // Dump builder — produces LLM-facing JSON and populates nodeMap
+    // ------------------------------------------------------------------
+
+    private fun buildDump(root: AccessibilityNodeInfo): String {
+        val arr = JSONArray()
+        var nextId = 0
+        flattenNode(root, arr, nextId) { nextId = it }
+        return arr.toString()
+    }
+
+    /**
+     * DFS traversal. Emits one JSON entry per actionable/readable node.
+     * Each entry gets a stable integer `id` stored in nodeMap so ClickTool
+     * can resolve it without any text matching.
+     *
+     * Included nodes:
+     *   - Clickable / long-clickable
+     *   - Focusable input fields
+     *   - Checkable items (checkboxes, toggles)
+     *   - Any node with non-empty text or contentDescription that is visible
+     *
+     * UNTESTED — verify before use
+     */
+    private fun flattenNode(
+        node: AccessibilityNodeInfo,
+        arr: JSONArray,
+        currentId: Int,
+        updateId: (Int) -> Unit
+    ) {
+        if (arr.length() >= MAX_NODES) return
+        if (!node.isVisibleToUser) {
+            // Still traverse children — parent may be invisible container
+            for (i in 0 until node.childCount) {
+                if (arr.length() >= MAX_NODES) return
+                node.getChild(i)?.let { child ->
+                    flattenNode(child, arr, currentId, updateId)
+                }
+            }
+            return
+        }
+
+        val text = node.text?.toString()?.trim()
+        val desc = node.contentDescription?.toString()?.trim()
+        val hint = node.hintText?.toString()?.trim() // API 26+
+        val className = node.className?.toString() ?: ""
+
+        val isActionable = node.isClickable
+                || node.isLongClickable
+                || node.isFocusable
+                || node.isCheckable
+
+        val hasLabel = !text.isNullOrEmpty() || !desc.isNullOrEmpty() || !hint.isNullOrEmpty()
+
+        // Include if actionable OR has readable label
+        if (isActionable || hasLabel) {
+            val id = currentId
+            updateId(currentId + 1)
+
+            // Store in map for guaranteed lookup later
+            nodeMap[id] = node
+
+            val bounds = Rect()
+            node.getBoundsInScreen(bounds)
+
+            val entry = JSONObject().apply {
+                put("id", id)
+                if (!text.isNullOrEmpty()) put("text", text)
+                if (!desc.isNullOrEmpty()) put("desc", desc)
+                if (!hint.isNullOrEmpty()) put("hint", hint)
+                put("type", resolveType(className, node))
+                put("clickable", node.isClickable)
+                put("focusable", node.isFocusable)
+                put("checked", node.isChecked)
+                put("enabled", node.isEnabled)
+                put("bounds", "${bounds.left},${bounds.top},${bounds.right},${bounds.bottom}")
+            }
+            arr.put(entry)
+        }
+
+        for (i in 0 until node.childCount) {
+            if (arr.length() >= MAX_NODES) return
+            node.getChild(i)?.let { child ->
+                flattenNode(child, arr, currentId, updateId)
+            }
+        }
+    }
+
+    /**
+     * Maps Android className to a human-readable type string for LLM context.
+     * Keeps the LLM prompt shorter and more semantic.
+     */
+    private fun resolveType(className: String, node: AccessibilityNodeInfo): String = when {
+        node.isCheckable -> "checkbox"
+        className.contains("EditText", ignoreCase = true) -> "input"
+        className.contains("Button", ignoreCase = true) -> "button"
+        className.contains("ImageView", ignoreCase = true) && node.isClickable -> "icon_button"
+        className.contains("Switch", ignoreCase = true) -> "toggle"
+        className.contains("TextView", ignoreCase = true) -> "text"
+        className.contains("RecyclerView", ignoreCase = true) -> "list"
+        className.contains("ScrollView", ignoreCase = true) -> "scroll_container"
+        else -> "view"
+    }
+
+    // ------------------------------------------------------------------
+    // Private recursive helpers
+    // ------------------------------------------------------------------
+
+    private fun findNodeByTextRecursive(
+        node: AccessibilityNodeInfo,
+        text: String
+    ): AccessibilityNodeInfo? {
         val nodeText = node.text?.toString()
         val nodeDesc = node.contentDescription?.toString()
-        val matchText = listOfNotNull(nodeText, nodeDesc).any { it.contains(text, ignoreCase = true) }
-
-        if (matchText && node.isVisibleToUser && isActionable(node)) return node
-
+        val matches = listOfNotNull(nodeText, nodeDesc)
+            .any { it.contains(text, ignoreCase = true) }
+        if (matches && node.isVisibleToUser && isActionable(node)) return node
         for (i in 0 until node.childCount) {
             val child = node.getChild(i) ?: continue
             val result = findNodeByTextRecursive(child, text)
@@ -62,7 +206,10 @@ class ScreenInteractionRepository @Inject constructor() {
         return null
     }
 
-    private fun findNodeByIdRecursive(node: AccessibilityNodeInfo, viewId: String): AccessibilityNodeInfo? {
+    private fun findNodeByIdRecursive(
+        node: AccessibilityNodeInfo,
+        viewId: String
+    ): AccessibilityNodeInfo? {
         if (node.viewIdResourceName?.contains(viewId, ignoreCase = true) == true) return node
         for (i in 0 until node.childCount) {
             val child = node.getChild(i) ?: continue
@@ -70,38 +217,6 @@ class ScreenInteractionRepository @Inject constructor() {
             if (result != null) return result
         }
         return null
-    }
-
-    private fun findNodeByViewTagRecursive(node: AccessibilityNodeInfo, tag: String): AccessibilityNodeInfo? {
-        if (node.viewIdResourceName?.contains(tag, ignoreCase = true) == true ||
-            node.contentDescription?.toString()?.contains(tag, ignoreCase = true) == true
-        ) return node
-        for (i in 0 until node.childCount) {
-            val child = node.getChild(i) ?: continue
-            val result = findNodeByViewTagRecursive(child, tag)
-            if (result != null) return result
-        }
-        return null
-    }
-
-    fun performClick(node: AccessibilityNodeInfo): Boolean {
-        return node.performAction(AccessibilityNodeInfo.ACTION_CLICK)
-    }
-
-    fun performLongClick(node: AccessibilityNodeInfo): Boolean {
-        return node.performAction(AccessibilityNodeInfo.ACTION_LONG_CLICK)
-    }
-
-    fun typeText(chars: CharSequence): Boolean {
-        val root = rootNode ?: return false
-        val focused = findFocusedNode(root)
-        val args = Bundle().apply { putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, chars) }
-        return focused?.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, args) ?: false
-    }
-
-    fun findFocusedNode(): AccessibilityNodeInfo? {
-        val root = rootNode ?: return null
-        return findFocusedNode(root)
     }
 
     private fun findFocusedNode(node: AccessibilityNodeInfo): AccessibilityNodeInfo? {
@@ -114,59 +229,12 @@ class ScreenInteractionRepository @Inject constructor() {
         return null
     }
 
-    private fun isActionable(node: AccessibilityNodeInfo): Boolean {
-        return node.isClickable || node.isLongClickable ||
-                node.isFocusable || node.isCheckable ||
-                node.actionList.contains(AccessibilityNodeInfo.AccessibilityAction.ACTION_CLICK)
-    }
-
-    private var charCount = 0
-
-    private fun nodeToJson(node: AccessibilityNodeInfo): JSONArray {
-        charCount = 0
-        val arr = JSONArray()
-        flattenNode(node, arr)
-        return arr
-    }
-
-    private fun flattenNode(node: AccessibilityNodeInfo, arr: JSONArray) {
-        if (charCount >= MAX_DUMP_CHARS) return
-
-        val text = node.text?.toString()?.trim()
-        val desc = node.contentDescription?.toString()?.trim()
-
-        val hasText = !text.isNullOrEmpty() || !desc.isNullOrEmpty() ||
-                (node.className?.toString()?.contains("Button", ignoreCase = true) == true &&
-                        (text != null || desc != null))
-
-        if (node.isVisibleToUser && hasText) {
-            val bounds = Rect()
-            node.getBoundsInScreen(bounds)
-
-            val entry = JSONObject()
-            text?.let { entry.put("text", it) }
-            desc?.let { entry.put("description", it) }
-            entry.put("className", node.className?.toString() ?: "unknown")
-            entry.put("bounds", "[${bounds.left},${bounds.top}][${bounds.right},${bounds.bottom}]")
-            entry.put("clickable", node.isClickable)
-            entry.put("focusable", node.isFocusable)
-            entry.put("enabled", node.isEnabled)
-
-            val jsonStr = entry.toString()
-            charCount += jsonStr.length
-            if (charCount <= MAX_DUMP_CHARS) {
-                arr.put(entry)
-            }
-        }
-
-        for (i in 0 until node.childCount) {
-            if (charCount >= MAX_DUMP_CHARS) return
-            node.getChild(i)?.let { flattenNode(it, arr) }
-        }
-    }
+    private fun isActionable(node: AccessibilityNodeInfo): Boolean =
+        node.isClickable || node.isLongClickable || node.isFocusable || node.isCheckable
 
     fun clear() {
         rootNode = null
+        nodeMap.clear()
         _screenDump.value = ""
     }
 }

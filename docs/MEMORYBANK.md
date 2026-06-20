@@ -36,7 +36,7 @@
 | Room | 2.8.4 | confirmed both lists |
 | Coroutines + Flow | 1.10.x | known-working combo |
 | Fonts | Google Fonts (Compose) | via BOM |
-| KSP | 2.2.20-2.0.3 | must match Kotlin 2.2.20 |
+| Navigation Compose | 2.9.0 | predictive back auto-enabled via manifest flag |
 
 > Note: Newer versions exist (Compose BOM 2026.06.00 / Core 1.11.2 / Kotlin 2.4.0) but the above is a **proven working combination** from Muhofy's other project — use this baseline. If upgrading to Kotlin 2.4.0 later, KSP version must be updated to match (2.4.0-x.x.x), and Compose BOM bumped together as a set, not individually.
 
@@ -137,6 +137,14 @@ Center: Iris Core animation + status text
 Bottom: 🎤 Mic toggle | 📺 Screen-control toggle | ⏹ Stop/interrupt
 ```
 These three bottom controls are always visible.
+
+### Navigation Transitions
+- Defined as private functions in `IrisNavGraph.kt`.
+- Timing: `Constants.NAV_ANIM_DURATION_MS = 300`, scale delta: `0.90f`.
+- **Onboarding**: horizontal slide (1/4 screen offset) + fade (page-turn feel).
+- **Main app** (Home ↔ Settings ↔ LocalModels): scale (0.90↔1.0) + fade (300ms).
+- Scale pattern inspired by Peristyle: incoming screen scales up from 0.90 + fades in, outgoing scales down to 0.90 + fades out. Mirror on pop.
+- Predictive back handled by Navigation Compose 2.9.0 automatically via `android:enableOnBackInvokedCallback="true"` in manifest. No manual `PredictiveBackHandler` registered.
 
 ---
 
