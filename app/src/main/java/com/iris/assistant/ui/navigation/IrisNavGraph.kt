@@ -11,17 +11,55 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.DrawerState
+import androidx.compose.material3.DrawerValue
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalDrawerSheet
+import androidx.compose.material3.ModalNavigationDrawer
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.getVal
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
+import com.iris.assistant.domain.model.Conversation
+import com.iris.assistant.domain.repository.ConversationRepository
+import com.iris.assistant.ui.chat.ChatScreen
 import com.iris.assistant.ui.home.HomeScreen
 import com.iris.assistant.ui.onboarding.OnboardingAssistantScreen
 import com.iris.assistant.ui.onboarding.OnboardingBatteryScreen
@@ -34,49 +72,23 @@ import com.iris.assistant.ui.settings.LocalModelScreen
 import com.iris.assistant.ui.settings.PermissionScreen
 import com.iris.assistant.ui.settings.SettingsScreen
 import com.iris.assistant.ui.settings.VoiceSettingsScreen
+import com.iris.assistant.ui.theme.IrisTheme
 import com.iris.assistant.util.Constants
+import com.phosphor.icons.PhIcons
+import com.phosphor.icons.regular.ChatCircle
+import com.phosphor.icons.regular.House
+import com.phosphor.icons.regular.Plus
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
+import javax.inject.Inject
 
-/**
- * ROOT CAUSE (confirmed against Peristyle's Home.kt as a working reference —
- * github.com/Hamza417/Peristyle — not assumed):
- *
- * Every main-flow screen (HomeScreen.kt, SettingsScreen.kt,
- * LocalModelScreen.kt, PermissionScreen.kt, VoiceSettingsScreen.kt) wraps its
- * content in Scaffold(containerColor = MaterialTheme.colorScheme.background).
- * That paints a fully OPAQUE rectangle the instant a destination enters
- * composition. Navigation Compose's AnimatedContent renders the entering and
- * exiting screen in the same z-stack during a transition — an opaque
- * entering Scaffold instantly covers the exiting screen, so scale/fade specs
- * run correctly but have nothing visible to animate through.
- *
- * Peristyle's Home() composable (ui/screens/Home.kt) has NO Scaffold and NO
- * per-screen background paint — it starts directly with
- * Column(Modifier.fillMaxSize()...), relying on a single background source
- * higher in the view hierarchy. We follow the same pattern: the real
- * background color lives ONCE, in the Box wrapping NavHost below. Every
- * screen's Scaffold containerColor (and TopAppBar containerColor, where
- * present) MUST be Color.Transparent for transitions to be visible.
- *
- * IMPORTANT — do not "optimize" this back to opaque per-screen backgrounds.
- * That was tried once already (reverted here) on the reasoning that opaque
- * backgrounds render slightly cheaper than transparent ones. That trade-off
- * is not acceptable on its own: it makes every nav transition in the app
- * invisible, which defeats the entire feature. We additionally moved from a
- * scale+fade-only transition to slide+scale+fade (see mainEnter/mainExit
- * below) after comparing against Muhofy's other app (Still), where slide
- * transitions read clearly even over an opaque Scaffold — confirming that
- * position-based motion (slide) is the visually reliable part of this
- * combination, with scale as a secondary depth cue. If a real, measured
- * jank problem shows up later, fix it without reintroducing opaque
- * per-screen backgrounds or removing slide (e.g. investigate recomposition
- * scope first via Layout Inspector) — do not just flip these back.
- */
+// ---------------------------------------------------------------------------
+// Transition helpers
+// ---------------------------------------------------------------------------
 
-/**
- * Onboarding transitions: horizontal slide + fade.
- * Used for sequential step-by-step onboarding flow where forward/backward
- * spatial direction reinforces progress through the flow.
- */
 private fun onboardingEnter(): EnterTransition =
     slideInHorizontally(tween(Constants.NAV_ANIM_DURATION_MS)) { it / 4 } +
         fadeIn(tween(Constants.NAV_ANIM_DURATION_MS))
@@ -93,26 +105,6 @@ private fun onboardingPopExit(): ExitTransition =
     slideOutHorizontally(tween(Constants.NAV_ANIM_DURATION_MS)) { it / 4 } +
         fadeOut(tween(Constants.NAV_ANIM_DURATION_MS))
 
-/**
- * Main app transitions: slide + scale + fade (Apple-style Modern Minimal).
- *
- * Why slide is included (not scale/fade alone): compared against Muhofy's
- * other app (Still — see StillNavHost.kt), whose NoteEditorScreen also uses
- * an opaque Scaffold yet reads clearly during its slide transition. Slide is
- * a position change, so the moving screen edges themselves carry the visual
- * signal regardless of background opacity. Pure scale/fade does not, since
- * the screen bounds stay fixed and only size/opacity shift — a much subtler,
- * easier-to-miss cue. Combining both gives a guaranteed-visible motion
- * (slide, proven by Still) plus added depth (scale) without reading as
- * "playful" — NAV_SCALE_ENTER_FROM is 0.96f, not Peristyle's more dramatic
- * 0.90f/1.1f range, to keep IRIS's calm, Apple-style "trusted assistant"
- * identity rather than a wallpaper-app energy.
- *
- * Forward and back navigation use the same scale delta and mirrored slide
- * direction (forward: enters from right, exits to left — standard
- * "push deeper" hierarchy direction; back: reversed) for a consistent,
- * symmetric feel in both directions.
- */
 private fun mainEnter(): EnterTransition =
     slideInHorizontally(
         animationSpec = tween(Constants.NAV_ANIM_DURATION_MS)
@@ -149,140 +141,379 @@ private fun mainPopExit(): ExitTransition =
         targetScale = Constants.NAV_SCALE_ENTER_FROM
     ) + fadeOut(animationSpec = tween(Constants.NAV_ANIM_DURATION_MS))
 
+private fun chatEnter(): EnterTransition =
+    slideInHorizontally(tween(Constants.NAV_ANIM_DURATION_MS)) { it } +
+        fadeIn(tween(Constants.NAV_ANIM_DURATION_MS))
+
+private fun chatExit(): ExitTransition =
+    slideOutHorizontally(tween(Constants.NAV_ANIM_DURATION_MS)) { it } +
+        fadeOut(tween(Constants.NAV_ANIM_DURATION_MS))
+
+private fun chatPopEnter(): EnterTransition =
+    slideInHorizontally(tween(Constants.NAV_ANIM_DURATION_MS)) { -it } +
+        fadeIn(tween(Constants.NAV_ANIM_DURATION_MS))
+
+// ---------------------------------------------------------------------------
+// DrawerViewModel
+// ---------------------------------------------------------------------------
+
+@HiltViewModel
+class DrawerViewModel @Inject constructor(
+    private val repo: ConversationRepository,
+) : ViewModel() {
+
+    val conversations: StateFlow<List<Conversation>> = repo.observeConversations()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    fun deleteConversation(id: Long) {
+        viewModelScope.launch { repo.deleteConversation(id) }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// IrisNavGraph — root composable, owns drawer state
+// ---------------------------------------------------------------------------
+
 @Composable
 fun IrisNavGraph(
     navController: NavHostController = rememberNavController(),
-    startDestination: String = NavRoute.OnboardingWelcome.route
+    startDestination: String = NavRoute.OnboardingWelcome.route,
 ) {
     val onboardingViewModel: OnboardingViewModel = hiltViewModel()
+    val drawerViewModel: DrawerViewModel = hiltViewModel()
+    val conversations by drawerViewModel.conversations.collectAsStateWithLifecycle()
 
-    // Single background paint source for the whole nav graph — see root
-    // cause note above. NavHost itself stays transparent; this Box behind it
-    // is what every screen renders against during transitions.
+    val drawerState = rememberDrawerState(DrawerValue.Closed)
+    val scope = rememberCoroutineScope()
+    val navBackStack by navController.currentBackStackEntryAsState()
+    val currentRoute = navBackStack?.destination?.route
+
+    val showDrawer = currentRoute?.startsWith("onboarding") == false
+
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
-        // Set main transitions at the NavHost level as defaults to secure atomic pop synchronization
-        NavHost(
-            navController      = navController,
-            startDestination   = startDestination,
-            enterTransition    = { mainEnter() },
-            exitTransition     = { mainExit() },
-            popEnterTransition = { mainPopEnter() },
-            popExitTransition  = { mainPopExit() }
+        if (showDrawer) {
+            ModalNavigationDrawer(
+                drawerState = drawerState,
+                drawerContent = {
+                    IrisDrawerSheet(
+                        conversations       = conversations,
+                        currentRoute        = currentRoute,
+                        onHomeClick         = {
+                            scope.launch { drawerState.close() }
+                            navController.navigate(NavRoute.Home.route) {
+                                popUpTo(NavRoute.Home.route) { inclusive = false }
+                                launchSingleTop = true
+                            }
+                        },
+                        onNewChatClick      = {
+                            scope.launch { drawerState.close() }
+                            navController.navigate(NavRoute.Chat.NEW) {
+                                launchSingleTop = false
+                            }
+                        },
+                        onConversationClick = { conv ->
+                            scope.launch { drawerState.close() }
+                            navController.navigate(NavRoute.Chat.withId(conv.id)) {
+                                launchSingleTop = false
+                            }
+                        },
+                        onDeleteConversation = { conv ->
+                            drawerViewModel.deleteConversation(conv.id)
+                        },
+                    )
+                },
+            ) {
+                NavContent(
+                    navController       = navController,
+                    startDestination    = startDestination,
+                    onboardingViewModel = onboardingViewModel,
+                    drawerState         = drawerState,
+                )
+            }
+        } else {
+            NavContent(
+                navController       = navController,
+                startDestination    = startDestination,
+                onboardingViewModel = onboardingViewModel,
+                drawerState         = drawerState,
+            )
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// NavContent
+// ---------------------------------------------------------------------------
+
+@Composable
+private fun NavContent(
+    navController: NavHostController,
+    startDestination: String,
+    onboardingViewModel: OnboardingViewModel,
+    drawerState: DrawerState,
+) {
+    val scope = rememberCoroutineScope()
+    val openDrawer: () -> Unit = { scope.launch { drawerState.open() } }
+
+    NavHost(
+        navController      = navController,
+        startDestination   = startDestination,
+        enterTransition    = { mainEnter() },
+        exitTransition     = { mainExit() },
+        popEnterTransition = { mainPopEnter() },
+        popExitTransition  = { mainPopExit() },
+    ) {
+        // --- Onboarding ---
+        composable(
+            route           = NavRoute.OnboardingWelcome.route,
+            enterTransition = { onboardingEnter() },
+            exitTransition  = { onboardingExit() },
         ) {
-            // --- Onboarding ---
-            composable(
-                route             = NavRoute.OnboardingWelcome.route,
-                enterTransition   = { onboardingEnter() },
-                exitTransition    = { onboardingExit() }
+            val userName by onboardingViewModel.userName.collectAsStateWithLifecycle()
+            OnboardingWelcomeScreen(
+                userName         = userName,
+                onUserNameChange = onboardingViewModel::setUserName,
+                onNext           = { navController.navigate(NavRoute.OnboardingMic.route) },
+            )
+        }
+        composable(
+            route              = NavRoute.OnboardingMic.route,
+            enterTransition    = { onboardingEnter() },
+            exitTransition     = { onboardingExit() },
+            popEnterTransition = { onboardingPopEnter() },
+            popExitTransition  = { onboardingPopExit() },
+        ) {
+            OnboardingMicScreen(
+                onNext = { navController.navigate(NavRoute.OnboardingWakeWord.route) },
+                onBack = { navController.popBackStack() },
+            )
+        }
+        composable(
+            route              = NavRoute.OnboardingWakeWord.route,
+            enterTransition    = { onboardingEnter() },
+            exitTransition     = { onboardingExit() },
+            popEnterTransition = { onboardingPopEnter() },
+            popExitTransition  = { onboardingPopExit() },
+        ) {
+            OnboardingWakeWordScreen(
+                onNext = { navController.navigate(NavRoute.OnboardingDemo.route) },
+                onBack = { navController.popBackStack() },
+            )
+        }
+        composable(
+            route              = NavRoute.OnboardingDemo.route,
+            enterTransition    = { onboardingEnter() },
+            exitTransition     = { onboardingExit() },
+            popEnterTransition = { onboardingPopEnter() },
+            popExitTransition  = { onboardingPopExit() },
+        ) {
+            OnboardingDemoScreen(
+                onNext = { navController.navigate(NavRoute.OnboardingAssistant.route) },
+                onBack = { navController.popBackStack() },
+            )
+        }
+        composable(
+            route              = NavRoute.OnboardingAssistant.route,
+            enterTransition    = { onboardingEnter() },
+            exitTransition     = { onboardingExit() },
+            popEnterTransition = { onboardingPopEnter() },
+            popExitTransition  = { onboardingPopExit() },
+        ) {
+            OnboardingAssistantScreen(
+                onNext = { navController.navigate(NavRoute.OnboardingBattery.route) },
+                onBack = { navController.popBackStack() },
+            )
+        }
+        composable(
+            route              = NavRoute.OnboardingBattery.route,
+            enterTransition    = { onboardingEnter() },
+            exitTransition     = { mainExit() },
+            popEnterTransition = { onboardingPopEnter() },
+            popExitTransition  = { onboardingPopExit() },
+        ) {
+            OnboardingBatteryScreen(
+                onFinish = {
+                    navController.navigate(NavRoute.Home.route) {
+                        popUpTo(NavRoute.OnboardingWelcome.route) { inclusive = true }
+                    }
+                },
+                onBack    = { navController.popBackStack() },
+                viewModel = onboardingViewModel,
+            )
+        }
+
+        // --- Main ---
+        composable(route = NavRoute.Home.route) {
+            HomeScreen(
+                onOpenSettings = { navController.navigate(NavRoute.Settings.route) },
+                onOpenDrawer   = openDrawer,
+            )
+        }
+        composable(route = NavRoute.Settings.route) {
+            SettingsScreen(
+                onBack                  = { navController.popBackStack() },
+                onOpenLocalModels       = { navController.navigate(NavRoute.LocalModels.route) },
+                onOpenPermissionManager = { navController.navigate(NavRoute.PermissionManager.route) },
+                onOpenVoiceSettings     = { navController.navigate(NavRoute.VoiceSettings.route) },
+            )
+        }
+        composable(route = NavRoute.LocalModels.route) {
+            LocalModelScreen(
+                onBack = { navController.popBackStack() },
+            )
+        }
+        composable(route = NavRoute.PermissionManager.route) {
+            PermissionScreen(
+                onBack = { navController.popBackStack() },
+            )
+        }
+        composable(route = NavRoute.VoiceSettings.route) {
+            VoiceSettingsScreen(
+                onBack = { navController.popBackStack() },
+            )
+        }
+
+        // --- Chat ---
+        composable(
+            route = NavRoute.Chat.route,
+            arguments = listOf(
+                navArgument(NavRoute.Chat.ARG) { type = NavType.LongType }
+            ),
+            enterTransition    = { chatEnter() },
+            exitTransition     = { chatExit() },
+            popEnterTransition = { chatPopEnter() },
+            popExitTransition  = { chatExit() },
+        ) { backStackEntry ->
+            val conversationId = backStackEntry.arguments?.getLong(NavRoute.Chat.ARG) ?: 0L
+            ChatScreen(
+                conversationId = conversationId,
+                onOpenDrawer   = openDrawer,
+                onBack         = { navController.popBackStack() },
+            )
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// IrisDrawerSheet
+// ---------------------------------------------------------------------------
+
+@Composable
+private fun IrisDrawerSheet(
+    conversations: List<Conversation>,
+    currentRoute: String?,
+    onHomeClick: () -> Unit,
+    onNewChatClick: () -> Unit,
+    onConversationClick: (Conversation) -> Unit,
+    onDeleteConversation: (Conversation) -> Unit,
+) {
+    val primary = IrisTheme.colors.primary
+    val gradientEnd = IrisTheme.colors.gradientEnd
+
+    ModalDrawerSheet(
+        drawerContainerColor = MaterialTheme.colorScheme.surface,
+        drawerShape = RoundedCornerShape(topEnd = 0.dp, bottomEnd = 0.dp),
+        modifier = Modifier
+            .fillMaxHeight()
+            .fillMaxWidth(0.82f),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .statusBarsPadding(),
+        ) {
+            // Header
+            Row(
+                modifier = Modifier.padding(horizontal = 20.dp, vertical = 20.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                val userName by onboardingViewModel.userName.collectAsStateWithLifecycle()
-                OnboardingWelcomeScreen(
-                    userName         = userName,
-                    onUserNameChange  = onboardingViewModel::setUserName,
-                    onNext            = { navController.navigate(NavRoute.OnboardingMic.route) }
-                )
-            }
-            composable(
-                route              = NavRoute.OnboardingMic.route,
-                enterTransition    = { onboardingEnter() },
-                exitTransition     = { onboardingExit() },
-                popEnterTransition = { onboardingPopEnter() },
-                popExitTransition  = { onboardingPopExit() }
-            ) {
-                OnboardingMicScreen(
-                    onNext = { navController.navigate(NavRoute.OnboardingWakeWord.route) },
-                    onBack = { navController.popBackStack() }
-                )
-            }
-            composable(
-                route              = NavRoute.OnboardingWakeWord.route,
-                enterTransition    = { onboardingEnter() },
-                exitTransition     = { onboardingExit() },
-                popEnterTransition = { onboardingPopEnter() },
-                popExitTransition  = { onboardingPopExit() }
-            ) {
-                OnboardingWakeWordScreen(
-                    onNext = { navController.navigate(NavRoute.OnboardingDemo.route) },
-                    onBack = { navController.popBackStack() }
-                )
-            }
-            composable(
-                route              = NavRoute.OnboardingDemo.route,
-                enterTransition    = { onboardingEnter() },
-                exitTransition     = { onboardingExit() },
-                popEnterTransition = { onboardingPopEnter() },
-                popExitTransition  = { onboardingPopExit() }
-            ) {
-                OnboardingDemoScreen(
-                    onNext = { navController.navigate(NavRoute.OnboardingAssistant.route) },
-                    onBack = { navController.popBackStack() }
-                )
-            }
-            composable(
-                route              = NavRoute.OnboardingAssistant.route,
-                enterTransition    = { onboardingEnter() },
-                exitTransition     = { onboardingExit() },
-                popEnterTransition = { onboardingPopEnter() },
-                popExitTransition  = { onboardingPopExit() }
-            ) {
-                OnboardingAssistantScreen(
-                    onNext = { navController.navigate(NavRoute.OnboardingBattery.route) },
-                    onBack = { navController.popBackStack() }
-                )
-            }
-            composable(
-                route              = NavRoute.OnboardingBattery.route,
-                enterTransition    = { onboardingEnter() },
-                // Exit uses main scale+fade since the only forward destination
-                // from here is Home (a main-flow route).
-                exitTransition     = { mainExit() },
-                popEnterTransition = { onboardingPopEnter() },
-                popExitTransition  = { onboardingPopExit() }
-            ) {
-                OnboardingBatteryScreen(
-                    onFinish = {
-                        navController.navigate(NavRoute.Home.route) {
-                            popUpTo(NavRoute.OnboardingWelcome.route) { inclusive = true }
-                        }
-                    },
-                    onBack    = { navController.popBackStack() },
-                    viewModel = onboardingViewModel
+                Text(
+                    text = "IRIS",
+                    style = MaterialTheme.typography.headlineSmall.copy(
+                        brush = Brush.linearGradient(listOf(primary, gradientEnd)),
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 2.sp,
+                    ),
                 )
             }
 
-            // --- Main ---
-            // Composables inherit default transition specifications configured on the NavHost container
-            composable(route = NavRoute.Home.route) {
-                HomeScreen(
-                    onOpenSettings = { navController.navigate(NavRoute.Settings.route) }
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+            Spacer(Modifier.height(8.dp))
+
+            // Nav rows
+            DrawerNavItem(
+                icon     = PhIcons.Regular.House,
+                label    = "Ana Ekran",
+                selected = currentRoute == NavRoute.Home.route,
+                onClick  = onHomeClick,
+            )
+            DrawerNavItem(
+                icon     = PhIcons.Regular.ChatCircle,
+                label    = "Sohbet",
+                selected = currentRoute?.startsWith("chat/") == true,
+                onClick  = onNewChatClick,
+            )
+
+            Spacer(Modifier.height(8.dp))
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+            Spacer(Modifier.height(8.dp))
+
+            // Conversation list header
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = "Sohbetler",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.weight(1f),
                 )
+                Surface(
+                    onClick  = onNewChatClick,
+                    shape    = CircleShape,
+                    color    = primary.copy(alpha = 0.12f),
+                    modifier = Modifier.size(32.dp),
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            PhIcons.Regular.Plus,
+                            contentDescription = "Yeni Sohbet",
+                            tint     = primary,
+                            modifier = Modifier.size(16.dp),
+                        )
+                    }
+                }
             }
-            composable(route = NavRoute.Settings.route) {
-                SettingsScreen(
-                    onBack                  = { navController.popBackStack() },
-                    onOpenLocalModels       = { navController.navigate(NavRoute.LocalModels.route) },
-                    onOpenPermissionManager = { navController.navigate(NavRoute.PermissionManager.route) },
-                    onOpenVoiceSettings     = { navController.navigate(NavRoute.VoiceSettings.route) }
-                )
-            }
-            composable(route = NavRoute.LocalModels.route) {
-                LocalModelScreen(
-                    onBack = { navController.popBackStack() }
-                )
-            }
-            composable(route = NavRoute.PermissionManager.route) {
-                PermissionScreen(
-                    onBack = { navController.popBackStack() }
-                )
-            }
-            composable(route = NavRoute.VoiceSettings.route) {
-                VoiceSettingsScreen(
-                    onBack = { navController.popBackStack() }
-                )
+
+            Spacer(Modifier.height(4.dp))
+
+            // Conversation list
+            LazyColumn(modifier = Modifier.weight(1f)) {
+                if (conversations.isEmpty()) {
+                    item {
+                        Text(
+                            text = "Henüz sohbet yok",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
+                        )
+                    }
+                } else {
+                    items(conversations, key = { it.id }) { conv ->
+                        DrawerConversationItem(
+                            conversation = conv,
+                            onClick      = { onConversationClick(conv) },
+                            onDelete     = { onDeleteConversation(conv) },
+                        )
+                    }
+                }
             }
         }
     }

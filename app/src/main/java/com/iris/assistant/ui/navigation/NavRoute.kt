@@ -15,4 +15,11 @@ sealed class NavRoute(val route: String) {
     data object LocalModels          : NavRoute("local_models")
     data object PermissionManager    : NavRoute("permission_manager")
     data object VoiceSettings        : NavRoute("voice_settings")
+
+    // Chat — conversationId is required; 0 = create a new conversation on entry
+    data object Chat : NavRoute("chat/{conversationId}") {
+        const val ARG = "conversationId"
+        fun withId(conversationId: Long) = "chat/$conversationId"
+        const val NEW = "chat/0" // shorthand for "open with a new conversation"
+    }
 }
