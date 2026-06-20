@@ -151,7 +151,7 @@ private fun PermissionSection(
                     icon = PhIcons.Regular.Microphone,
                     description = "Sesli komut ve konuşma",
                     isGranted = { ctx -> ContextCompat.checkSelfPermission(ctx, Manifest.permission.RECORD_AUDIO) == android.content.pm.PackageManager.PERMISSION_GRANTED },
-                    settingsIntent = { ctx -> Intent(Settings.ACTION_APPLICATION_PERMISSIONS_SETTINGS).apply { data = Uri.parse("package:${ctx.packageName}") } },
+                    settingsIntent = { ctx -> Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply { data = Uri.parse("package:${ctx.packageName}") } },
                 ),
                 PermissionCheck(
                     label = "Bildirimler",
@@ -197,28 +197,28 @@ private fun PermissionSection(
                     icon = PhIcons.Regular.PhoneCall,
                     description = "Telefon araması yapma",
                     isGranted = { ctx -> ContextCompat.checkSelfPermission(ctx, Manifest.permission.CALL_PHONE) == android.content.pm.PackageManager.PERMISSION_GRANTED },
-                    settingsIntent = { ctx -> Intent(Settings.ACTION_APPLICATION_PERMISSIONS_SETTINGS).apply { data = Uri.parse("package:${ctx.packageName}") } },
+                    settingsIntent = { ctx -> Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply { data = Uri.parse("package:${ctx.packageName}") } },
                 ),
                 PermissionCheck(
                     label = "SMS",
                     icon = PhIcons.Regular.ChatDots,
                     description = "SMS gönderme",
                     isGranted = { ctx -> ContextCompat.checkSelfPermission(ctx, Manifest.permission.SEND_SMS) == android.content.pm.PackageManager.PERMISSION_GRANTED },
-                    settingsIntent = { ctx -> Intent(Settings.ACTION_APPLICATION_PERMISSIONS_SETTINGS).apply { data = Uri.parse("package:${ctx.packageName}") } },
+                    settingsIntent = { ctx -> Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply { data = Uri.parse("package:${ctx.packageName}") } },
                 ),
                 PermissionCheck(
                     label = "Kişiler",
                     icon = PhIcons.Regular.AddressBook,
                     description = "Kişi listesini okuma",
                     isGranted = { ctx -> ContextCompat.checkSelfPermission(ctx, Manifest.permission.READ_CONTACTS) == android.content.pm.PackageManager.PERMISSION_GRANTED },
-                    settingsIntent = { ctx -> Intent(Settings.ACTION_APPLICATION_PERMISSIONS_SETTINGS).apply { data = Uri.parse("package:${ctx.packageName}") } },
+                    settingsIntent = { ctx -> Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply { data = Uri.parse("package:${ctx.packageName}") } },
                 ),
                 PermissionCheck(
                     label = "Telefon durumu",
                     icon = PhIcons.Regular.DeviceMobile,
                     description = "Cihaz bilgisi okuma",
                     isGranted = { ctx -> ContextCompat.checkSelfPermission(ctx, Manifest.permission.READ_PHONE_STATE) == android.content.pm.PackageManager.PERMISSION_GRANTED },
-                    settingsIntent = { ctx -> Intent(Settings.ACTION_APPLICATION_PERMISSIONS_SETTINGS).apply { data = Uri.parse("package:${ctx.packageName}") } },
+                    settingsIntent = { ctx -> Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply { data = Uri.parse("package:${ctx.packageName}") } },
                 ),
             ),
             listOf(
@@ -227,28 +227,28 @@ private fun PermissionSection(
                     icon = PhIcons.Regular.SpeakerHigh,
                     description = "Ses seviyesi değiştirme",
                     isGranted = { true },
-                    settingsIntent = { ctx -> Intent(Settings.ACTION_APPLICATION_PERMISSIONS_SETTINGS).apply { data = Uri.parse("package:${ctx.packageName}") } },
+                    settingsIntent = { ctx -> Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply { data = Uri.parse("package:${ctx.packageName}") } },
                 ),
                 PermissionCheck(
                     label = "WiFi",
                     icon = PhIcons.Regular.WifiHigh,
                     description = "WiFi açma/kapama",
                     isGranted = { true },
-                    settingsIntent = { ctx -> Intent(Settings.ACTION_APPLICATION_PERMISSIONS_SETTINGS).apply { data = Uri.parse("package:${ctx.packageName}") } },
+                    settingsIntent = { ctx -> Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply { data = Uri.parse("package:${ctx.packageName}") } },
                 ),
                 PermissionCheck(
                     label = "Bluetooth",
                     icon = PhIcons.Regular.Bluetooth,
                     description = "Bluetooth açma/kapama",
                     isGranted = { true },
-                    settingsIntent = { ctx -> Intent(Settings.ACTION_APPLICATION_PERMISSIONS_SETTINGS).apply { data = Uri.parse("package:${ctx.packageName}") } },
+                    settingsIntent = { ctx -> Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply { data = Uri.parse("package:${ctx.packageName}") } },
                 ),
                 PermissionCheck(
                     label = "Kamera",
                     icon = PhIcons.Regular.Camera,
                     description = "Flaş kontrolü",
                     isGranted = { ctx -> ContextCompat.checkSelfPermission(ctx, Manifest.permission.CAMERA) == android.content.pm.PackageManager.PERMISSION_GRANTED },
-                    settingsIntent = { ctx -> Intent(Settings.ACTION_APPLICATION_PERMISSIONS_SETTINGS).apply { data = Uri.parse("package:${ctx.packageName}") } },
+                    settingsIntent = { ctx -> Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply { data = Uri.parse("package:${ctx.packageName}") } },
                 ),
                 PermissionCheck(
                     label = "Sistem ayarları",
@@ -276,7 +276,7 @@ private fun PermissionSection(
                     isGranted = { ctx ->
                         ContextCompat.checkSelfPermission(ctx, Manifest.permission.READ_CALENDAR) == android.content.pm.PackageManager.PERMISSION_GRANTED
                     },
-                    settingsIntent = { ctx -> Intent(Settings.ACTION_APPLICATION_PERMISSIONS_SETTINGS).apply { data = Uri.parse("package:${ctx.packageName}") } },
+                    settingsIntent = { ctx -> Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply { data = Uri.parse("package:${ctx.packageName}") } },
                 ),
             ),
         )
