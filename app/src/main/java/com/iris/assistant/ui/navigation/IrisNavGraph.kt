@@ -164,9 +164,14 @@ fun IrisNavGraph(
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
+        // Set main transitions at the NavHost level as defaults to secure atomic pop synchronization
         NavHost(
-            navController    = navController,
-            startDestination = startDestination
+            navController      = navController,
+            startDestination   = startDestination,
+            enterTransition    = { mainEnter() },
+            exitTransition     = { mainExit() },
+            popEnterTransition = { mainPopEnter() },
+            popExitTransition  = { mainPopExit() }
         ) {
             // --- Onboarding ---
             composable(
@@ -250,26 +255,13 @@ fun IrisNavGraph(
             }
 
             // --- Main ---
-            // Per-destination transitions set explicitly (not relying on
-            // NavHost-level defaults) for reliable, predictable behavior.
-            composable(
-                route              = NavRoute.Home.route,
-                enterTransition    = { mainEnter() },
-                exitTransition     = { mainExit() },
-                popEnterTransition = { mainPopEnter() },
-                popExitTransition  = { mainPopExit() }
-            ) {
+            // Composables inherit default transition specifications configured on the NavHost container
+            composable(route = NavRoute.Home.route) {
                 HomeScreen(
                     onOpenSettings = { navController.navigate(NavRoute.Settings.route) }
                 )
             }
-            composable(
-                route              = NavRoute.Settings.route,
-                enterTransition    = { mainEnter() },
-                exitTransition     = { mainExit() },
-                popEnterTransition = { mainPopEnter() },
-                popExitTransition  = { mainPopExit() }
-            ) {
+            composable(route = NavRoute.Settings.route) {
                 SettingsScreen(
                     onBack                  = { navController.popBackStack() },
                     onOpenLocalModels       = { navController.navigate(NavRoute.LocalModels.route) },
@@ -277,35 +269,17 @@ fun IrisNavGraph(
                     onOpenVoiceSettings     = { navController.navigate(NavRoute.VoiceSettings.route) }
                 )
             }
-            composable(
-                route              = NavRoute.LocalModels.route,
-                enterTransition    = { mainEnter() },
-                exitTransition     = { mainExit() },
-                popEnterTransition = { mainPopEnter() },
-                popExitTransition  = { mainPopExit() }
-            ) {
+            composable(route = NavRoute.LocalModels.route) {
                 LocalModelScreen(
                     onBack = { navController.popBackStack() }
                 )
             }
-            composable(
-                route              = NavRoute.PermissionManager.route,
-                enterTransition    = { mainEnter() },
-                exitTransition     = { mainExit() },
-                popEnterTransition = { mainPopEnter() },
-                popExitTransition  = { mainPopExit() }
-            ) {
+            composable(route = NavRoute.PermissionManager.route) {
                 PermissionScreen(
                     onBack = { navController.popBackStack() }
                 )
             }
-            composable(
-                route              = NavRoute.VoiceSettings.route,
-                enterTransition    = { mainEnter() },
-                exitTransition     = { mainExit() },
-                popEnterTransition = { mainPopEnter() },
-                popExitTransition  = { mainPopExit() }
-            ) {
+            composable(route = NavRoute.VoiceSettings.route) {
                 VoiceSettingsScreen(
                     onBack = { navController.popBackStack() }
                 )
