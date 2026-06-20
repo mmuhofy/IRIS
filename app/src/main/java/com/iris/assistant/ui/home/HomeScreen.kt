@@ -127,29 +127,50 @@ fun HomeScreen(
 
                     // Model selector dropdown
                     Box {
-                        Row(
-                            modifier = Modifier.clickable { expanded = true },
-                            verticalAlignment = Alignment.CenterVertically
+                        val modelInteraction = remember { MutableInteractionSource() }
+                        val modelPressed by modelInteraction.collectIsPressedAsState()
+                        val modelBgAlpha by animateFloatAsState(
+                            targetValue = if (modelPressed) 0.15f else 0f,
+                            animationSpec = tween(120),
+                            label = "modelBgAlpha"
+                        )
+                        val modelScale by animateFloatAsState(
+                            targetValue = if (modelPressed) 0.95f else 1f,
+                            animationSpec = tween(120),
+                            label = "modelScale"
+                        )
+
+                        Surface(
+                            onClick = { expanded = true },
+                            shape = RoundedCornerShape(14.dp),
+                            color = primary.copy(alpha = modelBgAlpha),
+                            interactionSource = modelInteraction,
+                            modifier = Modifier.scale(modelScale)
                         ) {
-                            Text(
-                                text = uiState.modelName
-                                    .replace("-", " ")
-                                    .replaceFirstChar { it.uppercase() },
-                                style = MaterialTheme.typography.labelMedium.copy(
-                                    fontWeight = FontWeight.Medium,
-                                    letterSpacing = 0.3.sp
-                                ),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                            Spacer(Modifier.width(4.dp))
-                            Icon(
-                                imageVector = PhIcons.Regular.CaretDown,
-                                contentDescription = "Model değiştir",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(12.dp)
-                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+                            ) {
+                                Text(
+                                    text = uiState.modelName
+                                        .replace("-", " ")
+                                        .replaceFirstChar { it.uppercase() },
+                                    style = MaterialTheme.typography.titleMedium.copy(
+                                        fontWeight = FontWeight.SemiBold,
+                                        letterSpacing = 0.3.sp
+                                    ),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                Spacer(Modifier.width(6.dp))
+                                Icon(
+                                    imageVector = PhIcons.Regular.CaretDown,
+                                    contentDescription = "Model değiştir",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
                         }
 
                         DropdownMenu(
