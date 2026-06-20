@@ -145,4 +145,17 @@ object Constants {
 
     // --- DataStore ---
     const val DATASTORE_NAME = "iris_preferences"
+
+    // --- Screen Interaction ---
+    // Maximum number of nodes included in a single read_screen dump sent to the LLM.
+    // Higher values = more context but longer prompt = slower inference.
+    const val SCREEN_MAX_NODES = 80
+
+    // Scroll gesture fallback (used when ACTION_SCROLL_FORWARD/BACKWARD fails).
+    // Ratios are relative to screen height — avoids hardcoded pixel values across devices.
+    // For "scroll down": gesture starts at START_RATIO (70% down), ends at END_RATIO (25% down).
+    // For "scroll up":  gesture starts at END_RATIO (25% down), ends at START_RATIO (70% down).
+    const val SCROLL_GESTURE_START_RATIO  = 0.70f // finger start position (as fraction of screen height)
+    const val SCROLL_GESTURE_END_RATIO    = 0.25f // finger end position
+    const val SCROLL_GESTURE_DURATION_MS  = 200L  // swipe duration in milliseconds
 }
