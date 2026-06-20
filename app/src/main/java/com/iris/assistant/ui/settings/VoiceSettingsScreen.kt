@@ -57,8 +57,16 @@ fun VoiceSettingsScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
+    // NOTE: containerColor (Scaffold AND TopAppBar) is Color.Transparent, not
+    // MaterialTheme.colorScheme.background. Root cause: an opaque background
+    // here paints over the exiting screen during IrisNavGraph.kt's scale+fade
+    // transition, hiding the animation entirely (confirmed against
+    // Peristyle's Home.kt reference). The real background color lives once,
+    // in the Box wrapping NavHost in IrisNavGraph.kt. Do NOT revert this to
+    // opaque "for performance" — that was tried once already and silently
+    // broke every nav transition in the app.
     Scaffold(
-        containerColor = MaterialTheme.colorScheme.background,
+        containerColor = Color.Transparent,
         topBar = {
             TopAppBar(
                 title = {
@@ -78,7 +86,7 @@ fun VoiceSettingsScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background,
+                    containerColor = Color.Transparent,
                 ),
             )
         },

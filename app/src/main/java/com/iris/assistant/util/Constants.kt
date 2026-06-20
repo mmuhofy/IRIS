@@ -11,16 +11,41 @@ object Constants {
     // --- Navigation ---
     // Shared transition timing/scale values for IrisNavGraph.kt.
     //
-    // History: first attempt used 0.95f/0.92f at 280ms — confirmed by Muhofy
-    // as "barely visible, sometimes nothing." Widened to match Peristyle's
-    // perceptible range (their scaleIntoContainer/scaleOutOfContainer use
-    // 1.1f/0.9f at 400ms+100ms delay). We keep tween() (no spring/elastic,
-    // per the project's "no bounce" rule) but use a stronger scale delta and
-    // the full 300ms ceiling so the motion actually reads on-device.
-    const val NAV_ANIM_DURATION_MS  = 280
-    // Main-flow (Home/Settings/LocalModels) scale+fade transition bounds.
-    const val NAV_SCALE_ENTER_FROM  = 0.85f
-    const val NAV_SCALE_EXIT_TO     = 0.85f
+    // History:
+    //  1. First attempt: 0.95f/0.92f at 280ms scale+fade only — confirmed by
+    //     Muhofy as "barely visible, sometimes nothing."
+    //  2. Widened to 0.90f/0.90f at 300ms (Peristyle-matched) — but root
+    //     cause (opaque per-screen Scaffold backgrounds painting over the
+    //     transition) made any scale-only value invisible regardless.
+    //  3. Root cause fixed (Scaffold containerColor = Transparent across all
+    //     main-flow screens). A second AI pass reverted screens to opaque
+    //     "for performance," re-breaking visibility — reverted back to
+    //     Transparent. Visible animation is a hard requirement.
+    //  4. Compared against Muhofy's other app (Still): its NoteEditorScreen
+    //     uses an OPAQUE Scaffold yet its slide transition reads clearly on
+    //     device, while IRIS's scale-only transition (also opaque at the
+    //     time) did not. Conclusion: slide (a position change) is visually
+    //     legible even over an opaque background, because the moving edges
+    //     themselves carry the signal — pure scale/fade does not, since the
+    //     screen bounds stay fixed and only size/opacity shift subtly.
+    //  5. Final approach: slide + scale combined. Slide guarantees
+    //     visibility (matches Still's proven, working pattern) and a subtle
+    //     scale (0.96f, not Peristyle's dramatic 0.90f/1.1f) adds depth
+    //     without reading as "playful" — keeping IRIS's calm, Apple-style
+    //     "trusted assistant" identity rather than a wallpaper-app energy.
+    const val NAV_ANIM_DURATION_MS  = 300
+    // Main-flow (Home/Settings/LocalModels/PermissionManager/VoiceSettings)
+    // slide+scale+fade transition bounds. Forward and back navigation use
+    // the same scale delta and mirrored slide direction for a consistent,
+    // symmetric feel in both directions.
+    const val NAV_SCALE_ENTER_FROM  = 0.96f
+    const val NAV_SCALE_EXIT_TO     = 0.96f
+    // Horizontal slide distance as a divisor of screen width (width / N).
+    // Smaller divisor = larger, more dramatic slide. N=4 matches a moderate,
+    // clearly-visible-but-not-excessive distance (Still uses width/4 for its
+    // push transitions, width/6 for the receding screen).
+    const val NAV_SLIDE_ENTER_DIVISOR = 4
+    const val NAV_SLIDE_EXIT_DIVISOR  = 6
 
     // --- User ---
     const val USER_NAME = "Muhofy"
@@ -145,17 +170,4 @@ object Constants {
 
     // --- DataStore ---
     const val DATASTORE_NAME = "iris_preferences"
-
-    // --- Screen Interaction ---
-    // Maximum number of nodes included in a single read_screen dump sent to the LLM.
-    // Higher values = more context but longer prompt = slower inference.
-    const val SCREEN_MAX_NODES = 80
-
-    // Scroll gesture fallback (used when ACTION_SCROLL_FORWARD/BACKWARD fails).
-    // Ratios are relative to screen height — avoids hardcoded pixel values across devices.
-    // For "scroll down": gesture starts at START_RATIO (70% down), ends at END_RATIO (25% down).
-    // For "scroll up":  gesture starts at END_RATIO (25% down), ends at START_RATIO (70% down).
-    const val SCROLL_GESTURE_START_RATIO  = 0.70f // finger start position (as fraction of screen height)
-    const val SCROLL_GESTURE_END_RATIO    = 0.25f // finger end position
-    const val SCROLL_GESTURE_DURATION_MS  = 200L  // swipe duration in milliseconds
 }

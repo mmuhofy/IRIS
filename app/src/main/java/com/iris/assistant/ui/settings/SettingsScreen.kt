@@ -49,6 +49,9 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.iris.assistant.domain.model.AutonomyLevel
+import com.iris.assistant.domain.model.TtsProviderType
+import com.iris.assistant.domain.model.TtsVoice
+import com.iris.assistant.ui.components.IrisButtonDestructive
 import com.iris.assistant.ui.theme.ColorSchemeOption
 import com.iris.assistant.ui.theme.ColorTextPrimary
 import com.iris.assistant.ui.theme.ColorTextSecondary
@@ -57,16 +60,14 @@ import com.iris.assistant.util.Constants
 import com.phosphor.icons.PhIcons
 import com.phosphor.icons.regular.*
 
-
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
-    onBack                 : () -> Unit,
-    onOpenLocalModels      : () -> Unit = {},
-    onOpenPermissionManager: () -> Unit = {},
-    onOpenVoiceSettings    : () -> Unit = {},
-    viewModel             : SettingsViewModel = hiltViewModel()
+    onBack                  : () -> Unit,
+    onOpenLocalModels       : () -> Unit = {},
+    onOpenPermissionManager : () -> Unit = {},
+    onOpenVoiceSettings     : () -> Unit = {},
+    viewModel        : SettingsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var showClearDialog by remember { mutableStateOf(false) }
@@ -88,8 +89,23 @@ fun SettingsScreen(
         )
     }
 
+    // NOTE: containerColor (Scaffold AND TopAppBar) changed from
+    // MaterialTheme.colorScheme.background to Color.Transparent. Same root
+    // cause as HomeScreen.kt: an opaque background here was painting over
+    // the exiting screen during IrisNavGraph.kt's scale+fade transition,
+    // hiding the animation entirely (confirmed against Peristyle's Home.kt
+    // reference). The real background color now lives once, in the Box
+    // wrapping NavHost in IrisNavGraph.kt. Nothing else in this file changed.
+    // NOTE: containerColor (Scaffold AND TopAppBar) is Color.Transparent, not
+    // MaterialTheme.colorScheme.background. Root cause: an opaque background
+    // here paints over the exiting screen during IrisNavGraph.kt's scale+fade
+    // transition, hiding the animation entirely (confirmed against
+    // Peristyle's Home.kt reference). The real background color lives once,
+    // in the Box wrapping NavHost in IrisNavGraph.kt. Do NOT revert this to
+    // opaque "for performance" — that was tried once already and silently
+    // broke every nav transition in the app.
     Scaffold(
-        containerColor = MaterialTheme.colorScheme.background,
+        containerColor = Color.Transparent,
         topBar = {
             TopAppBar(
                 title = {
@@ -109,7 +125,7 @@ fun SettingsScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background,
+                    containerColor = Color.Transparent,
                 ),
             )
         },
@@ -126,12 +142,25 @@ fun SettingsScreen(
 
             // ── Ses ────────────────────────────────────────────────────────────
             SettingsGroup(title = "Ses") {
-                SettingsTappableRow(
+                SettingsRowWithContent(
                     icon = PhIcons.Regular.Waveform,
-                    label = "Ses Ayarları",
-                    description = "Ses karakteri ve TTS sağlayıcısı",
-                    onClick = onOpenVoiceSettings,
-                )
+                    label = "Ses karakteri",
+                ) {
+                    VoiceSelector(
+                        current  = uiState.ttsVoice,
+                        onChange = viewModel::onTtsVoiceChange,
+                    )
+                }
+                SettingsGroupDivider()
+                SettingsRowWithContent(
+                    icon = PhIcons.Regular.Robot,
+                    label = "TTS sağlayıcısı",
+                ) {
+                    TtsProviderSelector(
+                        current  = uiState.ttsProvider,
+                        onChange = viewModel::onTtsProviderChange,
+                    )
+                }
             }
 
             // ── Model ──────────────────────────────────────────────────────────
@@ -202,6 +231,23 @@ fun SettingsScreen(
                 }
             }
 
+            // ── Sistem ─────────────────────────────────────────────────────────
+            SettingsGroup(title = "Sistem") {
+                SettingsTappableRow(
+                    icon = PhIcons.Regular.SpeakerHigh,
+                    label = "Ses ayarları",
+                    description = "Ses karakteri, sağlayıcı seçimi",
+                    onClick = onOpenVoiceSettings,
+                )
+                SettingsGroupDivider()
+                SettingsTappableRow(
+                    icon = PhIcons.Regular.Lock,
+                    label = "İzin yöneticisi",
+                    description = "Tüm uygulama izinlerini görüntüle",
+                    onClick = onOpenPermissionManager,
+                )
+            }
+
             // ── Veri ───────────────────────────────────────────────────────────
             SettingsGroup(title = "Veri") {
                 SettingsTappableRow(
@@ -210,16 +256,6 @@ fun SettingsScreen(
                     description = "Tüm konuşmalar silinir, geri alınamaz",
                     tint = MaterialTheme.colorScheme.error,
                     onClick = { showClearDialog = true },
-                )
-            }
-
-            // ── İzinler ─────────────────────────────────────────────────────────
-            SettingsGroup(title = "İzinler") {
-                SettingsTappableRow(
-                    icon = PhIcons.Regular.ShieldCheck,
-                    label = "İzin Yöneticisi",
-                    description = "Mikrofon, bildirim, erişilebilirlik ve diğer izinler",
-                    onClick = onOpenPermissionManager,
                 )
             }
 
@@ -394,6 +430,60 @@ private fun SettingsIcon(
     }
 }
 
+// ── Voice selector ───────────────────────────────────────────────────────────
+
+@Composable
+private fun VoiceSelector(
+    current : TtsVoice,
+    onChange: (TtsVoice) -> Unit,
+) {
+    val voices = TtsVoice.entries
+    val currentIndex = voices.indexOf(current)
+
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        IconButton(
+            onClick = {
+                val prev = (currentIndex - 1).coerceAtLeast(0)
+                onChange(voices[prev])
+            },
+            enabled = currentIndex > 0,
+            modifier = Modifier.size(32.dp),
+        ) {
+            Icon(
+                imageVector = PhIcons.Regular.CaretLeft,
+                contentDescription = "Önceki",
+                tint = if (currentIndex > 0) IrisTheme.colors.primary
+                       else ColorTextSecondary.copy(alpha = 0.35f),
+                modifier = Modifier.size(18.dp),
+            )
+        }
+
+        Text(
+            text = current.displayName,
+            style = MaterialTheme.typography.bodyMedium,
+            color = IrisTheme.colors.primary,
+            fontWeight = FontWeight.SemiBold,
+        )
+
+        IconButton(
+            onClick = {
+                val next = (currentIndex + 1).coerceAtMost(voices.lastIndex)
+                onChange(voices[next])
+            },
+            enabled = currentIndex < voices.lastIndex,
+            modifier = Modifier.size(32.dp),
+        ) {
+            Icon(
+                imageVector = PhIcons.Regular.CaretRight,
+                contentDescription = "Sonraki",
+                tint = if (currentIndex < voices.lastIndex) IrisTheme.colors.primary
+                       else ColorTextSecondary.copy(alpha = 0.35f),
+                modifier = Modifier.size(18.dp),
+            )
+        }
+    }
+}
+
 // ── Color scheme selector ────────────────────────────────────────────────────
 
 @Composable
@@ -473,6 +563,39 @@ private fun ProviderSelector(
                         fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
                     )
                 }
+            }
+        }
+    }
+}
+
+// ── TTS provider selector ────────────────────────────────────────────────────
+
+@Composable
+private fun TtsProviderSelector(
+    current : TtsProviderType,
+    onChange: (TtsProviderType) -> Unit,
+) {
+    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        TtsProviderType.entries.forEach { provider ->
+            val selected = provider == current
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(
+                        if (selected) IrisTheme.colors.primary
+                        else MaterialTheme.colorScheme.surfaceVariant
+                    )
+                    .clickable { onChange(provider) }
+                    .padding(horizontal = 10.dp, vertical = 6.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = provider.displayName,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = if (selected) MaterialTheme.colorScheme.background
+                            else ColorTextPrimary,
+                    fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+                )
             }
         }
     }
@@ -621,4 +744,3 @@ private fun ModelSelector(
         }
     }
 }
-

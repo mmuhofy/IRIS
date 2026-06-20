@@ -37,9 +37,39 @@ import com.iris.assistant.ui.settings.VoiceSettingsScreen
 import com.iris.assistant.util.Constants
 
 /**
- * Background Box wraps NavHost so there is a single stable background layer.
- * Screens now use opaque Scaffold backgrounds for performance; during
- * navigation the fade animation handles the visual transition.
+ * ROOT CAUSE (confirmed against Peristyle's Home.kt as a working reference —
+ * github.com/Hamza417/Peristyle — not assumed):
+ *
+ * Every main-flow screen (HomeScreen.kt, SettingsScreen.kt,
+ * LocalModelScreen.kt, PermissionScreen.kt, VoiceSettingsScreen.kt) wraps its
+ * content in Scaffold(containerColor = MaterialTheme.colorScheme.background).
+ * That paints a fully OPAQUE rectangle the instant a destination enters
+ * composition. Navigation Compose's AnimatedContent renders the entering and
+ * exiting screen in the same z-stack during a transition — an opaque
+ * entering Scaffold instantly covers the exiting screen, so scale/fade specs
+ * run correctly but have nothing visible to animate through.
+ *
+ * Peristyle's Home() composable (ui/screens/Home.kt) has NO Scaffold and NO
+ * per-screen background paint — it starts directly with
+ * Column(Modifier.fillMaxSize()...), relying on a single background source
+ * higher in the view hierarchy. We follow the same pattern: the real
+ * background color lives ONCE, in the Box wrapping NavHost below. Every
+ * screen's Scaffold containerColor (and TopAppBar containerColor, where
+ * present) MUST be Color.Transparent for transitions to be visible.
+ *
+ * IMPORTANT — do not "optimize" this back to opaque per-screen backgrounds.
+ * That was tried once already (reverted here) on the reasoning that opaque
+ * backgrounds render slightly cheaper than transparent ones. That trade-off
+ * is not acceptable on its own: it makes every nav transition in the app
+ * invisible, which defeats the entire feature. We additionally moved from a
+ * scale+fade-only transition to slide+scale+fade (see mainEnter/mainExit
+ * below) after comparing against Muhofy's other app (Still), where slide
+ * transitions read clearly even over an opaque Scaffold — confirming that
+ * position-based motion (slide) is the visually reliable part of this
+ * combination, with scale as a secondary depth cue. If a real, measured
+ * jank problem shows up later, fix it without reintroducing opaque
+ * per-screen backgrounds or removing slide (e.g. investigate recomposition
+ * scope first via Layout Inspector) — do not just flip these back.
  */
 
 /**
@@ -48,37 +78,75 @@ import com.iris.assistant.util.Constants
  * spatial direction reinforces progress through the flow.
  */
 private fun onboardingEnter(): EnterTransition =
-    slideInHorizontally(tween(Constants.NAV_ANIM_DURATION_MS)) { it } +
+    slideInHorizontally(tween(Constants.NAV_ANIM_DURATION_MS)) { it / 4 } +
         fadeIn(tween(Constants.NAV_ANIM_DURATION_MS))
 
 private fun onboardingExit(): ExitTransition =
-    slideOutHorizontally(tween(Constants.NAV_ANIM_DURATION_MS)) { -it } +
+    slideOutHorizontally(tween(Constants.NAV_ANIM_DURATION_MS)) { -it / 4 } +
         fadeOut(tween(Constants.NAV_ANIM_DURATION_MS))
 
 private fun onboardingPopEnter(): EnterTransition =
-    slideInHorizontally(tween(Constants.NAV_ANIM_DURATION_MS)) { -it } +
+    slideInHorizontally(tween(Constants.NAV_ANIM_DURATION_MS)) { -it / 4 } +
         fadeIn(tween(Constants.NAV_ANIM_DURATION_MS))
 
 private fun onboardingPopExit(): ExitTransition =
-    slideOutHorizontally(tween(Constants.NAV_ANIM_DURATION_MS)) { it } +
+    slideOutHorizontally(tween(Constants.NAV_ANIM_DURATION_MS)) { it / 4 } +
         fadeOut(tween(Constants.NAV_ANIM_DURATION_MS))
 
+/**
+ * Main app transitions: slide + scale + fade (Apple-style Modern Minimal).
+ *
+ * Why slide is included (not scale/fade alone): compared against Muhofy's
+ * other app (Still — see StillNavHost.kt), whose NoteEditorScreen also uses
+ * an opaque Scaffold yet reads clearly during its slide transition. Slide is
+ * a position change, so the moving screen edges themselves carry the visual
+ * signal regardless of background opacity. Pure scale/fade does not, since
+ * the screen bounds stay fixed and only size/opacity shift — a much subtler,
+ * easier-to-miss cue. Combining both gives a guaranteed-visible motion
+ * (slide, proven by Still) plus added depth (scale) without reading as
+ * "playful" — NAV_SCALE_ENTER_FROM is 0.96f, not Peristyle's more dramatic
+ * 0.90f/1.1f range, to keep IRIS's calm, Apple-style "trusted assistant"
+ * identity rather than a wallpaper-app energy.
+ *
+ * Forward and back navigation use the same scale delta and mirrored slide
+ * direction (forward: enters from right, exits to left — standard
+ * "push deeper" hierarchy direction; back: reversed) for a consistent,
+ * symmetric feel in both directions.
+ */
 private fun mainEnter(): EnterTransition =
-    fadeIn(tween(Constants.NAV_ANIM_DURATION_MS))
-
-private fun mainExit(): ExitTransition =
-    fadeOut(tween(Constants.NAV_ANIM_DURATION_MS))
-
-private fun mainPopEnter(): EnterTransition =
+    slideInHorizontally(
+        animationSpec = tween(Constants.NAV_ANIM_DURATION_MS)
+    ) { fullWidth -> fullWidth / Constants.NAV_SLIDE_ENTER_DIVISOR } +
     scaleIn(
         animationSpec = tween(Constants.NAV_ANIM_DURATION_MS),
         initialScale = Constants.NAV_SCALE_ENTER_FROM
     ) + fadeIn(animationSpec = tween(Constants.NAV_ANIM_DURATION_MS))
 
-private fun mainPopExit(): ExitTransition =
+private fun mainExit(): ExitTransition =
+    slideOutHorizontally(
+        animationSpec = tween(Constants.NAV_ANIM_DURATION_MS)
+    ) { fullWidth -> -fullWidth / Constants.NAV_SLIDE_EXIT_DIVISOR } +
     scaleOut(
         animationSpec = tween(Constants.NAV_ANIM_DURATION_MS),
         targetScale = Constants.NAV_SCALE_EXIT_TO
+    ) + fadeOut(animationSpec = tween(Constants.NAV_ANIM_DURATION_MS))
+
+private fun mainPopEnter(): EnterTransition =
+    slideInHorizontally(
+        animationSpec = tween(Constants.NAV_ANIM_DURATION_MS)
+    ) { fullWidth -> -fullWidth / Constants.NAV_SLIDE_EXIT_DIVISOR } +
+    scaleIn(
+        animationSpec = tween(Constants.NAV_ANIM_DURATION_MS),
+        initialScale = Constants.NAV_SCALE_EXIT_TO
+    ) + fadeIn(animationSpec = tween(Constants.NAV_ANIM_DURATION_MS))
+
+private fun mainPopExit(): ExitTransition =
+    slideOutHorizontally(
+        animationSpec = tween(Constants.NAV_ANIM_DURATION_MS)
+    ) { fullWidth -> fullWidth / Constants.NAV_SLIDE_ENTER_DIVISOR } +
+    scaleOut(
+        animationSpec = tween(Constants.NAV_ANIM_DURATION_MS),
+        targetScale = Constants.NAV_SCALE_ENTER_FROM
     ) + fadeOut(animationSpec = tween(Constants.NAV_ANIM_DURATION_MS))
 
 @Composable
@@ -88,6 +156,9 @@ fun IrisNavGraph(
 ) {
     val onboardingViewModel: OnboardingViewModel = hiltViewModel()
 
+    // Single background paint source for the whole nav graph — see root
+    // cause note above. NavHost itself stays transparent; this Box behind it
+    // is what every screen renders against during transitions.
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -179,11 +250,12 @@ fun IrisNavGraph(
             }
 
             // --- Main ---
-            // Per-destination transitions set explicitly for reliable behavior.
+            // Per-destination transitions set explicitly (not relying on
+            // NavHost-level defaults) for reliable, predictable behavior.
             composable(
-                route             = NavRoute.Home.route,
-                enterTransition   = { mainEnter() },
-                exitTransition    = { mainExit() },
+                route              = NavRoute.Home.route,
+                enterTransition    = { mainEnter() },
+                exitTransition     = { mainExit() },
                 popEnterTransition = { mainPopEnter() },
                 popExitTransition  = { mainPopExit() }
             ) {

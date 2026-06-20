@@ -79,8 +79,16 @@ fun PermissionScreen(
         AccessibilityGuideDialog(onDismiss = { showAccessibilityGuide = false })
     }
 
+    // NOTE: containerColor (Scaffold AND TopAppBar) is Color.Transparent, not
+    // MaterialTheme.colorScheme.background. Root cause: an opaque background
+    // here paints over the exiting screen during IrisNavGraph.kt's scale+fade
+    // transition, hiding the animation entirely (confirmed against
+    // Peristyle's Home.kt reference). The real background color lives once,
+    // in the Box wrapping NavHost in IrisNavGraph.kt. Do NOT revert this to
+    // opaque "for performance" — that was tried once already and silently
+    // broke every nav transition in the app.
     Scaffold(
-        containerColor = MaterialTheme.colorScheme.background,
+        containerColor = Color.Transparent,
         topBar = {
             TopAppBar(
                 title = {
@@ -100,7 +108,7 @@ fun PermissionScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background,
+                    containerColor = Color.Transparent,
                 ),
             )
         },
@@ -454,17 +462,30 @@ private fun AccessibilityGuideDialog(onDismiss: () -> Unit) {
                 Spacer(Modifier.height(16.dp))
 
                 listOf(
-                    "1️⃣" to "Ayarlar uygulamasını açın",
-                    "2️⃣" to "Erişilebilirlik > Yüklü uygulamalar bölümüne girin",
-                    "3️⃣" to "IRIS'i bulun ve üzerine dokunun",
-                    "4️⃣" to "Erişilebilirlik servisi anahtarını açın",
-                    "5️⃣" to "Açılan uyarıda İzin Ver'e dokunun",
-                ).forEach { (emoji, step) ->
+                    "1" to "Ayarlar uygulamasını açın",
+                    "2" to "Erişilebilirlik > Yüklü uygulamalar bölümüne girin",
+                    "3" to "IRIS'i bulun ve üzerine dokunun",
+                    "4" to "Erişilebilirlik servisi anahtarını açın",
+                    "5" to "Açılan uyarıda İzin Ver'e dokunun",
+                ).forEach { (number, step) ->
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.padding(vertical = 4.dp)
                     ) {
-                        Text(text = emoji, style = MaterialTheme.typography.bodyLarge)
+                        Box(
+                            modifier = Modifier
+                                .size(20.dp)
+                                .clip(CircleShape)
+                                .background(primary.copy(alpha = 0.15f)),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(
+                                text = number,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = primary,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                        }
                         Spacer(Modifier.width(10.dp))
                         Text(
                             text = step,
