@@ -84,24 +84,11 @@ private fun onboardingPopExit(): ExitTransition =
     slideOutHorizontally(tween(Constants.NAV_ANIM_DURATION_MS)) { it } +
         fadeOut(tween(Constants.NAV_ANIM_DURATION_MS))
 
-/**
- * Main app transitions.
- *
- * Forward (slide + fade — reliable in Navigation Compose, Apple-style):
- *   Enter: new screen slides in from right while fading in.
- *   Exit:  current screen slides out to left while fading out.
- *
- * Back / predictive-back (scale + fade — confirmed working by Muhofy):
- *   Pop enter: previous screen scales up from NAV_SCALE_ENTER_FROM while fading in.
- *   Pop exit:  current screen scales down to NAV_SCALE_EXIT_TO while fading out.
- */
 private fun mainEnter(): EnterTransition =
-    slideInHorizontally(tween(Constants.NAV_ANIM_DURATION_MS)) { it / 3 } +
-        fadeIn(tween(Constants.NAV_ANIM_DURATION_MS))
+    fadeIn(tween(Constants.NAV_ANIM_DURATION_MS))
 
 private fun mainExit(): ExitTransition =
-    slideOutHorizontally(tween(Constants.NAV_ANIM_DURATION_MS)) { -it / 3 } +
-        fadeOut(tween(Constants.NAV_ANIM_DURATION_MS / 2))
+    fadeOut(tween(Constants.NAV_ANIM_DURATION_MS))
 
 private fun mainPopEnter(): EnterTransition =
     scaleIn(
@@ -132,17 +119,7 @@ fun IrisNavGraph(
     ) {
         NavHost(
             navController    = navController,
-            startDestination = startDestination,
-            // Global defaults — applied whenever a composable() below does not
-            // override enter/exit/popEnter/popExit itself. Per Navigation Compose
-            // docs: a destination returning null for a transition causes it to
-            // fall back to the parent (NavHost-level) transition. We define
-            // per-destination transitions explicitly below instead of relying on
-            // this fallback, so these act as a safety net only.
-            enterTransition    = { mainEnter() },
-            exitTransition      = { mainExit() },
-            popEnterTransition  = { mainPopEnter() },
-            popExitTransition   = { mainPopExit() }
+            startDestination = startDestination
         ) {
             // --- Onboarding ---
             composable(
