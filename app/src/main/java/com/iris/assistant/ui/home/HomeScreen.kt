@@ -7,7 +7,6 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -102,7 +101,7 @@ fun HomeScreen(
                 .padding(innerPadding)
         ) {
             // -----------------------------------------------------------------
-            // Top bar — gradient wordmark + model/status pill, settings button
+            // Top bar — IRIS wordmark + inline model selector, settings button
             // -----------------------------------------------------------------
             Row(
                 modifier = Modifier
@@ -110,130 +109,92 @@ fun HomeScreen(
                     .align(Alignment.TopCenter)
                     .padding(horizontal = 8.dp, vertical = 12.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Column(modifier = Modifier.padding(start = 12.dp)) {
+                Row(
+                    modifier = Modifier.padding(start = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Text(
                         text = "IRIS",
-                        // NOTE: TextStyle.brush requires Compose UI >= 1.4.0.
-                        // Project Compose BOM is 2026.04.01 (Material3 1.4.0, per
-                        // gradle/libs.versions.toml) — well above this minimum, safe to use.
                         style = MaterialTheme.typography.titleLarge.copy(
                             brush = Brush.linearGradient(listOf(primary, gradientEnd)),
                             fontWeight = FontWeight.Bold,
                             letterSpacing = 2.sp
                         )
                     )
-                    Spacer(Modifier.height(6.dp))
-                    Surface(
-                        shape = RoundedCornerShape(20.dp),
-                        color = MaterialTheme.colorScheme.surface
-                    ) {
+                    Spacer(Modifier.width(10.dp))
+
+                    // Model selector dropdown
+                    Box {
                         Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
+                            modifier = Modifier.clickable { expanded = true },
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            StatusDot(state = uiState.coreState)
-                            Spacer(Modifier.width(6.dp))
+                            Text(
+                                text = uiState.modelName
+                                    .replace("-", " ")
+                                    .replaceFirstChar { it.uppercase() },
+                                style = MaterialTheme.typography.labelMedium.copy(
+                                    fontWeight = FontWeight.Medium,
+                                    letterSpacing = 0.3.sp
+                                ),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Spacer(Modifier.width(4.dp))
+                            Icon(
+                                imageVector = PhIcons.Regular.CaretDown,
+                                contentDescription = "Model değiştir",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(12.dp)
+                            )
+                        }
 
-                            // Model selector dropdown
-                            Box {
-                                Row(
-                                    modifier = Modifier.clickable { expanded = true },
-                                    verticalAlignment = Alignment.CenterVertically
+                        DropdownMenu(
+                            expanded = expanded,
+                            onDismissRequest = { expanded = false },
+                            shape = RoundedCornerShape(16.dp),
+                        ) {
+                            val models = Constants.modelsForProvider(uiState.llmProvider)
+                            models.forEach { model ->
+                                val isSelected = model.apiName == uiState.modelName
+                                Surface(
+                                    onClick = {
+                                        viewModel.onLlmModelChange(model.apiName)
+                                        expanded = false
+                                    },
+                                    shape = RoundedCornerShape(12.dp),
+                                    color = Color.Transparent,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 6.dp, vertical = 2.dp),
                                 ) {
-                                    Text(
-                                        text = uiState.modelName
-                                            .replace("-", " ")
-                                            .replaceFirstChar { it.uppercase() },
-                                        style = MaterialTheme.typography.labelSmall.copy(
-                                            fontWeight = FontWeight.SemiBold,
-                                            letterSpacing = 0.2.sp
-                                        ),
-                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
-                                    Spacer(Modifier.width(4.dp))
-                                    Icon(
-                                        imageVector = PhIcons.Regular.CaretDown,
-                                        contentDescription = "Model değiştir",
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.size(10.dp)
-                                    )
-                                }
-
-                                DropdownMenu(
-                                    expanded = expanded,
-                                    onDismissRequest = { expanded = false },
-                                    shape = RoundedCornerShape(16.dp),
-                                ) {
-                                    val models = Constants.modelsForProvider(uiState.llmProvider)
-                                    models.forEach { model ->
-                                        val isSelected = model.apiName == uiState.modelName
-                                        Surface(
-                                            onClick = {
-                                                viewModel.onLlmModelChange(model.apiName)
-                                                expanded = false
-                                            },
-                                            shape = RoundedCornerShape(12.dp),
-                                            color = Color.Transparent,
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .padding(horizontal = 6.dp, vertical = 2.dp),
-                                        ) {
-                                            Row(
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .padding(horizontal = 12.dp, vertical = 12.dp),
-                                                verticalAlignment = Alignment.CenterVertically,
-                                            ) {
-                                                Text(
-                                                    text = model.displayName,
-                                                    style = MaterialTheme.typography.bodyMedium,
-                                                    color = if (isSelected) IrisTheme.colors.primary
-                                                            else MaterialTheme.colorScheme.onSurface,
-                                                    modifier = Modifier.weight(1f),
-                                                )
-                                                if (isSelected) {
-                                                    Spacer(Modifier.width(6.dp))
-                                                    Icon(
-                                                        imageVector = PhIcons.Regular.Check,
-                                                        contentDescription = null,
-                                                        tint = IrisTheme.colors.primary,
-                                                        modifier = Modifier.size(14.dp),
-                                                    )
-                                                }
-                                            }
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 12.dp, vertical = 12.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                    ) {
+                                        Text(
+                                            text = model.displayName,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = if (isSelected) IrisTheme.colors.primary
+                                                    else MaterialTheme.colorScheme.onSurface,
+                                            modifier = Modifier.weight(1f),
+                                        )
+                                        if (isSelected) {
+                                            Spacer(Modifier.width(6.dp))
+                                            Icon(
+                                                imageVector = PhIcons.Regular.Check,
+                                                contentDescription = null,
+                                                tint = IrisTheme.colors.primary,
+                                                modifier = Modifier.size(14.dp),
+                                            )
                                         }
                                     }
                                 }
-                            }
-
-                            Spacer(Modifier.width(6.dp))
-                            Box(
-                                modifier = Modifier
-                                    .size(3.dp)
-                                    .background(
-                                        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
-                                        CircleShape
-                                    )
-                            )
-                            Spacer(Modifier.width(6.dp))
-                            AnimatedContent(
-                                targetState = uiState.statusText,
-                                transitionSpec = {
-                                    fadeIn(tween(200)) togetherWith fadeOut(tween(120))
-                                },
-                                label = "headerStatus"
-                            ) { text ->
-                                Text(
-                                    text = text.lowercase(),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
                             }
                         }
                     }
@@ -421,34 +382,6 @@ fun HomeScreen(
             )
         }
     }
-}
-
-// ---------------------------------------------------------------------------
-// StatusDot — small animated indicator reflecting IrisCoreState
-// ---------------------------------------------------------------------------
-@Composable
-private fun StatusDot(state: IrisCoreState, modifier: Modifier = Modifier) {
-    val primary = IrisTheme.colors.primary
-    val gradientEnd = IrisTheme.colors.gradientEnd
-    val secondary = IrisTheme.colors.secondary
-    val idleColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f)
-
-    val dotColor by animateColorAsState(
-        targetValue = when (state) {
-            IrisCoreState.IDLE -> idleColor
-            IrisCoreState.LISTENING -> gradientEnd
-            IrisCoreState.THINKING -> primary
-            IrisCoreState.SPEAKING -> secondary
-        },
-        animationSpec = tween(300),
-        label = "statusDotColor"
-    )
-
-    Box(
-        modifier = modifier
-            .size(7.dp)
-            .background(dotColor, CircleShape)
-    )
 }
 
 // ---------------------------------------------------------------------------
