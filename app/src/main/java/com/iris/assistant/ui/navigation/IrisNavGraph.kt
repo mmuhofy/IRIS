@@ -31,6 +31,7 @@ import com.iris.assistant.ui.onboarding.OnboardingViewModel
 import com.iris.assistant.ui.onboarding.OnboardingWakeWordScreen
 import com.iris.assistant.ui.onboarding.OnboardingWelcomeScreen
 import com.iris.assistant.ui.settings.LocalModelScreen
+import com.iris.assistant.ui.settings.PermissionScreen
 import com.iris.assistant.ui.settings.SettingsScreen
 import com.iris.assistant.util.Constants
 
@@ -197,8 +198,9 @@ fun IrisNavGraph(
                 popExitTransition  = { mainPopExit() }
             ) {
                 SettingsScreen(
-                    onBack            = { navController.popBackStack() },
-                    onOpenLocalModels = { navController.navigate(NavRoute.LocalModels.route) }
+                    onBack                  = { navController.popBackStack() },
+                    onOpenLocalModels       = { navController.navigate(NavRoute.LocalModels.route) },
+                    onOpenPermissionManager = { navController.navigate(NavRoute.PermissionManager.route) }
                 )
             }
             composable(
@@ -209,6 +211,17 @@ fun IrisNavGraph(
                 popExitTransition  = { mainPopExit() }
             ) {
                 LocalModelScreen(
+                    onBack = { navController.popBackStack() }
+                )
+            }
+            composable(
+                route              = NavRoute.PermissionManager.route,
+                enterTransition    = { mainEnter() },
+                exitTransition     = { mainExit() },
+                popEnterTransition = { mainPopEnter() },
+                popExitTransition  = { mainPopExit() }
+            ) {
+                PermissionScreen(
                     onBack = { navController.popBackStack() }
                 )
             }
