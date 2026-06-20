@@ -10,13 +10,17 @@ object Constants {
 
     // --- Navigation ---
     // Shared transition timing/scale values for IrisNavGraph.kt.
-    // Duration kept within the project's 200-300ms animation rule.
-    const val NAV_ANIM_DURATION_MS  = 280
+    //
+    // History: first attempt used 0.95f/0.92f at 280ms — confirmed by Muhofy
+    // as "barely visible, sometimes nothing." Widened to match Peristyle's
+    // perceptible range (their scaleIntoContainer/scaleOutOfContainer use
+    // 1.1f/0.9f at 400ms+100ms delay). We keep tween() (no spring/elastic,
+    // per the project's "no bounce" rule) but use a stronger scale delta and
+    // the full 300ms ceiling so the motion actually reads on-device.
+    const val NAV_ANIM_DURATION_MS  = 300
     // Main-flow (Home/Settings/LocalModels) scale+fade transition bounds.
-    // Subtle scale (not Peristyle's 1.1f) to match this project's
-    // "no bounce/elastic" flat-shadow Apple-style design language.
-    const val NAV_SCALE_ENTER_FROM  = 0.95f
-    const val NAV_SCALE_EXIT_TO     = 0.92f
+    const val NAV_SCALE_ENTER_FROM  = 0.90f
+    const val NAV_SCALE_EXIT_TO     = 0.90f
 
     // --- User ---
     const val USER_NAME = "Muhofy"
