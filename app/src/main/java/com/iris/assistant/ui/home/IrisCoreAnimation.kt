@@ -26,6 +26,31 @@ import kotlinx.coroutines.delay
 import kotlin.math.cos
 import kotlin.math.sin
 
+/**
+ * PERFORMANCE NOTE (verified against official Compose phases docs —
+ * developer.android.com/develop/ui/compose/phases):
+ *
+ * The continuously-incrementing `time` state used to live in this function's
+ * top-level composable body. Because Compose phases run Composition -> Layout
+ * -> Drawing, a state read inside the composable body (Composition phase)
+ * forces ALL code in that body to re-run on every change — including the
+ * eight `when (state) { ... }` target calculations and the seven
+ * `animateFloatAsState` calls above, none of which actually depend on `time`.
+ * At a 16ms tick rate, this meant the entire composable was recomposing at
+ * ~60fps even when idle, which is the most likely source of frame drops
+ * observed during nav transitions (e.g. Home -> Settings).
+ *
+ * Fix: `time` is now read ONLY inside the Canvas draw-scope lambda below.
+ * Per Compose docs, a state read inside Canvas()/drawBehind/drawWithContent
+ * only triggers the Drawing phase, skipping Composition and Layout entirely.
+ * This is a read-location change only — every formula, constant, and draw
+ * call below is identical to the previous version. Visual output is
+ * byte-for-byte the same; only recomposition behavior changes.
+ *
+ * UNTESTED — verify on-device (Layout Inspector recomposition counts) before
+ * considering this confirmed. The theory is verified against official docs;
+ * the measured improvement on this exact Canvas is not yet confirmed.
+ */
 @Composable
 fun IrisCoreAnimation(
     modifier: Modifier = Modifier,
@@ -39,12 +64,15 @@ fun IrisCoreAnimation(
     val secondary = IrisTheme.colors.secondary
     val error = MaterialTheme.colorScheme.error
 
-    var time by remember { mutableFloatStateOf(0f) }
+    // `time` is declared here (remember survives recomposition) but is
+    // intentionally NOT read in the composable body anymore — see note above.
+    // It is only written to from LaunchedEffect and only read inside Canvas.
+    val timeState = remember { mutableFloatStateOf(0f) }
 
     LaunchedEffect(Unit) {
         while (true) {
             delay(16L)
-            time += 0.016f
+            timeState.floatValue += 0.016f
         }
     }
 
@@ -95,14 +123,6 @@ fun IrisCoreAnimation(
     val ringThickness by animateFloatAsState(targetThickness, tween(400), label = "thickness")
     val glowIntensity by animateFloatAsState(targetGlow, tween(400), label = "glowIntensity")
 
-    val idlePulse = if (state == IrisCoreState.IDLE) sin(time * 2f) * 0.03f else 0f
-    val idleAlphaPulse = if (state == IrisCoreState.IDLE) sin(time * 2f) * 0.08f else 0f
-    val thinkingRotation = if (state == IrisCoreState.THINKING) (time * 90f) % 360f else 0f
-    val speakingWave = if (state == IrisCoreState.SPEAKING) {
-        val prog = ttsProgress.coerceIn(0f, 1f)
-        sin(time * 12f + prog * 6f) * 0.5f
-    } else 0f
-
     val ringColor = when (state) {
         IrisCoreState.IDLE -> primary
         IrisCoreState.LISTENING -> gradientEnd
@@ -111,6 +131,19 @@ fun IrisCoreAnimation(
     }
 
     Canvas(modifier = modifier.size(coreSize)) {
+        // `time` read happens here — inside the draw-scope lambda — which is
+        // the Drawing phase. This is the only place `timeState` is read, so
+        // updates to it no longer trigger Composition/Layout for this function.
+        val time = timeState.floatValue
+
+        val idlePulse = if (state == IrisCoreState.IDLE) sin(time * 2f) * 0.03f else 0f
+        val idleAlphaPulse = if (state == IrisCoreState.IDLE) sin(time * 2f) * 0.08f else 0f
+        val thinkingRotation = if (state == IrisCoreState.THINKING) (time * 90f) % 360f else 0f
+        val speakingWave = if (state == IrisCoreState.SPEAKING) {
+            val prog = ttsProgress.coerceIn(0f, 1f)
+            sin(time * 12f + prog * 6f) * 0.5f
+        } else 0f
+
         val cx = size.width / 2f
         val cy = size.height / 2f
         val minDim = size.minDimension
