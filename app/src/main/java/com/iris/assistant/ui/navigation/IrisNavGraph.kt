@@ -35,32 +35,9 @@ import com.iris.assistant.ui.settings.SettingsScreen
 import com.iris.assistant.util.Constants
 
 /**
- * ROOT CAUSE FOUND (confirmed against Peristyle's Home.kt as a working
- * reference implementation — github.com/Hamza417/Peristyle, not assumed):
- *
- * Each main-flow screen (HomeScreen.kt, SettingsScreen.kt, LocalModelScreen.kt)
- * wraps its content in Scaffold(containerColor = MaterialTheme.colorScheme.background, ...).
- * That paints a fully OPAQUE rectangle the instant the destination enters
- * composition. Navigation Compose's AnimatedContent renders the entering and
- * exiting screen in the same z-stack during a transition — but because the
- * entering screen's Scaffold is opaque, it instantly covers the exiting
- * screen. Our mainEnter()/mainExit()/mainPopEnter()/mainPopExit() scale+fade
- * specs were running correctly, but had nothing visible to animate through:
- * the new opaque Scaffold simply appears on top, frame one. This is also why
- * only the system's predictive-back gesture preview was visible (it animates
- * the outgoing screen's content as a snapshot, before our own Scaffold paints
- * over it) while our own transitions never were — exactly what Muhofy
- * observed.
- *
- * Peristyle's Home() composable (ui/screens/Home.kt) has NO Scaffold and NO
- * per-screen background paint — it starts directly with
- * Column(Modifier.fillMaxSize()...), relying on a single background source
- * higher in the view hierarchy. We apply the same fix: the real background
- * color now lives ONCE, in the Box wrapping NavHost below. Each screen's
- * Scaffold is kept as-is (snackbarHost etc. still work) but its
- * containerColor must be Color.Transparent — see HomeScreen.kt /
- * SettingsScreen.kt / LocalModelScreen.kt (containerColor changed, nothing
- * else in those files touched).
+ * Background Box wraps NavHost so there is a single stable background layer.
+ * Screens now use opaque Scaffold backgrounds for performance; during
+ * navigation the fade animation handles the visual transition.
  */
 
 /**
@@ -109,9 +86,6 @@ fun IrisNavGraph(
 ) {
     val onboardingViewModel: OnboardingViewModel = hiltViewModel()
 
-    // Single background paint source for the whole nav graph — see root
-    // cause note above. NavHost itself stays transparent; this Box behind it
-    // is what every screen renders against during transitions.
     Box(
         modifier = Modifier
             .fillMaxSize()

@@ -17,10 +17,10 @@ object Constants {
     // 1.1f/0.9f at 400ms+100ms delay). We keep tween() (no spring/elastic,
     // per the project's "no bounce" rule) but use a stronger scale delta and
     // the full 300ms ceiling so the motion actually reads on-device.
-    const val NAV_ANIM_DURATION_MS  = 700
+    const val NAV_ANIM_DURATION_MS  = 280
     // Main-flow (Home/Settings/LocalModels) scale+fade transition bounds.
-    const val NAV_SCALE_ENTER_FROM  = 0.50f
-    const val NAV_SCALE_EXIT_TO     = 0.50f
+    const val NAV_SCALE_ENTER_FROM  = 0.85f
+    const val NAV_SCALE_EXIT_TO     = 0.85f
 
     // --- User ---
     const val USER_NAME = "Muhofy"

@@ -91,15 +91,8 @@ fun HomeScreen(
         uiState.errorMessage?.let { snackbarHostState.showSnackbar(it) }
     }
 
-    // NOTE: containerColor changed from MaterialTheme.colorScheme.background
-    // to Color.Transparent. Root cause: this Scaffold's opaque background
-    // was painting over the exiting screen during nav transitions, hiding
-    // IrisNavGraph.kt's scale+fade animation entirely (confirmed against
-    // Peristyle's Home.kt reference, which has no per-screen Scaffold/background
-    // for the same reason). The real background color now lives once, in the
-    // Box wrapping NavHost in IrisNavGraph.kt. Nothing else in this file changed.
     Scaffold(
-        containerColor = Color.Transparent,
+        containerColor = MaterialTheme.colorScheme.background,
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { innerPadding ->
         Box(
