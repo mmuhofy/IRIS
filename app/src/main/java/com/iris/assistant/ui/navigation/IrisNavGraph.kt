@@ -69,19 +69,19 @@ import com.iris.assistant.util.Constants
  * spatial direction reinforces progress through the flow.
  */
 private fun onboardingEnter(): EnterTransition =
-    slideInHorizontally(tween(Constants.NAV_ANIM_DURATION_MS)) { it / 4 } +
+    slideInHorizontally(tween(Constants.NAV_ANIM_DURATION_MS)) { it } +
         fadeIn(tween(Constants.NAV_ANIM_DURATION_MS))
 
 private fun onboardingExit(): ExitTransition =
-    slideOutHorizontally(tween(Constants.NAV_ANIM_DURATION_MS)) { -it / 4 } +
+    slideOutHorizontally(tween(Constants.NAV_ANIM_DURATION_MS)) { -it } +
         fadeOut(tween(Constants.NAV_ANIM_DURATION_MS))
 
 private fun onboardingPopEnter(): EnterTransition =
-    slideInHorizontally(tween(Constants.NAV_ANIM_DURATION_MS)) { -it / 4 } +
+    slideInHorizontally(tween(Constants.NAV_ANIM_DURATION_MS)) { -it } +
         fadeIn(tween(Constants.NAV_ANIM_DURATION_MS))
 
 private fun onboardingPopExit(): ExitTransition =
-    slideOutHorizontally(tween(Constants.NAV_ANIM_DURATION_MS)) { it / 4 } +
+    slideOutHorizontally(tween(Constants.NAV_ANIM_DURATION_MS)) { it } +
         fadeOut(tween(Constants.NAV_ANIM_DURATION_MS))
 
 /**
