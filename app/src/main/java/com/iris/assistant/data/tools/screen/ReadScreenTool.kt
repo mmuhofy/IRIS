@@ -39,7 +39,7 @@ class ReadScreenTool @Inject constructor(
             )
         }
         return ToolResult.Success(
-            message = "Screen elements retrieved. Use the 'id' field in click(nodeId=...) — do not guess by text alone.\n$dump",
+            displayText = "Screen elements retrieved. Use the 'id' field in click(nodeId=...) — do not guess by text alone.\n$dump",
             data = mapOf("screen" to dump)
         )
     }

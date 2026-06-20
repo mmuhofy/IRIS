@@ -100,7 +100,7 @@ class ScrollTool @Inject constructor(
 
         val success = scrollNode.performAction(action)
         if (success) {
-            return ToolResult.Success("Scrolled $direction successfully.")
+            return ToolResult.Success(displayText = "Scrolled $direction successfully.")
         }
 
         // AccessibilityNodeInfo scroll failed — fall back to gesture with real screen dimensions
@@ -148,7 +148,7 @@ class ScrollTool @Inject constructor(
             .build()
 
         service.dispatchGesture(gesture, null, null)
-        return ToolResult.Success("Scrolled $direction via gesture fallback.")
+        return ToolResult.Success(displayText = "Scrolled $direction via gesture fallback.")
     }
 
     /**

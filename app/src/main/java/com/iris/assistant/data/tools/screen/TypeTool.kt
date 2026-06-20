@@ -104,7 +104,7 @@ class TypeTool @Inject constructor(
             }
             val success = targetNode.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, args2)
             return if (success) {
-                ToolResult.Success("Typed '$finalText' into field id=$nodeId.")
+                ToolResult.Success(displayText = "Typed '$finalText' into field id=$nodeId.")
             } else {
                 ToolResult.Error(
                     "ACTION_SET_TEXT failed for id=$nodeId. " +
@@ -116,7 +116,7 @@ class TypeTool @Inject constructor(
         // Fallback: type into whatever is currently focused
         val success = screenRepository.typeText(text)
         return if (success) {
-            ToolResult.Success("Typed '$text' into focused field.")
+            ToolResult.Success(displayText = "Typed '$text' into focused field.")
         } else {
             ToolResult.Error(
                 "No focused input field found. " +
