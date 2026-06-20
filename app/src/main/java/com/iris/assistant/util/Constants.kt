@@ -8,6 +8,16 @@ object Constants {
     const val BUTTON_CORNER_RADIUS = 16
     const val IRIS_CORE_SIZE       = 220
 
+    // --- Navigation ---
+    // Shared transition timing/scale values for IrisNavGraph.kt.
+    // Duration kept within the project's 200-300ms animation rule.
+    const val NAV_ANIM_DURATION_MS  = 280
+    // Main-flow (Home/Settings/LocalModels) scale+fade transition bounds.
+    // Subtle scale (not Peristyle's 1.1f) to match this project's
+    // "no bounce/elastic" flat-shadow Apple-style design language.
+    const val NAV_SCALE_ENTER_FROM  = 0.95f
+    const val NAV_SCALE_EXIT_TO     = 0.92f
+
     // --- User ---
     const val USER_NAME = "Muhofy"
 
