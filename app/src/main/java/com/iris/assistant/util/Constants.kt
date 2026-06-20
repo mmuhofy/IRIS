@@ -166,7 +166,7 @@ object Constants {
 
     // --- Room ---
     const val DATABASE_NAME    = "iris_database"
-    const val DATABASE_VERSION = 1
+    const val DATABASE_VERSION = 2
 
     // --- DataStore ---
     const val DATASTORE_NAME = "iris_preferences"
