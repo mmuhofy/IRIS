@@ -1,7 +1,5 @@
 package com.iris.assistant.ui.navigation
 
-import android.os.Build
-import androidx.activity.ComponentActivity
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.tween
@@ -12,12 +10,9 @@ import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -35,38 +30,28 @@ import com.iris.assistant.ui.settings.SettingsScreen
 import com.iris.assistant.util.Constants
 
 /**
- * Predictive Back (Android 13+ / TIRAMISU) registration.
+ * IMPORTANT — Predictive Back, corrected (see commit history for prior
+ * mistake): we previously added a manual PredictiveBackHandler() composable
+ * here that registered its own android.window.OnBackInvokedCallback at the
+ * NavGraph level.
  *
- * UNTESTED — verify before use. android.window.OnBackInvokedCallback /
- * OnBackInvokedDispatcher API surface confirmed to exist since API 33 per
- * official Android docs, but this exact registration pattern combined with
- * Navigation Compose 2.9.0's NavHost has not been runtime-verified in this
- * project. Test on a physical/emulated API 33+ device before relying on it.
+ * That was WRONG and has been removed. Per official Android docs
+ * (developer.android.com/codelabs/predictive-back):
+ * "If your app intercepts the back event with BackHandler,
+ * PredictiveBackHandler, OnBackPressedCallback or OnBackInvokedCallback at
+ * the root activity (e.g. MainActivity.kt) [or, as we were doing, in the nav
+ * graph], your users will not see the predictive back-to-home animation."
+ *
+ * Navigation Compose 2.9.0 (confirmed in gradle/libs.versions.toml) already
+ * auto-applies predictive back support to enterTransition/exitTransition/
+ * popEnterTransition/popExitTransition as soon as
+ * android:enableOnBackInvokedCallback="true" is set in AndroidManifest.xml
+ * (already done — see app/src/main/AndroidManifest.xml). No manual callback
+ * registration is needed or wanted. The manual callback we added was
+ * fighting Navigation Compose's own back handling, which is the most likely
+ * cause of the abrupt ("küt") transition Muhofy reported — confirmed present
+ * on both forward and back navigation, on an API 33+ device.
  */
-@Composable
-private fun PredictiveBackHandler(navController: NavHostController) {
-    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
-
-    val context = LocalContext.current
-    DisposableEffect(navController) {
-        val activity = context as? ComponentActivity ?: return@DisposableEffect onDispose { }
-
-        val callback = android.window.OnBackInvokedCallback {
-            if (!navController.popBackStack()) {
-                activity.finish()
-            }
-        }
-
-        activity.onBackInvokedDispatcher.registerOnBackInvokedCallback(
-            android.window.OnBackInvokedDispatcher.PRIORITY_DEFAULT,
-            callback
-        )
-
-        onDispose {
-            activity.onBackInvokedDispatcher.unregisterOnBackInvokedCallback(callback)
-        }
-    }
-}
 
 /**
  * Onboarding transitions: horizontal slide + fade.
@@ -94,9 +79,12 @@ private fun onboardingPopExit(): ExitTransition =
  * Inspired by Peristyle's scaleIntoContainer/scaleOutOfContainer pattern,
  * tuned to this project's animation rules (200-300ms, no bounce/elastic).
  *
- * Forward navigation: incoming screen scales up from 0.95 -> 1f while fading in;
- * outgoing screen scales down to 0.92f while fading out (recedes "behind" the new screen).
- * Back navigation mirrors this in reverse.
+ * Forward navigation: incoming screen scales up from NAV_SCALE_ENTER_FROM -> 1f
+ * while fading in; outgoing screen scales down to NAV_SCALE_EXIT_TO while
+ * fading out (recedes "behind" the new screen). Back navigation mirrors this
+ * in reverse. Scale delta widened from an initial 0.95f/0.92f attempt — per
+ * Muhofy's on-device testing, that delta was "barely visible, sometimes
+ * nothing." Current values match Peristyle's perceptible range.
  */
 private fun mainEnter(): EnterTransition =
     scaleIn(
@@ -122,28 +110,12 @@ private fun mainPopExit(): ExitTransition =
         targetScale = Constants.NAV_SCALE_ENTER_FROM
     ) + fadeOut(animationSpec = tween(Constants.NAV_ANIM_DURATION_MS))
 
-/** Routes that belong to the onboarding flow (slide+fade transitions). */
-private val onboardingRoutes = setOf(
-    NavRoute.OnboardingWelcome.route,
-    NavRoute.OnboardingMic.route,
-    NavRoute.OnboardingWakeWord.route,
-    NavRoute.OnboardingDemo.route,
-    NavRoute.OnboardingAssistant.route
-    // Note: OnboardingBattery intentionally excluded — it always navigates
-    // forward into Home (a "main" route), so its exit transition must match
-    // the main-flow scale+fade rather than onboarding's slide.
-)
-
-private fun NavBackStackEntry.routeOrEmpty(): String = destination.route.orEmpty()
-
 @Composable
 fun IrisNavGraph(
     navController: NavHostController = rememberNavController(),
     startDestination: String = NavRoute.OnboardingWelcome.route
 ) {
     val onboardingViewModel: OnboardingViewModel = hiltViewModel()
-
-    PredictiveBackHandler(navController)
 
     NavHost(
         navController    = navController,
