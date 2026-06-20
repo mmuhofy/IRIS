@@ -48,6 +48,7 @@ data class HomeUiState(
     val isScreenCtrl     : Boolean            = false,
     val statusText       : String             = "Dinlemeye hazır",
     val modelName        : String             = Constants.GEMINI_MODEL,
+    val llmProvider      : String             = Constants.LLM_PROVIDER_GEMINI,
     val captionText      : String?            = null,
     val errorMessage     : String?            = null,
     val permissionRequest: PermissionRequest? = null
@@ -96,7 +97,12 @@ class HomeViewModel @Inject constructor(
 
         viewModelScope.launch {
             preferencesRepository.preferences.collect { prefs ->
-                _uiState.update { it.copy(modelName = prefs.llmModel) }
+                _uiState.update {
+                    it.copy(
+                        modelName   = prefs.llmModel,
+                        llmProvider = prefs.llmProvider
+                    )
+                }
                 activeTtsProvider = when (prefs.ttsProvider) {
                     TtsProviderType.GEMINI  -> geminiTts
                     TtsProviderType.MMS     -> mmsTts
@@ -417,6 +423,10 @@ class HomeViewModel @Inject constructor(
 
     fun onScreenControlToggle() {
         _uiState.update { it.copy(isScreenCtrl = !it.isScreenCtrl) }
+    }
+
+    fun onLlmModelChange(model: String) {
+        viewModelScope.launch { preferencesRepository.setLlmModel(model) }
     }
 
     // ---------------------------------------------------------------------------

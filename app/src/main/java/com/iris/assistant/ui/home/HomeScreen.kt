@@ -19,6 +19,7 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
@@ -39,6 +40,7 @@ import com.phosphor.icons.regular.*
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
@@ -79,6 +81,7 @@ fun HomeScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val primary = IrisTheme.colors.primary
     val gradientEnd = IrisTheme.colors.gradientEnd
+    var expanded by remember { mutableStateOf(false) }
 
     DisposableEffect(Unit) {
         viewModel.onScreenVisible()
@@ -132,18 +135,81 @@ fun HomeScreen(
                         ) {
                             StatusDot(state = uiState.coreState)
                             Spacer(Modifier.width(6.dp))
-                            Text(
-                                text = uiState.modelName
-                                    .replace("-", " ")
-                                    .replaceFirstChar { it.uppercase() },
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    fontWeight = FontWeight.SemiBold,
-                                    letterSpacing = 0.2.sp
-                                ),
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
+
+                            // Model selector dropdown
+                            Box {
+                                Row(
+                                    modifier = Modifier.clickable { expanded = true },
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = uiState.modelName
+                                            .replace("-", " ")
+                                            .replaceFirstChar { it.uppercase() },
+                                        style = MaterialTheme.typography.labelSmall.copy(
+                                            fontWeight = FontWeight.SemiBold,
+                                            letterSpacing = 0.2.sp
+                                        ),
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                    Spacer(Modifier.width(4.dp))
+                                    Icon(
+                                        imageVector = PhIcons.Regular.CaretDown,
+                                        contentDescription = "Model değiştir",
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(10.dp)
+                                    )
+                                }
+
+                                DropdownMenu(
+                                    expanded = expanded,
+                                    onDismissRequest = { expanded = false },
+                                    shape = RoundedCornerShape(16.dp),
+                                ) {
+                                    val models = Constants.modelsForProvider(uiState.llmProvider)
+                                    models.forEach { model ->
+                                        val isSelected = model.apiName == uiState.modelName
+                                        Surface(
+                                            onClick = {
+                                                viewModel.onLlmModelChange(model.apiName)
+                                                expanded = false
+                                            },
+                                            shape = RoundedCornerShape(12.dp),
+                                            color = Color.Transparent,
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(horizontal = 6.dp, vertical = 2.dp),
+                                        ) {
+                                            Row(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(horizontal = 12.dp, vertical = 12.dp),
+                                                verticalAlignment = Alignment.CenterVertically,
+                                            ) {
+                                                Text(
+                                                    text = model.displayName,
+                                                    style = MaterialTheme.typography.bodyMedium,
+                                                    color = if (isSelected) IrisTheme.colors.primary
+                                                            else MaterialTheme.colorScheme.onSurface,
+                                                    modifier = Modifier.weight(1f),
+                                                )
+                                                if (isSelected) {
+                                                    Spacer(Modifier.width(6.dp))
+                                                    Icon(
+                                                        imageVector = PhIcons.Regular.Check,
+                                                        contentDescription = null,
+                                                        tint = IrisTheme.colors.primary,
+                                                        modifier = Modifier.size(14.dp),
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
                             Spacer(Modifier.width(6.dp))
                             Box(
                                 modifier = Modifier
