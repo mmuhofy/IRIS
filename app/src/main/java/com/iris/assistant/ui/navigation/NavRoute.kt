@@ -14,4 +14,5 @@ sealed class NavRoute(val route: String) {
     data object Settings             : NavRoute("settings")
     data object LocalModels          : NavRoute("local_models")
     data object PermissionManager    : NavRoute("permission_manager")
+    data object VoiceSettings        : NavRoute("voice_settings")
 }

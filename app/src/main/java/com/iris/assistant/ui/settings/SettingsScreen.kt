@@ -49,9 +49,6 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.iris.assistant.domain.model.AutonomyLevel
-import com.iris.assistant.domain.model.TtsProviderType
-import com.iris.assistant.domain.model.TtsVoice
-
 import com.iris.assistant.ui.theme.ColorSchemeOption
 import com.iris.assistant.ui.theme.ColorTextPrimary
 import com.iris.assistant.ui.theme.ColorTextSecondary
@@ -68,6 +65,7 @@ fun SettingsScreen(
     onBack                 : () -> Unit,
     onOpenLocalModels      : () -> Unit = {},
     onOpenPermissionManager: () -> Unit = {},
+    onOpenVoiceSettings    : () -> Unit = {},
     viewModel             : SettingsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -128,25 +126,12 @@ fun SettingsScreen(
 
             // ── Ses ────────────────────────────────────────────────────────────
             SettingsGroup(title = "Ses") {
-                SettingsRowWithContent(
+                SettingsTappableRow(
                     icon = PhIcons.Regular.Waveform,
-                    label = "Ses karakteri",
-                ) {
-                    VoiceSelector(
-                        current  = uiState.ttsVoice,
-                        onChange = viewModel::onTtsVoiceChange,
-                    )
-                }
-                SettingsGroupDivider()
-                SettingsRowWithContent(
-                    icon = PhIcons.Regular.Robot,
-                    label = "TTS sağlayıcısı",
-                ) {
-                    TtsProviderSelector(
-                        current  = uiState.ttsProvider,
-                        onChange = viewModel::onTtsProviderChange,
-                    )
-                }
+                    label = "Ses Ayarları",
+                    description = "Ses karakteri ve TTS sağlayıcısı",
+                    onClick = onOpenVoiceSettings,
+                )
             }
 
             // ── Model ──────────────────────────────────────────────────────────
@@ -409,60 +394,6 @@ private fun SettingsIcon(
     }
 }
 
-// ── Voice selector ───────────────────────────────────────────────────────────
-
-@Composable
-private fun VoiceSelector(
-    current : TtsVoice,
-    onChange: (TtsVoice) -> Unit,
-) {
-    val voices = TtsVoice.entries
-    val currentIndex = voices.indexOf(current)
-
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        IconButton(
-            onClick = {
-                val prev = (currentIndex - 1).coerceAtLeast(0)
-                onChange(voices[prev])
-            },
-            enabled = currentIndex > 0,
-            modifier = Modifier.size(32.dp),
-        ) {
-            Icon(
-                imageVector = PhIcons.Regular.CaretLeft,
-                contentDescription = "Önceki",
-                tint = if (currentIndex > 0) IrisTheme.colors.primary
-                       else ColorTextSecondary.copy(alpha = 0.35f),
-                modifier = Modifier.size(18.dp),
-            )
-        }
-
-        Text(
-            text = current.displayName,
-            style = MaterialTheme.typography.bodyMedium,
-            color = IrisTheme.colors.primary,
-            fontWeight = FontWeight.SemiBold,
-        )
-
-        IconButton(
-            onClick = {
-                val next = (currentIndex + 1).coerceAtMost(voices.lastIndex)
-                onChange(voices[next])
-            },
-            enabled = currentIndex < voices.lastIndex,
-            modifier = Modifier.size(32.dp),
-        ) {
-            Icon(
-                imageVector = PhIcons.Regular.CaretRight,
-                contentDescription = "Sonraki",
-                tint = if (currentIndex < voices.lastIndex) IrisTheme.colors.primary
-                       else ColorTextSecondary.copy(alpha = 0.35f),
-                modifier = Modifier.size(18.dp),
-            )
-        }
-    }
-}
-
 // ── Color scheme selector ────────────────────────────────────────────────────
 
 @Composable
@@ -542,39 +473,6 @@ private fun ProviderSelector(
                         fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
                     )
                 }
-            }
-        }
-    }
-}
-
-// ── TTS provider selector ────────────────────────────────────────────────────
-
-@Composable
-private fun TtsProviderSelector(
-    current : TtsProviderType,
-    onChange: (TtsProviderType) -> Unit,
-) {
-    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        TtsProviderType.entries.forEach { provider ->
-            val selected = provider == current
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(
-                        if (selected) IrisTheme.colors.primary
-                        else MaterialTheme.colorScheme.surfaceVariant
-                    )
-                    .clickable { onChange(provider) }
-                    .padding(horizontal = 10.dp, vertical = 6.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = provider.displayName,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = if (selected) MaterialTheme.colorScheme.background
-                            else ColorTextPrimary,
-                    fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
-                )
             }
         }
     }

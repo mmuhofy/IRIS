@@ -33,6 +33,7 @@ import com.iris.assistant.ui.onboarding.OnboardingWelcomeScreen
 import com.iris.assistant.ui.settings.LocalModelScreen
 import com.iris.assistant.ui.settings.PermissionScreen
 import com.iris.assistant.ui.settings.SettingsScreen
+import com.iris.assistant.ui.settings.VoiceSettingsScreen
 import com.iris.assistant.util.Constants
 
 /**
@@ -200,7 +201,8 @@ fun IrisNavGraph(
                 SettingsScreen(
                     onBack                  = { navController.popBackStack() },
                     onOpenLocalModels       = { navController.navigate(NavRoute.LocalModels.route) },
-                    onOpenPermissionManager = { navController.navigate(NavRoute.PermissionManager.route) }
+                    onOpenPermissionManager = { navController.navigate(NavRoute.PermissionManager.route) },
+                    onOpenVoiceSettings     = { navController.navigate(NavRoute.VoiceSettings.route) }
                 )
             }
             composable(
@@ -222,6 +224,17 @@ fun IrisNavGraph(
                 popExitTransition  = { mainPopExit() }
             ) {
                 PermissionScreen(
+                    onBack = { navController.popBackStack() }
+                )
+            }
+            composable(
+                route              = NavRoute.VoiceSettings.route,
+                enterTransition    = { mainEnter() },
+                exitTransition     = { mainExit() },
+                popEnterTransition = { mainPopEnter() },
+                popExitTransition  = { mainPopExit() }
+            ) {
+                VoiceSettingsScreen(
                     onBack = { navController.popBackStack() }
                 )
             }
