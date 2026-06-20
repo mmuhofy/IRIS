@@ -85,37 +85,34 @@ private fun onboardingPopExit(): ExitTransition =
         fadeOut(tween(Constants.NAV_ANIM_DURATION_MS))
 
 /**
- * Main app transitions: scale + fade (Apple-style Modern Minimal).
- * Inspired by Peristyle's scaleIntoContainer/scaleOutOfContainer pattern,
- * tuned to this project's animation rules (200-300ms, no bounce/elastic).
+ * Main app transitions.
  *
- * Forward navigation: incoming screen scales up from NAV_SCALE_ENTER_FROM -> 1f
- * while fading in; outgoing screen scales down to NAV_SCALE_EXIT_TO while
- * fading out (recedes "behind" the new screen). Back navigation mirrors this
- * in reverse.
+ * Forward (slide + fade — reliable in Navigation Compose, Apple-style):
+ *   Enter: new screen slides in from right while fading in.
+ *   Exit:  current screen slides out to left while fading out.
+ *
+ * Back / predictive-back (scale + fade — confirmed working by Muhofy):
+ *   Pop enter: previous screen scales up from NAV_SCALE_ENTER_FROM while fading in.
+ *   Pop exit:  current screen scales down to NAV_SCALE_EXIT_TO while fading out.
  */
 private fun mainEnter(): EnterTransition =
+    slideInHorizontally(tween(Constants.NAV_ANIM_DURATION_MS)) { it / 3 } +
+        fadeIn(tween(Constants.NAV_ANIM_DURATION_MS))
+
+private fun mainExit(): ExitTransition =
+    slideOutHorizontally(tween(Constants.NAV_ANIM_DURATION_MS)) { -it / 3 } +
+        fadeOut(tween(Constants.NAV_ANIM_DURATION_MS / 2))
+
+private fun mainPopEnter(): EnterTransition =
     scaleIn(
         animationSpec = tween(Constants.NAV_ANIM_DURATION_MS),
         initialScale = Constants.NAV_SCALE_ENTER_FROM
     ) + fadeIn(animationSpec = tween(Constants.NAV_ANIM_DURATION_MS))
 
-private fun mainExit(): ExitTransition =
-    scaleOut(
-        animationSpec = tween(Constants.NAV_ANIM_DURATION_MS),
-        targetScale = Constants.NAV_SCALE_EXIT_TO
-    ) + fadeOut(animationSpec = tween(Constants.NAV_ANIM_DURATION_MS))
-
-private fun mainPopEnter(): EnterTransition =
-    scaleIn(
-        animationSpec = tween(Constants.NAV_ANIM_DURATION_MS),
-        initialScale = Constants.NAV_SCALE_EXIT_TO
-    ) + fadeIn(animationSpec = tween(Constants.NAV_ANIM_DURATION_MS))
-
 private fun mainPopExit(): ExitTransition =
     scaleOut(
         animationSpec = tween(Constants.NAV_ANIM_DURATION_MS),
-        targetScale = Constants.NAV_SCALE_ENTER_FROM
+        targetScale = Constants.NAV_SCALE_EXIT_TO
     ) + fadeOut(animationSpec = tween(Constants.NAV_ANIM_DURATION_MS))
 
 @Composable
@@ -229,20 +226,37 @@ fun IrisNavGraph(
             }
 
             // --- Main ---
-            // No per-destination transition overrides here: these three routes
-            // rely on the NavHost-level scale+fade defaults declared above.
-            composable(NavRoute.Home.route) {
+            // Per-destination transitions set explicitly for reliable behavior.
+            composable(
+                route             = NavRoute.Home.route,
+                enterTransition   = { mainEnter() },
+                exitTransition    = { mainExit() },
+                popEnterTransition = { mainPopEnter() },
+                popExitTransition  = { mainPopExit() }
+            ) {
                 HomeScreen(
                     onOpenSettings = { navController.navigate(NavRoute.Settings.route) }
                 )
             }
-            composable(NavRoute.Settings.route) {
+            composable(
+                route              = NavRoute.Settings.route,
+                enterTransition    = { mainEnter() },
+                exitTransition     = { mainExit() },
+                popEnterTransition = { mainPopEnter() },
+                popExitTransition  = { mainPopExit() }
+            ) {
                 SettingsScreen(
                     onBack            = { navController.popBackStack() },
                     onOpenLocalModels = { navController.navigate(NavRoute.LocalModels.route) }
                 )
             }
-            composable(NavRoute.LocalModels.route) {
+            composable(
+                route              = NavRoute.LocalModels.route,
+                enterTransition    = { mainEnter() },
+                exitTransition     = { mainExit() },
+                popEnterTransition = { mainPopEnter() },
+                popExitTransition  = { mainPopExit() }
+            ) {
                 LocalModelScreen(
                     onBack = { navController.popBackStack() }
                 )
