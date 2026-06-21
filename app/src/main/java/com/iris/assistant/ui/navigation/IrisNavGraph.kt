@@ -110,6 +110,26 @@ private fun onboardingPopExit(): ExitTransition =
     slideOutHorizontally(tween(Constants.NAV_ANIM_DURATION_MS)) { it / 4 } +
         fadeOut(tween(Constants.NAV_ANIM_DURATION_MS))
 
+/**
+ * ROOT CAUSE INVESTIGATION (see Constants.kt history comment for the full
+ * timeline): forward nav and predictive-back GESTURE both animate correctly.
+ * Hardware/system back button and the TopAppBar back arrow (both routed
+ * through navController.popBackStack()) do NOT animate, despite
+ * popEnterTransition/popExitTransition being explicitly defined both here
+ * and on every composable() below.
+ *
+ * Leading candidate (not yet confirmed working): ModalDrawerSheet was
+ * missing the drawerState parameter. Per official Compose docs
+ * (developer.android.com/develop/ui/compose/system/predictive-back-setup):
+ * "ModalNavigationDrawer, ModalDrawerSheet, DismissibleDrawerSheet, and
+ * DismissibleNavigationDrawer require you to pass the drawerState to their
+ * respective sheet content composables" for predictive back to work
+ * correctly. Also relevant: a known Material Components issue
+ * (material-components-android#4449) where NavHost's back handler, being
+ * lower in the composition hierarchy, can take precedence over the drawer's
+ * own back handling. Fix applied below (drawerState now passed to
+ * ModalDrawerSheet) — needs on-device confirmation.
+ */
 private fun mainEnter(): EnterTransition =
     slideInHorizontally(
         animationSpec = tween(Constants.NAV_ANIM_DURATION_MS)
@@ -205,6 +225,7 @@ fun IrisNavGraph(
                 drawerState = drawerState,
                 drawerContent = {
                     IrisDrawerSheet(
+                        drawerState          = drawerState,
                         conversations       = conversations,
                         currentRoute        = currentRoute,
                         onHomeClick         = {
@@ -409,6 +430,7 @@ private fun NavContent(
 
 @Composable
 private fun IrisDrawerSheet(
+    drawerState: DrawerState,
     conversations: List<Conversation>,
     currentRoute: String?,
     onHomeClick: () -> Unit,
@@ -419,7 +441,18 @@ private fun IrisDrawerSheet(
     val primary = IrisTheme.colors.primary
     val gradientEnd = IrisTheme.colors.gradientEnd
 
+    // NOTE: drawerState is now passed to ModalDrawerSheet. Per official
+    // Compose docs (developer.android.com/develop/ui/compose/system/predictive-back-setup):
+    // "ModalNavigationDrawer, ModalDrawerSheet, DismissibleDrawerSheet, and
+    // DismissibleNavigationDrawer require you to pass the drawerState to
+    // their respective sheet content composables" for predictive back
+    // animations to work correctly. This was previously missing — leading
+    // candidate for why navController.popBackStack() (hardware back button /
+    // TopAppBar back icon) doesn't animate while the gesture-driven
+    // predictive back preview does. Not confirmed as root cause yet — test
+    // on-device after this change.
     ModalDrawerSheet(
+        drawerState = drawerState,
         drawerContainerColor = MaterialTheme.colorScheme.surface,
         drawerShape = RoundedCornerShape(topEnd = 0.dp, bottomEnd = 0.dp),
         modifier = Modifier
