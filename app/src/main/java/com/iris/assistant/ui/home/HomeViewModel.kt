@@ -92,7 +92,10 @@ class HomeViewModel @Inject constructor(
 
     init {
         viewModelScope.launch(Dispatchers.IO) {
-            history.addAll(conversationRepository.getHistory())
+            // Legacy parameterless getHistory() was removed from ConversationRepository;
+            // HomeViewModel is conversation-agnostic (voice pipeline), so we seed local
+            // context with the most recent messages across all conversations instead.
+            history.addAll(conversationRepository.getRecentHistory(limit = 50))
         }
 
         viewModelScope.launch {

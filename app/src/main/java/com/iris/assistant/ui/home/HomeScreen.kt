@@ -110,7 +110,7 @@ fun HomeScreen(
                 .padding(innerPadding)
         ) {
             // -----------------------------------------------------------------
-            // Top bar — IRIS wordmark + inline model selector, settings button
+            // Top bar - IRIS wordmark + inline model selector, settings button
             // -----------------------------------------------------------------
             Row(
                 modifier = Modifier
@@ -120,16 +120,17 @@ fun HomeScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-            	     IconButton(onClick = onOpenDrawer) {
-            	     	Icon(
-            	     	    imageVector = PhIcons.Regular.List,
-                             contentDescription = "Menü",
-                             tint = primary
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = onOpenDrawer) {
+                        Icon(
+                            imageVector = PhIcons.Regular.List,
+                            contentDescription = "Menu",
+                            tint = primary
                         )
                     }
 
-                    Spacer(Modifier.width(8.dp)) // 2. Buton ile IRIS arasına boşluk
-                    
+                    Spacer(Modifier.width(8.dp))
+
                     Text(
                         text = "IRIS",
                         style = MaterialTheme.typography.titleLarge.copy(
@@ -181,7 +182,7 @@ fun HomeScreen(
                                 Spacer(Modifier.width(6.dp))
                                 Icon(
                                     imageVector = PhIcons.Regular.CaretDown,
-                                    contentDescription = "Model değiştir",
+                                    contentDescription = "Model degistir",
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.size(16.dp)
                                 )
@@ -265,14 +266,14 @@ fun HomeScreen(
             }
 
             // -----------------------------------------------------------------
-            // Center — ambient glow (decorative) + Iris Core Animation (untouched)
+            // Center - ambient glow (decorative) + Iris Core Animation (untouched)
             // -----------------------------------------------------------------
             Column(
                 modifier = Modifier.align(Alignment.Center),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Box(contentAlignment = Alignment.Center) {
-                    // Decorative depth layer only — does not call into or modify
+                    // Decorative depth layer only - does not call into or modify
                     // IrisCoreAnimation.kt. The core animation itself is untouched.
                     AmbientGlow(state = uiState.coreState)
                     IrisCoreAnimation(
@@ -326,7 +327,7 @@ fun HomeScreen(
             }
 
             // -----------------------------------------------------------------
-            // Permission dialog — scrim + IrisCard, reuses shared button components
+            // Permission dialog - scrim + IrisCard, reuses shared button components
             // -----------------------------------------------------------------
             val permissionRequest = uiState.permissionRequest
             var lastPermissionRequest by remember { mutableStateOf<PermissionRequest?>(null) }
@@ -360,7 +361,7 @@ fun HomeScreen(
                             innerPadding = 24.dp
                         ) {
                             Text(
-                                text = "İzin Gerekli",
+                                text = "Izin Gerekli",
                                 style = MaterialTheme.typography.titleLarge,
                                 color = MaterialTheme.colorScheme.onBackground
                             )
@@ -381,12 +382,12 @@ fun HomeScreen(
                                     modifier = Modifier.weight(1f)
                                 )
                                 IrisButtonPrimary(
-                                    text = "İzin Ver",
+                                    text = "Izin Ver",
                                     onClick = {
                                         if (isWriteSettings) {
                                             context.startActivity(
                                                 Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS).apply {
-                                                    data = Uri.parse("package:${context.packageName}")
+                                                    data = Uri.parse("package:" + context.packageName)
                                                 }
                                             )
                                             viewModel.onPermissionResult(true)
@@ -403,7 +404,7 @@ fun HomeScreen(
             }
 
             // -----------------------------------------------------------------
-            // Bottom dock — Mic / Stop / Screen-control, always visible
+            // Bottom dock - Mic / Stop / Screen-control, always visible
             // -----------------------------------------------------------------
             ControlDock(
                 isMuted = uiState.isMuted,
@@ -421,7 +422,7 @@ fun HomeScreen(
 }
 
 // ---------------------------------------------------------------------------
-// AmbientGlow — decorative depth layer behind IrisCoreAnimation.
+// AmbientGlow - decorative depth layer behind IrisCoreAnimation.
 // Lives entirely in HomeScreen.kt; IrisCoreAnimation.kt is not modified.
 // ---------------------------------------------------------------------------
 @Composable
@@ -454,7 +455,7 @@ private fun AmbientGlow(state: IrisCoreState, modifier: Modifier = Modifier) {
 }
 
 // ---------------------------------------------------------------------------
-// CaptionBubble — live TTS caption surface
+// CaptionBubble - live TTS caption surface
 // ---------------------------------------------------------------------------
 @Composable
 private fun CaptionBubble(text: String) {
@@ -487,7 +488,7 @@ private fun CaptionBubble(text: String) {
 }
 
 // ---------------------------------------------------------------------------
-// ControlDock — floating surface housing the three always-visible controls
+// ControlDock - floating surface housing the three always-visible controls
 // ---------------------------------------------------------------------------
 @Composable
 private fun ControlDock(
@@ -545,7 +546,7 @@ private fun ControlDock(
 }
 
 // ---------------------------------------------------------------------------
-// ControlButton — single dock action with pulse + press feedback
+// ControlButton - single dock action with pulse + press feedback
 // ---------------------------------------------------------------------------
 @Composable
 private fun ControlButton(

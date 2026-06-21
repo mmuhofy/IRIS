@@ -1,15 +1,11 @@
 package com.iris.assistant.ui.chat
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -52,6 +48,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -84,7 +81,7 @@ fun ChatScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val listState = rememberLazyListState()
 
-    // Init — pass conversationId once (0 = create new)
+    // Init - pass conversationId once (0 = create new)
     LaunchedEffect(conversationId) {
         viewModel.init(conversationId)
     }
@@ -128,10 +125,10 @@ fun ChatScreen(
                     .padding(horizontal = 8.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                // Hamburger — opens drawer (same as HomeScreen)
+                // Hamburger - opens drawer (same as HomeScreen)
                 TopBarIconButton(
                     icon               = PhIcons.Regular.List,
-                    contentDescription = "Menü",
+                    contentDescription = "Menu",
                     onClick            = onOpenDrawer,
                 )
 
@@ -146,7 +143,7 @@ fun ChatScreen(
 
                 Spacer(Modifier.width(12.dp))
 
-                // Conversation title — auto-generated from first message
+                // Conversation title - auto-generated from first message
                 // For now shows "Yeni Sohbet" until title is generated.
                 // DrawerViewModel updates title reactively; no extra call needed here.
                 Text(
@@ -182,7 +179,7 @@ fun ChatScreen(
                     ChatBubble(message = msg)
                 }
 
-                // Thinking indicator — animated dots
+                // Thinking indicator - animated dots
                 if (uiState.isThinking) {
                     item(key = "thinking") {
                         ThinkingBubble()
@@ -211,7 +208,7 @@ fun ChatScreen(
 }
 
 // ---------------------------------------------------------------------------
-// ChatBubble — user (right, gradient) / assistant (left, surface)
+// ChatBubble - user (right, gradient) / assistant (left, surface)
 // ---------------------------------------------------------------------------
 
 @Composable
@@ -225,7 +222,7 @@ private fun ChatBubble(message: ChatMessage) {
         horizontalArrangement = if (isUser) Arrangement.End else Arrangement.Start,
     ) {
         if (isUser) {
-            // User bubble — gradient background, right-aligned
+            // User bubble - gradient background, right-aligned
             Box(
                 modifier = Modifier
                     .widthIn(max = 280.dp)
@@ -249,7 +246,7 @@ private fun ChatBubble(message: ChatMessage) {
                 )
             }
         } else {
-            // Assistant bubble — surface background, left-aligned
+            // Assistant bubble - surface background, left-aligned
             Surface(
                 shape = RoundedCornerShape(
                     topStart    = 4.dp,
@@ -273,7 +270,7 @@ private fun ChatBubble(message: ChatMessage) {
 }
 
 // ---------------------------------------------------------------------------
-// ThinkingBubble — animated 3-dot indicator
+// ThinkingBubble - animated 3-dot indicator
 // ---------------------------------------------------------------------------
 
 @Composable
@@ -323,7 +320,7 @@ private fun ThinkingBubble() {
 }
 
 // ---------------------------------------------------------------------------
-// ChatEmptyState — shown when conversation has no messages yet
+// ChatEmptyState - shown when conversation has no messages yet
 // ---------------------------------------------------------------------------
 
 @Composable
@@ -343,7 +340,7 @@ private fun ChatEmptyState(modifier: Modifier = Modifier) {
             )
             Spacer(Modifier.height(8.dp))
             Text(
-                text  = "Nasıl yardımcı olabilirim?",
+                text  = "Nasil yardimci olabilirim?",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -407,7 +404,7 @@ fun ChatInputBar(
                 decorationBox = { inner ->
                     if (text.isEmpty()) {
                         Text(
-                            text  = "Mesaj yaz…",
+                            text  = "Mesaj yaz...",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                         )
@@ -418,10 +415,10 @@ fun ChatInputBar(
 
             Spacer(Modifier.width(8.dp))
 
-            // Right action button — context-aware:
-            // • Stop (isThinking)
-            // • Send (text not empty)
-            // • Mic (default / recording / transcribing)
+            // Right action button - context-aware:
+            // - Stop (isThinking)
+            // - Send (text not empty)
+            // - Mic (default / recording / transcribing)
             when {
                 isThinking -> {
                     InputActionButton(
@@ -435,7 +432,7 @@ fun ChatInputBar(
                 canSend -> {
                     InputActionButton(
                         icon               = PhIcons.Regular.ArrowUp,
-                        contentDescription = "Gönder",
+                        contentDescription = "Gonder",
                         background         = Brush.linearGradient(listOf(primary, gradientEnd)),
                         tint               = Color.White,
                         onClick            = onSend,
@@ -453,7 +450,7 @@ fun ChatInputBar(
                     }
                     InputActionButton(
                         icon               = PhIcons.Regular.Microphone,
-                        contentDescription = if (isRecording) "Kaydı durdur" else "Sesli giriş",
+                        contentDescription = if (isRecording) "Kaydi durdur" else "Sesli giris",
                         background         = micBg,
                         tint               = micTint,
                         onClick            = onMicToggle,
@@ -466,28 +463,23 @@ fun ChatInputBar(
 }
 
 // ---------------------------------------------------------------------------
-// InputActionButton — shared send/mic/stop button shape
+// InputActionButton - shared send/mic/stop button shape
 // ---------------------------------------------------------------------------
 
 @Composable
 private fun InputActionButton(
-    icon              : androidx.compose.ui.graphics.vector.ImageVector,
+    icon              : ImageVector,
     contentDescription: String,
     background        : Any, // Color or Brush
     tint              : Color,
     onClick           : () -> Unit,
     enabled           : Boolean = true,
 ) {
-    val modifier = Modifier
-        .size(44.dp)
-        .clip(CircleShape)
-        .then(
-            when (background) {
-                is Brush -> Modifier.background(background, CircleShape)
-                is Color -> Modifier.background(background, CircleShape)
-                else     -> Modifier.background(Color.Transparent, CircleShape)
-            }
-        )
+    val bgModifier = when (background) {
+        is Brush -> Modifier.background(background, CircleShape)
+        is Color -> Modifier.background(background, CircleShape)
+        else     -> Modifier.background(Color.Transparent, CircleShape)
+    }
 
     Surface(
         onClick  = onClick,
@@ -497,7 +489,10 @@ private fun InputActionButton(
         modifier = Modifier.size(44.dp),
     ) {
         Box(
-            modifier = modifier,
+            modifier = Modifier
+                .size(44.dp)
+                .clip(CircleShape)
+                .then(bgModifier),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
@@ -505,3 +500,34 @@ private fun InputActionButton(
                 contentDescription = contentDescription,
                 tint               = if (enabled) tint else tint.copy(alpha = 0.4f),
                 modifier           = Modifier.size(20.dp),
+            )
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// TopBarIconButton - shared icon button shape for ChatScreen top bar
+// ---------------------------------------------------------------------------
+
+@Composable
+private fun TopBarIconButton(
+    icon: ImageVector,
+    contentDescription: String,
+    onClick: () -> Unit,
+) {
+    Surface(
+        onClick = onClick,
+        shape = CircleShape,
+        color = Color.Transparent,
+        modifier = Modifier.size(40.dp),
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Icon(
+                imageVector = icon,
+                contentDescription = contentDescription,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(22.dp),
+            )
+        }
+    }
+}

@@ -47,18 +47,19 @@ class ChatViewModel @Inject constructor(
     val uiState: StateFlow<ChatUiState> = _uiState.asStateFlow()
 
     private var sendJob      : Job? = null
+    private var recordingJob : Job? = null
     private var observeJob   : Job? = null
     private var conversationId: Long = 0L
 
     // ---------------------------------------------------------------------------
-    // Init — called from ChatScreen once conversationId is known
+    // Init - called from ChatScreen once conversationId is known
     // ---------------------------------------------------------------------------
 
     fun init(rawId: Long) {
         if (conversationId == rawId && rawId != 0L) return // already loaded
 
         viewModelScope.launch {
-            // 0 = "new conversation" — create one on the fly
+            // 0 = "new conversation" - create one on the fly
             val id = if (rawId == 0L) {
                 conversationRepo.createConversation()
             } else {
@@ -100,26 +101,32 @@ class ChatViewModel @Inject constructor(
     }
 
     // ---------------------------------------------------------------------------
-    // Voice path — mic toggle → record → Whisper → send
+    // Voice path - mic toggle leads to recordUntilSilence, then Whisper, then send.
+    // AudioRecorder exposes a single suspend function (recordUntilSilence),
+    // not start()/stop()/release(). Toggling off mid-recording cancels the job.
     // ---------------------------------------------------------------------------
 
     fun onMicToggle() {
-        if (_uiState.value.isRecording) stopRecording()
-        else startRecording()
+        if (_uiState.value.isRecording) {
+            recordingJob?.cancel()
+            _uiState.update { it.copy(isRecording = false) }
+        } else {
+            startRecording()
+        }
     }
 
     private fun startRecording() {
         if (_uiState.value.isThinking || _uiState.value.isTranscribing) return
         _uiState.update { it.copy(isRecording = true) }
-        audioRecorder.start()
-    }
 
-    private fun stopRecording() {
-        _uiState.update { it.copy(isRecording = false, isTranscribing = true) }
-        viewModelScope.launch {
+        recordingJob = viewModelScope.launch {
             try {
-                val audioBytes = audioRecorder.stop()
-                if (audioBytes == null || audioBytes.isEmpty()) {
+                val audioBytes = audioRecorder.recordUntilSilence(
+                    onAmplitude = { /* no amplitude UI in ChatScreen yet */ }
+                )
+                _uiState.update { it.copy(isRecording = false, isTranscribing = true) }
+
+                if (audioBytes.isEmpty()) {
                     _uiState.update { it.copy(isTranscribing = false) }
                     return@launch
                 }
@@ -129,8 +136,9 @@ class ChatViewModel @Inject constructor(
             } catch (e: Exception) {
                 _uiState.update {
                     it.copy(
+                        isRecording    = false,
                         isTranscribing = false,
-                        errorMessage   = "Ses tanıma başarısız: ${e.message}"
+                        errorMessage   = "Ses tanima basarisiz: " + (e.message ?: "")
                     )
                 }
             }
@@ -173,7 +181,7 @@ class ChatViewModel @Inject constructor(
                     )
                 )
             } catch (e: Exception) {
-                _uiState.update { it.copy(errorMessage = "Hata: ${e.message}") }
+                _uiState.update { it.copy(errorMessage = "Hata: " + (e.message ?: "")) }
             } finally {
                 _uiState.update { it.copy(isThinking = false) }
             }
@@ -186,7 +194,7 @@ class ChatViewModel @Inject constructor(
 
     fun onStop() {
         sendJob?.cancel()
-        audioRecorder.stop()
+        recordingJob?.cancel()
         _uiState.update {
             it.copy(
                 isThinking     = false,
@@ -206,6 +214,6 @@ class ChatViewModel @Inject constructor(
 
     override fun onCleared() {
         super.onCleared()
-        audioRecorder.release()
+        recordingJob?.cancel()
     }
 }
