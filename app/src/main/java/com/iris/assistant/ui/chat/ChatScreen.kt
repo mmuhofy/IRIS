@@ -6,7 +6,6 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -35,7 +34,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.IconButtonDefaults
-import androidx.compose.material3.OutlinedIconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -353,36 +351,15 @@ fun ChatInputBar(
             )
         }
 
-        // Row 2 — action buttons (SpaceBetween, offset up to overlap text row slightly)
+        // Row 2 — action button (right-aligned, offset up to overlap text row)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 12.dp)
                 .offset(y = (-8).dp),
             verticalAlignment   = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
+            horizontalArrangement = Arrangement.End,
         ) {
-            // Left: mic (outlined) or spacer
-            if (isThinking || isRecording || isTranscribing) {
-                Spacer(Modifier.size(36.dp))
-            } else {
-                OutlinedIconButton(
-                    onClick   = onMicToggle,
-                    modifier  = Modifier.size(36.dp),
-                    border    = BorderStroke(
-                        1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f),
-                    ),
-                ) {
-                    Icon(
-                        PhIcons.Regular.Microphone,
-                        contentDescription = "Sesli giris",
-                        tint               = primary,
-                        modifier           = Modifier.size(18.dp),
-                    )
-                }
-            }
-
-            // Right: stop / recording-stop / send
             when {
                 isThinking -> {
                     IconButton(
@@ -404,6 +381,17 @@ fun ChatInputBar(
                         Icon(PhIcons.Regular.Microphone, "Kaydi durdur", tint = primary)
                     }
                 }
+                text.isBlank() -> {
+                    IconButton(
+                        onClick = onMicToggle,
+                    ) {
+                        Icon(
+                            PhIcons.Regular.Microphone,
+                            contentDescription = "Sesli giriş",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
                 else -> {
                     IconButton(
                         onClick = onSend,
@@ -415,7 +403,7 @@ fun ChatInputBar(
                             disabledContentColor   = Color.White.copy(alpha = 0.5f),
                         ),
                     ) {
-                        Icon(PhIcons.Regular.ArrowUp, "Gonder")
+                        Icon(PhIcons.Regular.ArrowUp, "Gönder")
                     }
                 }
             }
