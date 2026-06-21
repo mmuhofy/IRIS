@@ -22,29 +22,26 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.OutlinedIconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -54,10 +51,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -293,7 +287,7 @@ private fun ChatEmptyState(modifier: Modifier = Modifier) {
             )
             Spacer(Modifier.height(8.dp))
             Text(
-                text  = "Nasil yardimci olabilirim?",
+                text  = "Sana nasıl yardımcı olabilirim?",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -302,8 +296,8 @@ private fun ChatEmptyState(modifier: Modifier = Modifier) {
 }
 
 // ---------------------------------------------------------------------------
-// ChatInputBar — Google AI Edge Gallery style: bordered container,
-//                 two-row layout (text + buttons), flat filled send button.
+// ChatInputBar — Google AI Edge Gallery style (MessageInputText exact layout):
+//   bordered container, TextField (transparent), two-row, IconButton send.
 // ---------------------------------------------------------------------------
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -327,71 +321,60 @@ fun ChatInputBar(
             .fillMaxWidth()
             .padding(horizontal = 12.dp)
             .padding(vertical = 8.dp)
-            .border(
-                BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-                RoundedCornerShape(16.dp)
-            )
-            .heightIn(min = 76.dp),
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(16.dp)),
     ) {
-        // Row 1 — text field (full width)
+        // Row 1 — TextField (transparent containers, no indicator)
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 16.dp, end = 12.dp, top = 4.dp),
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            BasicTextField(
-                value = text,
+            TextField(
+                value       = text,
                 onValueChange = onTextChange,
-                modifier = Modifier.weight(1f),
-                textStyle = MaterialTheme.typography.bodyMedium.copy(
-                    color = MaterialTheme.colorScheme.onSurface,
+                modifier    = Modifier.weight(1f),
+                minLines    = 1,
+                maxLines    = 3,
+                colors      = TextFieldDefaults.colors(
+                    unfocusedContainerColor = Color.Transparent,
+                    focusedContainerColor   = Color.Transparent,
+                    focusedIndicatorColor   = Color.Transparent,
+                    unfocusedIndicatorColor = Color.Transparent,
+                    disabledIndicatorColor  = Color.Transparent,
+                    disabledContainerColor  = Color.Transparent,
                 ),
-                cursorBrush = SolidColor(primary),
-                keyboardOptions = KeyboardOptions(
-                    capitalization = KeyboardCapitalization.Sentences,
-                    imeAction      = ImeAction.Send,
-                ),
-                keyboardActions = KeyboardActions(
-                    onSend = { if (canSend) onSend() }
-                ),
-                maxLines = 3,
-                decorationBox = { inner ->
-                    if (text.isEmpty()) {
-                        Text(
-                            text  = "Mesaj yaz...",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                        )
-                    }
-                    inner()
+                textStyle   = MaterialTheme.typography.bodyMedium,
+                placeholder = {
+                    Text(
+                        text  = "Mesaj yaz...",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 },
             )
         }
 
-        // Row 2 — action buttons (space-between)
+        // Row 2 — action buttons (SpaceBetween, offset up to overlap text row slightly)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 8.dp)
-                .offset(y = (-4).dp),
+                .padding(horizontal = 12.dp)
+                .offset(y = (-8).dp),
             verticalAlignment   = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-            // Left: mic button
+            // Left: mic (outlined) or spacer
             if (isThinking || isRecording || isTranscribing) {
                 Spacer(Modifier.size(36.dp))
             } else {
                 OutlinedIconButton(
-                    onClick = onMicToggle,
-                    modifier = Modifier.size(36.dp),
-                    border = BorderStroke(
-                        1.dp,
-                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f),
+                    onClick   = onMicToggle,
+                    modifier  = Modifier.size(36.dp),
+                    border    = BorderStroke(
+                        1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f),
                     ),
                 ) {
                     Icon(
-                        imageVector        = PhIcons.Regular.Microphone,
+                        PhIcons.Regular.Microphone,
                         contentDescription = "Sesli giris",
                         tint               = primary,
                         modifier           = Modifier.size(18.dp),
@@ -399,41 +382,40 @@ fun ChatInputBar(
                 }
             }
 
-            // Right: context-aware action button
+            // Right: stop / recording-stop / send
             when {
-                isThinking || isRecording -> {
-                    Surface(
-                        onClick  = if (isThinking) onStop else onMicToggle,
-                        shape    = CircleShape,
-                        color    = MaterialTheme.colorScheme.secondaryContainer,
-                        modifier = Modifier.size(40.dp),
+                isThinking -> {
+                    IconButton(
+                        onClick = onStop,
+                        colors  = IconButtonDefaults.iconButtonColors(
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                        ),
                     ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                imageVector = if (isThinking) PhIcons.Regular.Stop
-                                              else           PhIcons.Regular.Microphone,
-                                contentDescription = if (isThinking) "Durdur" else "Kaydi durdur",
-                                tint   = primary,
-                                modifier = Modifier.size(18.dp),
-                            )
-                        }
+                        Icon(PhIcons.Regular.Stop, "Durdur", tint = primary)
+                    }
+                }
+                isRecording || isTranscribing -> {
+                    IconButton(
+                        onClick = onMicToggle,
+                        colors  = IconButtonDefaults.iconButtonColors(
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                        ),
+                    ) {
+                        Icon(PhIcons.Regular.Microphone, "Kaydi durdur", tint = primary)
                     }
                 }
                 else -> {
-                    Surface(
-                        onClick  = onSend,
-                        shape    = CircleShape,
-                        color    = if (canSend) primary else primary.copy(alpha = 0.3f),
-                        modifier = Modifier.size(40.dp),
+                    IconButton(
+                        onClick = onSend,
+                        enabled = canSend,
+                        colors  = IconButtonDefaults.iconButtonColors(
+                            containerColor        = primary,
+                            disabledContainerColor = primary.copy(alpha = 0.3f),
+                            contentColor          = Color.White,
+                            disabledContentColor   = Color.White.copy(alpha = 0.5f),
+                        ),
                     ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(
-                                imageVector        = PhIcons.Regular.ArrowUp,
-                                contentDescription = "Gonder",
-                                tint               = Color.White,
-                                modifier           = Modifier.size(18.dp),
-                            )
-                        }
+                        Icon(PhIcons.Regular.ArrowUp, "Gonder")
                     }
                 }
             }
