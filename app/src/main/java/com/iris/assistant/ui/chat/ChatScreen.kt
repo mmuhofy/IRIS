@@ -35,6 +35,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -43,23 +44,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.RoundRect
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Outline
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Density
-import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.iris.assistant.domain.model.ChatMessage
@@ -199,53 +191,15 @@ fun ChatScreen(
 }
 
 // ---------------------------------------------------------------------------
-// MessageBubbleShape — flat-rounded shape with one hard corner pointing
-//                       toward the sender (top-right for user, top-left for
-//                       assistant). Matches Google AI Edge Gallery design.
-// ---------------------------------------------------------------------------
-
-private class MessageBubbleShape(
-    private val radius: Dp,
-    private val hardCornerRight: Boolean,
-) : Shape {
-    override fun createOutline(
-        size: Size,
-        layoutDirection: LayoutDirection,
-        density: Density,
-    ): Outline {
-        val r = with(density) { radius.toPx() }
-        val path = Path().apply {
-            addRoundRect(
-                RoundRect(
-                    left      = 0f,
-                    top       = 0f,
-                    right     = size.width,
-                    bottom    = size.height,
-                    topLeftCornerRadius =
-                        if (hardCornerRight) CornerRadius(0f, 0f)
-                        else CornerRadius(r, r),
-                    topRightCornerRadius =
-                        if (hardCornerRight) CornerRadius(r, r)
-                        else CornerRadius(0f, 0f),
-                    bottomRightCornerRadius = CornerRadius(r, r),
-                    bottomLeftCornerRadius  = CornerRadius(r, r),
-                )
-            )
-        }
-        return Outline.Generic(path)
-    }
-}
-
-// ---------------------------------------------------------------------------
 // ChatBubble — user (right, primary flat color, hard corner top-right)
 //              assistant (left, surface flat color, hard corner top-left)
 // ---------------------------------------------------------------------------
 
 @Composable
 private fun ChatBubble(message: ChatMessage) {
-    val primary  = IrisTheme.colors.primary
-    val isUser   = message.role == ChatMessage.Role.USER
-    val radius   = 18.dp
+    val primary = IrisTheme.colors.primary
+    val isUser  = message.role == ChatMessage.Role.USER
+    val r       = 18.dp
 
     Row(
         modifier = Modifier
@@ -259,7 +213,10 @@ private fun ChatBubble(message: ChatMessage) {
         Box(
             modifier = Modifier
                 .widthIn(max = 280.dp)
-                .clip(MessageBubbleShape(radius, hardCornerRight = isUser))
+                .clip(
+                    if (isUser) RoundedCornerShape(topStart = r, topEnd = 0.dp, bottomStart = r, bottomEnd = r)
+                    else        RoundedCornerShape(topStart = 0.dp, topEnd = r, bottomStart = r, bottomEnd = r)
+                )
                 .background(
                     if (isUser) primary
                     else MaterialTheme.colorScheme.surface
@@ -292,7 +249,7 @@ private fun ThinkingBubble() {
     ) {
         Box(
             modifier = Modifier
-                .clip(MessageBubbleShape(18.dp, hardCornerRight = false))
+                .clip(RoundedCornerShape(topStart = 0.dp, topEnd = 18.dp, bottomStart = 18.dp, bottomEnd = 18.dp))
                 .background(MaterialTheme.colorScheme.surface)
                 .padding(horizontal = 16.dp, vertical = 14.dp),
         ) {
