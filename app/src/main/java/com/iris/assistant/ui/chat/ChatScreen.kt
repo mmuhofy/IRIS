@@ -20,7 +20,6 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
@@ -36,7 +35,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -45,14 +43,21 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.RoundRect
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Outline
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -103,7 +108,6 @@ fun ChatScreen(
     }
 
     val primary = IrisTheme.colors.primary
-    val gradientEnd = IrisTheme.colors.gradientEnd
 
     Scaffold(
         containerColor = Color.Transparent,
@@ -195,63 +199,78 @@ fun ChatScreen(
 }
 
 // ---------------------------------------------------------------------------
-// ChatBubble - user (right, gradient) / assistant (left, surface)
+// MessageBubbleShape — flat-rounded shape with one hard corner pointing
+//                       toward the sender (top-right for user, top-left for
+//                       assistant). Matches Google AI Edge Gallery design.
+// ---------------------------------------------------------------------------
+
+private class MessageBubbleShape(
+    private val radius: Dp,
+    private val hardCornerRight: Boolean,
+) : Shape {
+    override fun createOutline(
+        size: Size,
+        layoutDirection: LayoutDirection,
+        density: Density,
+    ): Outline {
+        val r = with(density) { radius.toPx() }
+        val path = Path().apply {
+            addRoundRect(
+                RoundRect(
+                    left      = 0f,
+                    top       = 0f,
+                    right     = size.width,
+                    bottom    = size.height,
+                    topLeftCornerRadius =
+                        if (hardCornerRight) CornerRadius(0f, 0f)
+                        else CornerRadius(r, r),
+                    topRightCornerRadius =
+                        if (hardCornerRight) CornerRadius(r, r)
+                        else CornerRadius(0f, 0f),
+                    bottomRightCornerRadius = CornerRadius(r, r),
+                    bottomLeftCornerRadius  = CornerRadius(r, r),
+                )
+            )
+        }
+        return Outline.Generic(path)
+    }
+}
+
+// ---------------------------------------------------------------------------
+// ChatBubble — user (right, primary flat color, hard corner top-right)
+//              assistant (left, surface flat color, hard corner top-left)
 // ---------------------------------------------------------------------------
 
 @Composable
 private fun ChatBubble(message: ChatMessage) {
-    val primary = IrisTheme.colors.primary
-    val gradientEnd = IrisTheme.colors.gradientEnd
-    val isUser = message.role == ChatMessage.Role.USER
+    val primary  = IrisTheme.colors.primary
+    val isUser   = message.role == ChatMessage.Role.USER
+    val radius   = 18.dp
 
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(
+                start = if (isUser) 48.dp else 0.dp,
+                end   = if (isUser) 0.dp else 48.dp,
+            ),
         horizontalArrangement = if (isUser) Arrangement.End else Arrangement.Start,
     ) {
-        if (isUser) {
-            // User bubble - gradient background, right-aligned
-            Box(
-                modifier = Modifier
-                    .widthIn(max = 280.dp)
-                    .clip(
-                        RoundedCornerShape(
-                            topStart    = 18.dp,
-                            topEnd      = 4.dp,
-                            bottomStart = 18.dp,
-                            bottomEnd   = 18.dp,
-                        )
-                    )
-                    .background(
-                        Brush.linearGradient(listOf(primary, gradientEnd))
-                    )
-                    .padding(horizontal = 14.dp, vertical = 10.dp),
-            ) {
-                Text(
-                    text  = message.content,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Color.White,
+        Box(
+            modifier = Modifier
+                .widthIn(max = 280.dp)
+                .clip(MessageBubbleShape(radius, hardCornerRight = isUser))
+                .background(
+                    if (isUser) primary
+                    else MaterialTheme.colorScheme.surface
                 )
-            }
-        } else {
-            // Assistant bubble - surface background, left-aligned
-            Surface(
-                shape = RoundedCornerShape(
-                    topStart    = 4.dp,
-                    topEnd      = 18.dp,
-                    bottomStart = 18.dp,
-                    bottomEnd   = 18.dp,
-                ),
-                color         = MaterialTheme.colorScheme.surface,
-                shadowElevation = 2.dp,
-                modifier = Modifier.widthIn(max = 280.dp),
-            ) {
-                Text(
-                    text     = message.content,
-                    style    = MaterialTheme.typography.bodyMedium,
-                    color    = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
-                )
-            }
+                .padding(horizontal = 14.dp, vertical = 10.dp),
+        ) {
+            Text(
+                text  = message.content,
+                style = MaterialTheme.typography.bodyMedium,
+                color = if (isUser) Color.White else MaterialTheme.colorScheme.onSurface,
+            )
         }
     }
 }
@@ -266,23 +285,20 @@ private fun ThinkingBubble() {
     val infiniteTransition = rememberInfiniteTransition(label = "thinkingDots")
 
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(end = 48.dp),
         horizontalArrangement = Arrangement.Start,
     ) {
-        Surface(
-            shape = RoundedCornerShape(
-                topStart    = 4.dp,
-                topEnd      = 18.dp,
-                bottomStart = 18.dp,
-                bottomEnd   = 18.dp,
-            ),
-            color           = MaterialTheme.colorScheme.surface,
-            shadowElevation = 2.dp,
+        Box(
+            modifier = Modifier
+                .clip(MessageBubbleShape(18.dp, hardCornerRight = false))
+                .background(MaterialTheme.colorScheme.surface)
+                .padding(horizontal = 16.dp, vertical = 14.dp),
         ) {
             Row(
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
                 horizontalArrangement = Arrangement.spacedBy(5.dp),
-                verticalAlignment = Alignment.CenterVertically,
+                verticalAlignment     = Alignment.CenterVertically,
             ) {
                 repeat(3) { idx ->
                     val alpha by infiniteTransition.animateFloat(
@@ -346,9 +362,8 @@ fun ChatInputBar(
     onStop        : () -> Unit,
     modifier      : Modifier = Modifier,
 ) {
-    val primary     = IrisTheme.colors.primary
-    val gradientEnd = IrisTheme.colors.gradientEnd
-    val canSend     = text.isNotBlank() && !isThinking
+    val primary = IrisTheme.colors.primary
+    val canSend = text.isNotBlank() && !isThinking
 
     Surface(
         color           = MaterialTheme.colorScheme.surface,
@@ -415,7 +430,7 @@ fun ChatInputBar(
                     InputActionButton(
                         icon               = PhIcons.Regular.ArrowUp,
                         contentDescription = "Gonder",
-                        background         = Brush.linearGradient(listOf(primary, gradientEnd)),
+                        background         = primary,
                         tint               = Color.White,
                         onClick            = onSend,
                     )
@@ -426,8 +441,8 @@ fun ChatInputBar(
                         isTranscribing -> primary.copy(alpha = 0.5f)
                         else           -> primary
                     }
-                    val micBg: Any = when {
-                        isRecording -> Brush.linearGradient(listOf(primary, gradientEnd))
+                    val micBg: Color = when {
+                        isRecording -> primary
                         else        -> primary.copy(alpha = 0.12f)
                     }
                     InputActionButton(
@@ -452,17 +467,11 @@ fun ChatInputBar(
 private fun InputActionButton(
     icon              : ImageVector,
     contentDescription: String,
-    background        : Any, // Color or Brush
+    background        : Color,
     tint              : Color,
     onClick           : () -> Unit,
     enabled           : Boolean = true,
 ) {
-    val bgModifier = when (background) {
-        is Brush -> Modifier.background(background, CircleShape)
-        is Color -> Modifier.background(background, CircleShape)
-        else     -> Modifier.background(Color.Transparent, CircleShape)
-    }
-
     Surface(
         onClick  = onClick,
         shape    = CircleShape,
@@ -474,7 +483,7 @@ private fun InputActionButton(
             modifier = Modifier
                 .size(44.dp)
                 .clip(CircleShape)
-                .then(bgModifier),
+                .background(background, CircleShape),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
