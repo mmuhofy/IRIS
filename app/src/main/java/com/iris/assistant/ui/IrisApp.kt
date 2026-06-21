@@ -61,7 +61,10 @@ fun IrisApp(
     else
         NavRoute.OnboardingWelcome.route
 
-    IrisTheme(colorSchemeOption = preferences.colorScheme) {
+    IrisTheme(
+        colorSchemeOption = preferences.colorScheme,
+        fontFamily        = preferences.fontFamily
+    ) {
         IrisNavGraph(
             navController    = navController,
             startDestination = startDestination

@@ -7,6 +7,7 @@ import com.iris.assistant.domain.model.AutonomyLevel
 import com.iris.assistant.domain.model.TtsProviderType
 import com.iris.assistant.domain.model.TtsVoice
 import com.iris.assistant.domain.repository.ConversationRepository
+import com.iris.assistant.ui.theme.AppFont
 import com.iris.assistant.ui.theme.ColorSchemeOption
 import com.iris.assistant.util.Constants
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -27,7 +28,8 @@ data class SettingsUiState(
     val ttsProvider        : TtsProviderType    = TtsProviderType.GEMINI,
     val historyCleared     : Boolean            = false,
     val localModelName     : String             = "",
-    val localModelPath     : String             = ""
+    val localModelPath     : String             = "",
+    val fontFamily         : AppFont            = AppFont.SystemDefault
 )
 
 @HiltViewModel
@@ -47,7 +49,8 @@ class SettingsViewModel @Inject constructor(
                 llmModel            = prefs.llmModel,
                 autonomyLevel       = prefs.autonomyLevel,
                 localModelName      = prefs.localModelName,
-                localModelPath      = prefs.localModelPath
+                localModelPath      = prefs.localModelPath,
+                fontFamily          = prefs.fontFamily
             )
         }
         .stateIn(
@@ -88,6 +91,10 @@ class SettingsViewModel @Inject constructor(
 
     fun onAutonomyLevelChange(level: AutonomyLevel) {
         viewModelScope.launch { preferencesRepository.setAutonomyLevel(level) }
+    }
+
+    fun onFontFamilyChange(font: AppFont) {
+        viewModelScope.launch { preferencesRepository.setFontFamily(font) }
     }
 
     fun onClearHistory() {

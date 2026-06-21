@@ -10,6 +10,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import com.iris.assistant.domain.model.AutonomyLevel
 import com.iris.assistant.domain.model.TtsProviderType
 import com.iris.assistant.domain.model.TtsVoice
+import com.iris.assistant.ui.theme.AppFont
 import com.iris.assistant.ui.theme.ColorSchemeOption
 import com.iris.assistant.util.Constants
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -36,6 +37,7 @@ class PreferencesRepository @Inject constructor(
         val AUTONOMY_LEVEL       = stringPreferencesKey("autonomy_level")
         val LOCAL_MODEL_NAME     = stringPreferencesKey("local_model_name")
         val LOCAL_MODEL_PATH     = stringPreferencesKey("local_model_path")
+        val FONT_FAMILY          = stringPreferencesKey("font_family")
         val TTS_PROVIDER         = stringPreferencesKey("tts_provider")
     }
 
@@ -57,6 +59,9 @@ class PreferencesRepository @Inject constructor(
                 ?: AutonomyLevel.SAFE,
             localModelName = prefs[Keys.LOCAL_MODEL_NAME] ?: "",
             localModelPath = prefs[Keys.LOCAL_MODEL_PATH] ?: "",
+            fontFamily = prefs[Keys.FONT_FAMILY]
+                ?.let { runCatching { AppFont.valueOf(it) }.getOrDefault(AppFont.SystemDefault) }
+                ?: AppFont.SystemDefault,
             ttsProvider = prefs[Keys.TTS_PROVIDER]
                 ?.let { TtsProviderType.fromKey(it) }
                 ?: TtsProviderType.GEMINI
@@ -105,5 +110,9 @@ class PreferencesRepository @Inject constructor(
 
     suspend fun setLocalModelPath(path: String) {
         context.dataStore.edit { it[Keys.LOCAL_MODEL_PATH] = path }
+    }
+
+    suspend fun setFontFamily(font: AppFont) {
+        context.dataStore.edit { it[Keys.FONT_FAMILY] = font.name }
     }
 }

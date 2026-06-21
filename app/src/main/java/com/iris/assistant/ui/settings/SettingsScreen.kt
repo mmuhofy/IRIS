@@ -52,6 +52,7 @@ import com.iris.assistant.domain.model.AutonomyLevel
 import com.iris.assistant.domain.model.TtsProviderType
 import com.iris.assistant.domain.model.TtsVoice
 import com.iris.assistant.ui.components.IrisButtonDestructive
+import com.iris.assistant.ui.theme.AppFont
 import com.iris.assistant.ui.theme.ColorSchemeOption
 import com.iris.assistant.ui.theme.ColorTextPrimary
 import com.iris.assistant.ui.theme.ColorTextSecondary
@@ -196,6 +197,16 @@ fun SettingsScreen(
                     ColorSchemeSelector(
                         current  = uiState.colorScheme,
                         onChange = viewModel::onColorSchemeChange,
+                    )
+                }
+                SettingsGroupDivider()
+                SettingsRowWithContent(
+                    icon = PhIcons.Regular.TextT,
+                    label = "Yazı tipi",
+                ) {
+                    FontSelector(
+                        current  = uiState.fontFamily,
+                        onChange = viewModel::onFontFamilyChange,
                     )
                 }
             }
@@ -625,6 +636,40 @@ private fun AutonomyLevelSelector(
                 Text(
                     text = level.displayName,
                     style = MaterialTheme.typography.labelSmall,
+                    color = if (selected) MaterialTheme.colorScheme.background
+                            else ColorTextPrimary,
+                    fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+                )
+            }
+        }
+    }
+}
+
+// ── Font selector ────────────────────────────────────────────────────────────
+
+@Composable
+private fun FontSelector(
+    current : AppFont,
+    onChange: (AppFont) -> Unit,
+) {
+    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        AppFont.entries.forEach { font ->
+            val selected = font == current
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(
+                        if (selected) IrisTheme.colors.primary
+                        else MaterialTheme.colorScheme.surfaceVariant
+                    )
+                    .clickable { onChange(font) }
+                    .padding(horizontal = 10.dp, vertical = 6.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = font.displayName,
+                    style = MaterialTheme.typography.labelSmall,
+                    fontFamily = if (selected) font.fontFamily else MaterialTheme.typography.labelSmall.fontFamily,
                     color = if (selected) MaterialTheme.colorScheme.background
                             else ColorTextPrimary,
                     fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,

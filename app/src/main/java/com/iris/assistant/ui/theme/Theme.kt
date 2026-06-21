@@ -74,6 +74,7 @@ private fun buildDarkColorScheme(iris: IrisColorScheme) = darkColorScheme(
 @Composable
 fun IrisTheme(
     colorSchemeOption: ColorSchemeOption = ColorSchemeOption.LAVENDER,
+    fontFamily: AppFont = AppFont.SystemDefault,
     content: @Composable () -> Unit
 ) {
     val irisColors = colorSchemeOption.toIrisColorScheme()
@@ -81,7 +82,7 @@ fun IrisTheme(
     CompositionLocalProvider(LocalIrisColorScheme provides irisColors) {
         MaterialTheme(
             colorScheme = buildDarkColorScheme(irisColors),
-            typography  = IrisTypography,
+            typography  = fontFamily.toTypography(),
             content     = content
         )
     }
