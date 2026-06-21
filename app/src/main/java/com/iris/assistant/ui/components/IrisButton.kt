@@ -22,8 +22,8 @@ import com.iris.assistant.ui.theme.ColorTextPrimary
 import com.iris.assistant.ui.theme.IrisTheme
 import com.iris.assistant.util.Constants
 
-// Corner radius per design spec
-private val ButtonCornerRadius = 16.dp
+// Corner radius — pill shape
+private val ButtonCornerRadius = 50.dp
 
 // ---------------------------------------------------------------------------
 // IrisButton — Primary

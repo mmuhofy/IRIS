@@ -16,6 +16,7 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -27,6 +28,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -37,17 +43,18 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.content.getSystemService
 import com.phosphor.icons.PhIcons
 import com.phosphor.icons.regular.*
 import com.phosphor.icons.filled.*
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import com.iris.assistant.service.WakeWordService
 import com.iris.assistant.ui.components.IrisButtonPrimary
@@ -68,84 +75,117 @@ private fun OnboardingStepLayout(
     onSecondary: (() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit = {}
 ) {
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        IrisTheme.colors.primary.copy(alpha = 0.06f),
+                        Color.Transparent,
+                    ),
+                    startY = 0f,
+                    endY = 400f,
+                )
+            ),
     ) {
-        Row(
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .fillMaxSize()
+                .padding(horizontal = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            if (onBack != null) {
-                IconButton(onClick = onBack) {
-                    Icon(
-                        imageVector = PhIcons.Regular.ArrowLeft,
-                        contentDescription = "Geri",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            } else {
-                Spacer(Modifier.size(48.dp))
-            }
-            Spacer(Modifier.weight(1f))
-            StepIndicator(currentStep = step, totalSteps = 6)
-            Spacer(Modifier.weight(1f))
-            Spacer(Modifier.size(48.dp))
-        }
-
-        Spacer(Modifier.weight(1f))
-
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            modifier = Modifier.size(64.dp),
-            tint = IrisTheme.colors.primary
-        )
-
-        Spacer(Modifier.height(20.dp))
-
-        Text(
-            text = title,
-            style = MaterialTheme.typography.headlineMedium,
-            color = MaterialTheme.colorScheme.onBackground,
-            textAlign = TextAlign.Center
-        )
-
-        Spacer(Modifier.height(12.dp))
-
-        Text(
-            text = description,
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center
-        )
-
-        content()
-
-        Spacer(Modifier.weight(1f))
-
-        IrisButtonPrimary(
-            text = buttonLabel,
-            onClick = onNext,
-            enabled = buttonEnabled,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = if (secondaryLabel != null) 0.dp else 48.dp)
-        )
-
-        if (secondaryLabel != null && onSecondary != null) {
-            Spacer(Modifier.height(12.dp))
-            IrisButtonSecondary(
-                text = secondaryLabel,
-                onClick = onSecondary,
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = 48.dp)
+                    .padding(top = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (onBack != null) {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            imageVector = PhIcons.Regular.ArrowLeft,
+                            contentDescription = "Geri",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                } else {
+                    Spacer(Modifier.size(48.dp))
+                }
+                Spacer(Modifier.weight(1f))
+                StepIndicator(currentStep = step, totalSteps = 6)
+                Spacer(Modifier.weight(1f))
+                Spacer(Modifier.size(48.dp))
+            }
+
+            Spacer(Modifier.weight(1f))
+
+            // Decorative circle behind icon
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .size(120.dp)
+                    .clip(CircleShape)
+                    .background(IrisTheme.colors.primary.copy(alpha = 0.1f))
+            ) {
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .size(88.dp)
+                        .clip(CircleShape)
+                        .background(IrisTheme.colors.primary.copy(alpha = 0.15f))
+                ) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        modifier = Modifier.size(44.dp),
+                        tint = IrisTheme.colors.primary
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(28.dp))
+
+            Text(
+                text = title,
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onBackground,
+                textAlign = TextAlign.Center
             )
+
+            Spacer(Modifier.height(12.dp))
+
+            Text(
+                text = description,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
+            )
+
+            content()
+
+            Spacer(Modifier.weight(1f))
+
+            IrisButtonPrimary(
+                text = buttonLabel,
+                onClick = onNext,
+                enabled = buttonEnabled,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = if (secondaryLabel != null) 0.dp else 48.dp)
+            )
+
+            if (secondaryLabel != null && onSecondary != null) {
+                Spacer(Modifier.height(12.dp))
+                IrisButtonSecondary(
+                    text = secondaryLabel,
+                    onClick = onSecondary,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 48.dp)
+                )
+            }
         }
     }
 }
