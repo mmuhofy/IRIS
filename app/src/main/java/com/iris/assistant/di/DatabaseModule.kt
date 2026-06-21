@@ -3,6 +3,7 @@ package com.iris.assistant.di
 import android.content.Context
 import androidx.room.Room
 import com.iris.assistant.data.local.db.IrisDatabase
+import com.iris.assistant.data.local.db.MIGRATION_1_2
 import com.iris.assistant.util.Constants
 import dagger.Module
 import dagger.Provides
@@ -23,5 +24,7 @@ object DatabaseModule {
         context,
         IrisDatabase::class.java,
         Constants.DATABASE_NAME
-    ).build()
+    )
+        .addMigrations(MIGRATION_1_2)
+        .build()
 }
