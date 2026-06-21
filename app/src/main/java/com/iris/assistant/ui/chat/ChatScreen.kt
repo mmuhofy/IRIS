@@ -114,7 +114,6 @@ fun ChatScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .statusBarsPadding()
         ) {
             // -----------------------------------------------------------------
             // Top bar
