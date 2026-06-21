@@ -2,7 +2,6 @@ package com.iris.assistant.ui.assistant
 
 import android.os.Bundle
 import android.util.Log
-import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -94,13 +93,6 @@ class AssistantActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-
-        window.setFlags(
-            WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
-            WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL
-        )
-        window.navigationBarColor = android.graphics.Color.TRANSPARENT
-        window.statusBarColor     = android.graphics.Color.TRANSPARENT
 
         Log.d(TAG, "onCreate")
 
