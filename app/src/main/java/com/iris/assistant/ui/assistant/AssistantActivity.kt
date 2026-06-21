@@ -147,11 +147,6 @@ private fun AssistantScreen(
         }
     }
 
-    // Start voice pipeline on launch
-    LaunchedEffect(Unit) {
-        viewModel.startVoicePipeline()
-    }
-
     // Scrim alpha
     val scrimAlpha by animateFloatAsState(
         targetValue   = if (state.isDone) 0f else SCRIM_ALPHA_TARGET,
