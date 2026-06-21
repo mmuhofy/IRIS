@@ -73,6 +73,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.iris.assistant.service.voice.VoiceInteractionEntryPoint
+import com.iris.assistant.ui.theme.ColorTextSecondary
 import com.iris.assistant.ui.theme.IrisTheme
 import com.phosphor.icons.PhIcons
 import com.phosphor.icons.filled.MicrophoneFill
@@ -341,11 +342,11 @@ private fun SheetHeader(state: AssistantUiState) {
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
-                text       = "IRIS",
-                color      = Color(0xFFFAFAFA),
-                fontSize   = 15.sp,
-                fontWeight = FontWeight.SemiBold,
-                letterSpacing = 1.5.sp
+                text       = "Iris",
+                color      = ColorTextSecondary,
+                fontSize   = 14.sp,
+                fontWeight = FontWeight.Medium,
+                letterSpacing = 0.sp
             )
         }
 

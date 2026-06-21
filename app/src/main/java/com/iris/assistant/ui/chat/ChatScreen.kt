@@ -58,6 +58,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.iris.assistant.domain.model.ChatMessage
+import com.iris.assistant.ui.theme.ColorTextSecondary
 import com.iris.assistant.ui.theme.IrisTheme
 import com.phosphor.icons.PhIcons
 import com.phosphor.icons.regular.ArrowLeft
@@ -146,12 +147,10 @@ fun ChatScreen(
                 // For now shows "Yeni Sohbet" until title is generated.
                 // DrawerViewModel updates title reactively; no extra call needed here.
                 Text(
-                    text = "IRIS",
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        brush = Brush.linearGradient(listOf(primary, gradientEnd)),
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 1.sp,
-                    ),
+                    text = "Iris",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = ColorTextSecondary,
+                    fontWeight = FontWeight.Medium,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f),
@@ -324,18 +323,13 @@ private fun ThinkingBubble() {
 
 @Composable
 private fun ChatEmptyState(modifier: Modifier = Modifier) {
-    val primary = IrisTheme.colors.primary
-    val gradientEnd = IrisTheme.colors.gradientEnd
-
     Box(modifier = modifier, contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
-                text = "IRIS",
-                style = MaterialTheme.typography.headlineMedium.copy(
-                    brush = Brush.linearGradient(listOf(primary, gradientEnd)),
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 3.sp,
-                ),
+                text = "Iris",
+                style = MaterialTheme.typography.headlineMedium,
+                color = ColorTextSecondary,
+                fontWeight = FontWeight.Medium,
             )
             Spacer(Modifier.height(8.dp))
             Text(

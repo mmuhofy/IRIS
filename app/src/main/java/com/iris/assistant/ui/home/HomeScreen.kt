@@ -69,6 +69,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.iris.assistant.ui.components.IrisButtonPrimary
 import com.iris.assistant.ui.components.IrisButtonSecondary
 import com.iris.assistant.ui.components.IrisCard
+import com.iris.assistant.ui.theme.ColorTextSecondary
 import com.iris.assistant.ui.theme.IrisTheme
 import com.iris.assistant.util.Constants
 
@@ -132,12 +133,10 @@ fun HomeScreen(
                     Spacer(Modifier.width(8.dp))
 
                     Text(
-                        text = "IRIS",
-                        style = MaterialTheme.typography.titleLarge.copy(
-                            brush = Brush.linearGradient(listOf(primary, gradientEnd)),
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 2.sp
-                        )
+                        text = "Iris",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = ColorTextSecondary,
+                        fontWeight = FontWeight.Medium,
                     )
                     Spacer(Modifier.width(10.dp))
 

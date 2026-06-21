@@ -76,6 +76,7 @@ import com.iris.assistant.ui.settings.LocalModelScreen
 import com.iris.assistant.ui.settings.PermissionScreen
 import com.iris.assistant.ui.settings.SettingsScreen
 import com.iris.assistant.ui.settings.VoiceSettingsScreen
+import com.iris.assistant.ui.theme.ColorTextSecondary
 import com.iris.assistant.ui.theme.IrisTheme
 import com.iris.assistant.util.Constants
 import com.phosphor.icons.PhIcons
@@ -470,12 +471,10 @@ private fun IrisDrawerSheet(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = "IRIS",
-                    style = MaterialTheme.typography.headlineSmall.copy(
-                        brush = Brush.linearGradient(listOf(primary, gradientEnd)),
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 2.sp,
-                    ),
+                    text = "Iris",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = ColorTextSecondary,
+                    fontWeight = FontWeight.Medium,
                 )
             }
 
