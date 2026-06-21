@@ -63,7 +63,6 @@ import com.iris.assistant.ui.theme.IrisTheme
 import com.phosphor.icons.PhIcons
 import com.phosphor.icons.regular.ArrowLeft
 import com.phosphor.icons.regular.ArrowUp
-import com.phosphor.icons.regular.List
 import com.phosphor.icons.regular.Microphone
 import com.phosphor.icons.regular.Stop
 
@@ -74,7 +73,6 @@ import com.phosphor.icons.regular.Stop
 @Composable
 fun ChatScreen(
     conversationId: Long,
-    onOpenDrawer: () -> Unit,
     onBack: () -> Unit,
     viewModel: ChatViewModel = hiltViewModel(),
 ) {
@@ -125,15 +123,6 @@ fun ChatScreen(
                     .padding(horizontal = 8.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                // Hamburger - opens drawer (same as HomeScreen)
-                TopBarIconButton(
-                    icon               = PhIcons.Regular.List,
-                    contentDescription = "Menu",
-                    onClick            = onOpenDrawer,
-                )
-
-                Spacer(Modifier.width(4.dp))
-
                 // Back button
                 TopBarIconButton(
                     icon               = PhIcons.Regular.ArrowLeft,

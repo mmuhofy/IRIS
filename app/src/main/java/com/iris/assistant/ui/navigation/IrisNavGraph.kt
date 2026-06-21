@@ -418,7 +418,6 @@ private fun NavContent(
             val conversationId = backStackEntry.arguments?.getLong(NavRoute.Chat.ARG) ?: 0L
             ChatScreen(
                 conversationId = conversationId,
-                onOpenDrawer   = openDrawer,
                 onBack         = { navController.popBackStack() },
             )
         }
