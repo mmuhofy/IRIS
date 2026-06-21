@@ -16,7 +16,8 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ShaderBrush
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.Dp
@@ -349,15 +350,13 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.clipToCircle(
     cx: Float, cy: Float, radius: Float,
     block: androidx.compose.ui.graphics.drawscope.DrawScope.() -> Unit
 ) {
-    clipPath(
-        path = androidx.compose.ui.graphics.Path().apply {
-            addOval(androidx.compose.ui.geometry.Rect(
-                center = Offset(cx, cy),
-                radius = radius
-            ))
-        },
-        block = block
-    )
+    val circlePath = Path().apply {
+        addOval(androidx.compose.ui.geometry.Rect(
+            center = Offset(cx, cy),
+            radius = radius
+        ))
+    }
+    clipPath(path = circlePath, block = block)
 }
 
 // ---------------------------------------------------------------------------
