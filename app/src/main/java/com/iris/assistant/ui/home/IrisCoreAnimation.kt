@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import com.iris.assistant.ui.theme.IrisTheme
 import com.iris.assistant.util.Constants
 import kotlinx.coroutines.delay
+import kotlin.math.cos
 import kotlin.math.sin
 
 // ---------------------------------------------------------------------------
