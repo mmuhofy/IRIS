@@ -236,31 +236,12 @@ fun HomeScreen(
                     }
                 }
 
-                val settingsInteraction = remember { MutableInteractionSource() }
-                val settingsPressed by settingsInteraction.collectIsPressedAsState()
-                val settingsScale by animateFloatAsState(
-                    targetValue = if (settingsPressed) 0.90f else 1f,
-                    animationSpec = tween(120),
-                    label = "settingsScale"
-                )
-
-                Surface(
-                    onClick = onOpenSettings,
-                    shape = CircleShape,
-                    color = primary.copy(alpha = 0.12f),
-                    interactionSource = settingsInteraction,
-                    modifier = Modifier
-                        .size(44.dp)
-                        .scale(settingsScale)
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            PhIcons.Regular.Gear,
-                            contentDescription = "Ayarlar",
-                            tint = primary,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
+                IconButton(onClick = onOpenSettings) {
+                    Icon(
+                        PhIcons.Regular.Gear,
+                        contentDescription = "Ayarlar",
+                        tint = primary,
+                    )
                 }
             }
 
