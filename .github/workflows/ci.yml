@@ -8,11 +8,11 @@ on:
 
 jobs:
   build:
-    name: Build & Lint
+    name: Build Debug APK
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Set up JDK 17
@@ -20,25 +20,52 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
-          cache: gradle
+          # Intentionally no cache here — handled manually below for full control
 
-      - name: Inject API keys from secrets
+      # ── Gradle cache ──────────────────────────────────────────────────────
+      # Caches:
+      #   ~/.gradle/caches      — downloaded deps, compiled scripts, transforms
+      #   ~/.gradle/wrapper     — gradle wrapper binaries
+      #   ~/.android/build-cache— Android build cache (aapt2, dex, etc.)
+      #
+      # Key includes libs.versions.toml + build.gradle.kts hashes so cache
+      # invalidates automatically when deps change, not on every push.
+      - name: Cache Gradle & Android build cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+            ~/.android/build-cache
+          key: gradle-${{ runner.os }}-${{ hashFiles('gradle/libs.versions.toml', 'gradle/wrapper/gradle-wrapper.properties', 'app/build.gradle.kts', 'build.gradle.kts') }}
+          restore-keys: |
+            gradle-${{ runner.os }}-
+
+      - name: Inject API keys
         run: |
-          echo "GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}"   >> local.properties
-          echo "GROQ_API_KEY=${{ secrets.GROQ_API_KEY }}"       >> local.properties
-          echo "WEATHER_API_KEY=${{ secrets.WEATHER_API_KEY }}"     >> local.properties
-          echo "TAVILY_API_KEY=${{ secrets.TAVILY_API_KEY }}"                >> local.properties
-          echo "NEWS_API_KEY=${{ secrets.NEWS_API_KEY }}"                >> local.properties
-          echo "GROQ_LLM_API_KEY=${{ secrets.GROQ_LLM_API_KEY }}"       >> local.properties
-          echo "HF_API_KEY=${{ secrets.HF_API_KEY }}"                 >> local.properties
+          echo "GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}"     >> local.properties
+          echo "GROQ_API_KEY=${{ secrets.GROQ_API_KEY }}"         >> local.properties
+          echo "WEATHER_API_KEY=${{ secrets.WEATHER_API_KEY }}"   >> local.properties
+          echo "TAVILY_API_KEY=${{ secrets.TAVILY_API_KEY }}"     >> local.properties
+          echo "NEWS_API_KEY=${{ secrets.NEWS_API_KEY }}"         >> local.properties
+          echo "GROQ_LLM_API_KEY=${{ secrets.GROQ_LLM_API_KEY }}" >> local.properties
+          echo "HF_API_KEY=${{ secrets.HF_API_KEY }}"             >> local.properties
 
-      - name: Grant Gradle wrapper execute permission
+      - name: Grant Gradle wrapper permission
         run: chmod +x gradlew
 
       - name: Build debug APK
-        run: ./gradlew assembleDebug --stacktrace
+        run: |
+          ./gradlew assembleDebug \
+            --build-cache \
+            --parallel \
+            --daemon \
+            -Dorg.gradle.jvmargs="-Xmx4g -Xms512m -XX:+UseParallelGC" \
+            -Dkotlin.daemon.jvm.options="-Xmx2g" \
+            -Pandroid.enableBuildCache=true \
+            -Pandroid.enableR8.fullMode=false
 
-      - name: Upload debug APK artifact
+      - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
           name: iris-debug-apk
