@@ -71,11 +71,15 @@ fun SettingsScreen(
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
+                    IconButton(
+                        onClick = onBack,
+                        modifier = Modifier.size(48.dp),
+                    ) {
                         Icon(
                             PhIcons.Regular.ArrowLeft,
                             contentDescription = "Geri",
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(24.dp),
                         )
                     }
                 },
@@ -151,7 +155,7 @@ fun SettingsScreen(
 
 @Composable
 private fun SettingsCategoryCard(content: @Composable () -> Unit) {
-    Box(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))

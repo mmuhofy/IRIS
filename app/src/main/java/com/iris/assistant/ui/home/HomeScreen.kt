@@ -122,11 +122,15 @@ fun HomeScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(onClick = onOpenDrawer) {
+                    IconButton(
+                        onClick = onOpenDrawer,
+                        modifier = Modifier.size(48.dp),
+                    ) {
                         Icon(
                             imageVector = PhIcons.Regular.List,
                             contentDescription = "Menu",
-                            tint = primary
+                            tint = primary,
+                            modifier = Modifier.size(24.dp),
                         )
                     }
 
@@ -236,11 +240,15 @@ fun HomeScreen(
                     }
                 }
 
-                IconButton(onClick = onOpenSettings) {
+                IconButton(
+                    onClick = onOpenSettings,
+                    modifier = Modifier.size(48.dp),
+                ) {
                     Icon(
                         PhIcons.Regular.Gear,
                         contentDescription = "Ayarlar",
                         tint = primary,
+                        modifier = Modifier.size(24.dp),
                     )
                 }
             }
@@ -589,4 +597,4 @@ private fun ControlButton(
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
-}
+}                                                                                                                                                                      
