@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.io.File
@@ -49,6 +50,23 @@ class SettingsViewModel @Inject constructor(
     private val _customFonts = MutableStateFlow(loadCustomFonts())
     val customFonts: StateFlow<List<AppFont.Custom>> = _customFonts.asStateFlow()
 
+    // NOTE: ROOT CAUSE FIX — uiState's stateIn() previously used
+    // initialValue = SettingsUiState(), i.e. the data class's hardcoded
+    // defaults (Lavender, SAFE, Gemini, etc). Every time this screen entered
+    // composition (including re-entry after the WhileSubscribed(5_000)
+    // window closed), the real DataStore value hadn't arrived yet for the
+    // first frame(s), so the UI briefly showed defaults before snapping to
+    // the actual saved preferences. Confirmed by Muhofy: visible on every
+    // Settings entry as a "flash to default, then jump to real value."
+    //
+    // Fix: `loaded` starts false and flips true only once a real DataStore
+    // emission has been mapped into uiState (via onEach below). SettingsScreen
+    // gates rendering on `loaded` so it shows nothing (not wrong defaults)
+    // until the real value is available — this is normally sub-frame on a
+    // local DataStore read, so no spinner is needed.
+    private val _loaded = MutableStateFlow(false)
+    val loaded: StateFlow<Boolean> = _loaded.asStateFlow()
+
     val uiState: StateFlow<SettingsUiState> = preferencesRepository.preferences
         .map { prefs ->
             val customFontsNow = _customFonts.value
@@ -67,6 +85,7 @@ class SettingsViewModel @Inject constructor(
                 customFonts         = customFontsNow
             )
         }
+        .onEach { _loaded.value = true }
         .stateIn(
             scope        = viewModelScope,
             started      = SharingStarted.WhileSubscribed(5_000),

@@ -1,16 +1,11 @@
 package com.iris.assistant.ui.settings
 
-import android.widget.Toast
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -43,7 +38,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -58,7 +52,6 @@ import com.iris.assistant.domain.model.AutonomyLevel
 import com.iris.assistant.domain.model.TtsProviderType
 import com.iris.assistant.domain.model.TtsVoice
 import com.iris.assistant.ui.components.IrisButtonDestructive
-import com.iris.assistant.ui.theme.AppFont
 import com.iris.assistant.ui.theme.ColorSchemeOption
 import com.iris.assistant.ui.theme.ColorTextPrimary
 import com.iris.assistant.ui.theme.ColorTextSecondary
@@ -77,18 +70,23 @@ fun SettingsScreen(
     viewModel        : SettingsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val customFonts by viewModel.customFonts.collectAsStateWithLifecycle()
-    var showClearDialog by remember { mutableStateOf(false) }
 
-    val context = LocalContext.current
-    val fontPickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocument()
-    ) { uri ->
-        if (uri != null) {
-            viewModel.importFont(uri)
-            Toast.makeText(context, "Yazı tipi içe aktarıldı", Toast.LENGTH_SHORT).show()
-        }
-    }
+    // NOTE: SettingsViewModel.uiState is backed by stateIn(initialValue =
+    // SettingsUiState()) — the data class's DEFAULT values (Lavender, SAFE,
+    // Gemini, etc), shown for one or more frames until the first real
+    // DataStore emission arrives. Combined with WhileSubscribed(5_000),
+    // re-entering this screen after being away 5+ seconds restarts the
+    // collector and replays this default-then-real flash. Root cause
+    // confirmed by Muhofy: every Settings entry briefly shows defaults
+    // before snapping to the actual saved values.
+    //
+    // Fix: gate rendering on a `loaded` flag that flips true only once a
+    // real DataStore value has been observed (see SettingsViewModel.kt).
+    // Until then, render nothing (Box takes the full Scaffold content area,
+    // matching background — no visible flash, no spinner needed since this
+    // is typically sub-frame on local DataStore reads).
+    val loaded by viewModel.loaded.collectAsStateWithLifecycle()
+    var showClearDialog by remember { mutableStateOf(false) }
 
     if (showClearDialog) {
         AlertDialog(
@@ -148,6 +146,15 @@ fun SettingsScreen(
             )
         },
     ) { innerPadding ->
+        if (!loaded) {
+            // Real DataStore value not observed yet — render nothing rather
+            // than the SettingsUiState() defaults. This is normally
+            // sub-frame on a local DataStore read, so no spinner is shown;
+            // the background Box (from IrisNavGraph.kt) is already visible
+            // underneath, so this just looks like a brief continuation of
+            // the nav transition rather than a flash of wrong content.
+            return@Scaffold
+        }
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -216,59 +223,6 @@ fun SettingsScreen(
                         onChange = viewModel::onColorSchemeChange,
                     )
                 }
-                SettingsGroupDivider()
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        SettingsIcon(PhIcons.Regular.TextT)
-                        Spacer(Modifier.width(12.dp))
-                        Text(
-                            text = "Yazı tipi",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = ColorTextPrimary,
-                        )
-                    }
-                    FontSelector(
-                        current  = uiState.fontFamily,
-                        onChange = viewModel::onFontFamilyChange,
-                        customFonts = customFonts,
-                    )
-                }
-                if (customFonts.isNotEmpty()) {
-                    customFonts.forEach { font ->
-                        SettingsGroupDivider()
-                        SettingsRowWithContent(
-                            icon = PhIcons.Regular.File,
-                            label = font.displayName,
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(MaterialTheme.colorScheme.surfaceVariant)
-                                    .clickable { viewModel.removeCustomFont(font) }
-                                    .padding(horizontal = 8.dp, vertical = 4.dp),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                Text(
-                                    text = "Sil",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.error,
-                                )
-                            }
-                        }
-                    }
-                }
-                SettingsGroupDivider()
-                SettingsTappableRow(
-                    icon = PhIcons.Regular.Upload,
-                    label = "Özel yazı tipi ekle",
-                    description = ".ttf veya .otf dosyası seçin",
-                    onClick = { fontPickerLauncher.launch(arrayOf("application/octet-stream", "font/ttf", "font/otf", "application/x-font-ttf", "application/x-font-otf")) },
-                )
             }
 
             // ── Arka Plan ──────────────────────────────────────────────────────
@@ -695,46 +649,6 @@ private fun AutonomyLevelSelector(
             ) {
                 Text(
                     text = level.displayName,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = if (selected) MaterialTheme.colorScheme.background
-                            else ColorTextPrimary,
-                    fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
-                )
-            }
-        }
-    }
-}
-
-// ── Font selector ────────────────────────────────────────────────────────────
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun FontSelector(
-    current : AppFont,
-    onChange: (AppFont) -> Unit,
-    customFonts: List<AppFont.Custom> = emptyList(),
-) {
-    val allFonts: List<AppFont> = AppFont.builtin + customFonts
-    FlowRow(
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
-        allFonts.forEach { font ->
-            val selected = font == current
-            val label = if (font is AppFont.Custom) "✦ ${font.displayName}" else font.displayName
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(
-                        if (selected) IrisTheme.colors.primary
-                        else MaterialTheme.colorScheme.surfaceVariant
-                    )
-                    .clickable { onChange(font) }
-                    .padding(horizontal = 10.dp, vertical = 6.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = label,
                     style = MaterialTheme.typography.labelSmall,
                     color = if (selected) MaterialTheme.colorScheme.background
                             else ColorTextPrimary,
