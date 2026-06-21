@@ -35,7 +35,7 @@ data class SettingsUiState(
     val historyCleared     : Boolean            = false,
     val localModelName     : String             = "",
     val localModelPath     : String             = "",
-    val fontFamily         : AppFont            = AppFont.SystemDefault,
+    val fontFamily         : AppFont            = AppFont.Inter,
     val customFonts        : List<AppFont.Custom> = emptyList()
 )
 

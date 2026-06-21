@@ -30,11 +30,6 @@ sealed class AppFont(
         displayName = "Plus Jakarta Sans",
         fontFamily = FontFamily(Font(R.font.plus_jakarta_sans))
     )
-    data object Outfit : AppFont(
-        key = "outfit",
-        displayName = "Outfit",
-        fontFamily = FontFamily(Font(R.font.outfit))
-    )
     data object Geist : AppFont(
         key = "geist",
         displayName = "Geist",
@@ -53,12 +48,12 @@ sealed class AppFont(
     fun toTypography(): Typography = IrisTypography(fontFamily)
 
     companion object {
-        val builtin: List<AppFont> get() = listOf(SystemDefault, Inter, PlusJakartaSans, Outfit, Geist)
+        val builtin: List<AppFont> get() = listOf(SystemDefault, Inter, PlusJakartaSans, Geist)
 
         fun fromKey(key: String, customFonts: List<Custom> = emptyList()): AppFont =
             builtin.firstOrNull { it.key == key }
                 ?: customFonts.firstOrNull { it.key == key }
-                ?: SystemDefault
+                ?: Inter
 
         fun customDir(context: Context): File {
             val dir = File(context.filesDir, "fonts")

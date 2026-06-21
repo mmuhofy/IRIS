@@ -9,6 +9,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -215,10 +217,21 @@ fun SettingsScreen(
                     )
                 }
                 SettingsGroupDivider()
-                SettingsRowWithContent(
-                    icon = PhIcons.Regular.TextT,
-                    label = "Yazı tipi",
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        SettingsIcon(PhIcons.Regular.TextT)
+                        Spacer(Modifier.width(12.dp))
+                        Text(
+                            text = "Yazı tipi",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = ColorTextPrimary,
+                        )
+                    }
                     FontSelector(
                         current  = uiState.fontFamily,
                         onChange = viewModel::onFontFamilyChange,
@@ -694,6 +707,7 @@ private fun AutonomyLevelSelector(
 
 // ── Font selector ────────────────────────────────────────────────────────────
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun FontSelector(
     current : AppFont,
@@ -701,9 +715,9 @@ private fun FontSelector(
     customFonts: List<AppFont.Custom> = emptyList(),
 ) {
     val allFonts: List<AppFont> = AppFont.builtin + customFonts
-    Row(
-        modifier = Modifier.fillMaxWidth(),
+    FlowRow(
         horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         allFonts.forEach { font ->
             val selected = font == current

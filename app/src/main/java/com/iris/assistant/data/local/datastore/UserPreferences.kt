@@ -19,6 +19,6 @@ data class UserPreferences(
     val localModelName      : String            = "",
     val localModelPath      : String            = "",
     val ttsProvider         : TtsProviderType   = TtsProviderType.GEMINI,
-    val fontFamily          : AppFont           = AppFont.SystemDefault,
-    val fontFamilyKey       : String            = AppFont.SystemDefault.key
+    val fontFamily          : AppFont           = AppFont.Inter,
+    val fontFamilyKey       : String            = AppFont.Inter.key
 )
