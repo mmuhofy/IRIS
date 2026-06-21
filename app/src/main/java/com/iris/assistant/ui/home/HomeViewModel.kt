@@ -86,9 +86,10 @@ class HomeViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
-    private val history          = mutableListOf<ChatMessage>()
-    private var pipelineJob      : Job? = null
-    private var pendingTranscript: String? = null
+    private val history               = mutableListOf<ChatMessage>()
+    private var pipelineJob           : Job? = null
+    private var pendingTranscript     : String? = null
+    private var currentConversationId : Long = 0L
 
     init {
         viewModelScope.launch(Dispatchers.IO) {
@@ -255,15 +256,23 @@ class HomeViewModel @Inject constructor(
                     return@launch
                 }
 
-                // Step 8 — Persist user message (Room dispatches its own IO internally)
-                val userMsg   = ChatMessage(role = ChatMessage.Role.USER, content = transcript)
+                // Step 8 — Ensure a conversation exists for the voice pipeline
+                if (currentConversationId == 0L) {
+                    currentConversationId = conversationRepository.createConversation()
+                }
+                // Step 9 — Persist user message (Room dispatches its own IO internally)
+                val userMsg   = ChatMessage(
+                    role           = ChatMessage.Role.USER,
+                    content        = transcript,
+                    conversationId = currentConversationId,
+                )
                 val userMsgId = conversationRepository.saveMessage(userMsg)
                 history.add(userMsg.copy(id = userMsgId))
 
-                // Step 9 — THINKING (LLM)
+                // Step 10 — THINKING (LLM)
                 _uiState.update { it.copy(statusText = "Düşünüyorum...") }
 
-                // Step 10 — LLM via Gemini (network — stays on IO, Main is free)
+                // Step 11 — LLM via Gemini (network — stays on IO, Main is free)
                 val reply: String
                 try {
                     reply = sendMessageUseCase(history.toList())
@@ -287,12 +296,16 @@ class HomeViewModel @Inject constructor(
                     return@launch
                 }
 
-                // Step 11 — Persist assistant message
-                val assistantMsg   = ChatMessage(role = ChatMessage.Role.ASSISTANT, content = reply)
+                // Step 12 — Persist assistant message
+                val assistantMsg   = ChatMessage(
+                    role           = ChatMessage.Role.ASSISTANT,
+                    content        = reply,
+                    conversationId = currentConversationId,
+                )
                 val assistantMsgId = conversationRepository.saveMessage(assistantMsg)
                 history.add(assistantMsg.copy(id = assistantMsgId))
 
-                // Step 12 — SPEAKING
+                // Step 13 — SPEAKING
                 _uiState.update {
                     it.copy(
                         coreState   = IrisCoreState.SPEAKING,
@@ -371,14 +384,26 @@ class HomeViewModel @Inject constructor(
         pipelineJob = viewModelScope.launch(Dispatchers.IO) {
             _uiState.update { it.copy(statusText = "Düşünüyorum...") }
 
-            val userMsg   = ChatMessage(role = ChatMessage.Role.USER, content = transcript)
+            if (currentConversationId == 0L) {
+                currentConversationId = conversationRepository.createConversation()
+            }
+
+            val userMsg   = ChatMessage(
+                role           = ChatMessage.Role.USER,
+                content        = transcript,
+                conversationId = currentConversationId,
+            )
             val userMsgId = conversationRepository.saveMessage(userMsg)
             history.add(userMsg.copy(id = userMsgId))
 
             try {
                 val reply = sendMessageUseCase(history.toList())
 
-                val assistantMsg   = ChatMessage(role = ChatMessage.Role.ASSISTANT, content = reply)
+                val assistantMsg   = ChatMessage(
+                    role           = ChatMessage.Role.ASSISTANT,
+                    content        = reply,
+                    conversationId = currentConversationId,
+                )
                 val assistantMsgId = conversationRepository.saveMessage(assistantMsg)
                 history.add(assistantMsg.copy(id = assistantMsgId))
 

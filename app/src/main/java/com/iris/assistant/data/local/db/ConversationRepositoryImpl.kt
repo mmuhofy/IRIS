@@ -49,9 +49,15 @@ class ConversationRepositoryImpl @Inject constructor(
             .map { list -> list.map { it.toDomain() } }
 
     override suspend fun saveMessage(message: ChatMessage): Long {
-        val rowId = db.messageDao().insert(MessageEntity.fromDomain(message))
-        // Bump conversation's updatedAtMs so it floats to top of drawer list.
-        db.conversationDao().getById(message.conversationId)?.let { conv ->
+        var effectiveId = message.conversationId
+        if (effectiveId == 0L || db.conversationDao().getById(effectiveId) == null) {
+            effectiveId = db.conversationDao().insert(
+                ConversationEntity(title = "Yeni Sohbet")
+            )
+        }
+        val msg = if (effectiveId != message.conversationId) message.copy(conversationId = effectiveId) else message
+        val rowId = db.messageDao().insert(MessageEntity.fromDomain(msg))
+        db.conversationDao().getById(effectiveId)?.let { conv ->
             db.conversationDao().update(
                 conv.copy(updatedAtMs = System.currentTimeMillis())
             )
