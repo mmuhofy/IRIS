@@ -1,7 +1,6 @@
 package com.iris.assistant.ui.theme
 
 import android.content.Context
-import android.graphics.Typeface
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
@@ -48,7 +47,7 @@ sealed class AppFont(
     ) : AppFont(
         key = "custom_$filePath",
         displayName = displayName,
-        fontFamily = FontFamily(Font(Typeface.createFromFile(filePath)))
+        fontFamily = FontFamily(Font(File(filePath)))
     )
 
     fun toTypography(): Typography = IrisTypography(fontFamily)
