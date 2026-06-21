@@ -6,6 +6,7 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -25,18 +26,25 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedIconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -46,11 +54,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -104,44 +110,36 @@ fun ChatScreen(
     Scaffold(
         containerColor = Color.Transparent,
         snackbarHost = { SnackbarHost(snackbarHostState) },
+        topBar = {
+            CenterAlignedTopAppBar(
+                title = {
+                    Text(
+                        text = "Iris",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = ColorTextSecondary,
+                        fontWeight = FontWeight.Medium,
+                    )
+                },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            imageVector        = PhIcons.Regular.ArrowLeft,
+                            contentDescription = "Geri",
+                            tint               = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                    containerColor = Color.Transparent,
+                ),
+            )
+        },
     ) { innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            // -----------------------------------------------------------------
-            // Top bar
-            // -----------------------------------------------------------------
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 8.dp, vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                // Back button
-                TopBarIconButton(
-                    icon               = PhIcons.Regular.ArrowLeft,
-                    contentDescription = "Geri",
-                    onClick            = onBack,
-                )
-
-                Spacer(Modifier.width(12.dp))
-
-                // Conversation title - auto-generated from first message
-                // For now shows "Yeni Sohbet" until title is generated.
-                // DrawerViewModel updates title reactively; no extra call needed here.
-                Text(
-                    text = "Iris",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = ColorTextSecondary,
-                    fontWeight = FontWeight.Medium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f),
-                )
-            }
-
             // -----------------------------------------------------------------
             // Message list
             // -----------------------------------------------------------------
@@ -151,7 +149,6 @@ fun ChatScreen(
                 contentPadding  = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                // Empty state
                 if (uiState.messages.isEmpty() && !uiState.isThinking) {
                     item {
                         ChatEmptyState(modifier = Modifier.fillParentMaxSize())
@@ -162,7 +159,6 @@ fun ChatScreen(
                     ChatBubble(message = msg)
                 }
 
-                // Thinking indicator - animated dots
                 if (uiState.isThinking) {
                     item(key = "thinking") {
                         ThinkingBubble()
@@ -171,18 +167,18 @@ fun ChatScreen(
             }
 
             // -----------------------------------------------------------------
-            // Input bar
+            // Input bar — Google AI Edge Gallery style
             // -----------------------------------------------------------------
             ChatInputBar(
-                text          = uiState.inputText,
-                isThinking    = uiState.isThinking,
-                isRecording   = uiState.isRecording,
+                text           = uiState.inputText,
+                isThinking     = uiState.isThinking,
+                isRecording    = uiState.isRecording,
                 isTranscribing = uiState.isTranscribing,
-                onTextChange  = viewModel::onInputChange,
-                onSend        = viewModel::onSend,
-                onMicToggle   = viewModel::onMicToggle,
-                onStop        = viewModel::onStop,
-                modifier      = Modifier
+                onTextChange   = viewModel::onInputChange,
+                onSend         = viewModel::onSend,
+                onMicToggle    = viewModel::onMicToggle,
+                onStop         = viewModel::onStop,
+                modifier       = Modifier
                     .navigationBarsPadding()
                     .imePadding(),
             )
@@ -304,9 +300,11 @@ private fun ChatEmptyState(modifier: Modifier = Modifier) {
 }
 
 // ---------------------------------------------------------------------------
-// ChatInputBar
+// ChatInputBar — Google AI Edge Gallery style: bordered container,
+//                 two-row layout (text + buttons), flat filled send button.
 // ---------------------------------------------------------------------------
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChatInputBar(
     text          : String,
@@ -322,27 +320,28 @@ fun ChatInputBar(
     val primary = IrisTheme.colors.primary
     val canSend = text.isNotBlank() && !isThinking
 
-    Surface(
-        color           = MaterialTheme.colorScheme.surface,
-        shadowElevation = 8.dp,
-        shape           = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
-        modifier        = modifier.fillMaxWidth(),
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp)
+            .padding(vertical = 8.dp)
+            .border(
+                BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                RoundedCornerShape(16.dp)
+            )
+            .heightIn(min = 76.dp),
     ) {
+        // Row 1 — text field (full width)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.Bottom,
+                .padding(start = 16.dp, end = 12.dp, top = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            // Text field
             BasicTextField(
                 value = text,
                 onValueChange = onTextChange,
-                modifier = Modifier
-                    .weight(1f)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(MaterialTheme.colorScheme.background)
-                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                modifier = Modifier.weight(1f),
                 textStyle = MaterialTheme.typography.bodyMedium.copy(
                     color = MaterialTheme.colorScheme.onSurface,
                 ),
@@ -354,7 +353,7 @@ fun ChatInputBar(
                 keyboardActions = KeyboardActions(
                     onSend = { if (canSend) onSend() }
                 ),
-                maxLines = 5,
+                maxLines = 3,
                 decorationBox = { inner ->
                     if (text.isEmpty()) {
                         Text(
@@ -366,116 +365,76 @@ fun ChatInputBar(
                     inner()
                 },
             )
+        }
 
-            Spacer(Modifier.width(8.dp))
-
-            // Right action button - context-aware:
-            // - Stop (isThinking)
-            // - Send (text not empty)
-            // - Mic (default / recording / transcribing)
-            when {
-                isThinking -> {
-                    InputActionButton(
-                        icon               = PhIcons.Regular.Stop,
-                        contentDescription = "Durdur",
-                        background         = Color(0xFFF87171), // error red
-                        tint               = Color.White,
-                        onClick            = onStop,
-                    )
-                }
-                canSend -> {
-                    InputActionButton(
-                        icon               = PhIcons.Regular.ArrowUp,
-                        contentDescription = "Gonder",
-                        background         = primary,
-                        tint               = Color.White,
-                        onClick            = onSend,
-                    )
-                }
-                else -> {
-                    val micTint = when {
-                        isRecording    -> Color.White
-                        isTranscribing -> primary.copy(alpha = 0.5f)
-                        else           -> primary
-                    }
-                    val micBg: Color = when {
-                        isRecording -> primary
-                        else        -> primary.copy(alpha = 0.12f)
-                    }
-                    InputActionButton(
-                        icon               = PhIcons.Regular.Microphone,
-                        contentDescription = if (isRecording) "Kaydi durdur" else "Sesli giris",
-                        background         = micBg,
-                        tint               = micTint,
-                        onClick            = onMicToggle,
-                        enabled            = !isTranscribing,
+        // Row 2 — action buttons (space-between)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp)
+                .offset(y = (-4).dp),
+            verticalAlignment   = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            // Left: mic button
+            if (isThinking || isRecording || isTranscribing) {
+                Spacer(Modifier.size(36.dp))
+            } else {
+                OutlinedIconButton(
+                    onClick = onMicToggle,
+                    modifier = Modifier.size(36.dp),
+                    border = BorderStroke(
+                        1.dp,
+                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f),
+                    ),
+                ) {
+                    Icon(
+                        imageVector        = PhIcons.Regular.Microphone,
+                        contentDescription = "Sesli giris",
+                        tint               = primary,
+                        modifier           = Modifier.size(18.dp),
                     )
                 }
             }
-        }
-    }
-}
 
-// ---------------------------------------------------------------------------
-// InputActionButton - shared send/mic/stop button shape
-// ---------------------------------------------------------------------------
-
-@Composable
-private fun InputActionButton(
-    icon              : ImageVector,
-    contentDescription: String,
-    background        : Color,
-    tint              : Color,
-    onClick           : () -> Unit,
-    enabled           : Boolean = true,
-) {
-    Surface(
-        onClick  = onClick,
-        shape    = CircleShape,
-        color    = Color.Transparent,
-        enabled  = enabled,
-        modifier = Modifier.size(44.dp),
-    ) {
-        Box(
-            modifier = Modifier
-                .size(44.dp)
-                .clip(CircleShape)
-                .background(background, CircleShape),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                imageVector        = icon,
-                contentDescription = contentDescription,
-                tint               = if (enabled) tint else tint.copy(alpha = 0.4f),
-                modifier           = Modifier.size(20.dp),
-            )
-        }
-    }
-}
-
-// ---------------------------------------------------------------------------
-// TopBarIconButton - shared icon button shape for ChatScreen top bar
-// ---------------------------------------------------------------------------
-
-@Composable
-private fun TopBarIconButton(
-    icon: ImageVector,
-    contentDescription: String,
-    onClick: () -> Unit,
-) {
-    Surface(
-        onClick = onClick,
-        shape = CircleShape,
-        color = Color.Transparent,
-        modifier = Modifier.size(40.dp),
-    ) {
-        Box(contentAlignment = Alignment.Center) {
-            Icon(
-                imageVector = icon,
-                contentDescription = contentDescription,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(22.dp),
-            )
+            // Right: context-aware action button
+            when {
+                isThinking || isRecording -> {
+                    Surface(
+                        onClick  = if (isThinking) onStop else onMicToggle,
+                        shape    = CircleShape,
+                        color    = MaterialTheme.colorScheme.secondaryContainer,
+                        modifier = Modifier.size(40.dp),
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = if (isThinking) PhIcons.Regular.Stop
+                                              else           PhIcons.Regular.Microphone,
+                                contentDescription = if (isThinking) "Durdur" else "Kaydi durdur",
+                                tint   = primary,
+                                modifier = Modifier.size(18.dp),
+                            )
+                        }
+                    }
+                }
+                else -> {
+                    Surface(
+                        onClick  = onSend,
+                        shape    = CircleShape,
+                        color    = if (canSend) primary else primary.copy(alpha = 0.3f),
+                        modifier = Modifier.size(40.dp),
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector        = PhIcons.Regular.ArrowUp,
+                                contentDescription = "Gonder",
+                                tint               = Color.White,
+                                modifier           = Modifier.size(18.dp),
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 }
