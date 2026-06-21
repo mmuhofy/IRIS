@@ -30,8 +30,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.TextUnit
+import androidx.compose.ui.unit.TextUnitType
 import androidx.compose.ui.unit.dp
 import com.iris.assistant.ui.theme.ColorTextPrimary
 import com.iris.assistant.ui.theme.ColorTextSecondary
@@ -39,25 +40,15 @@ import com.iris.assistant.ui.theme.IrisTheme
 import com.phosphor.icons.PhIcons
 import com.phosphor.icons.regular.ArrowLeft
 import com.phosphor.icons.regular.CaretRight
-import com.phosphor.icons.regular.Cpu
-import com.phosphor.icons.regular.Gear
-import com.phosphor.icons.regular.Headphones
-import com.phosphor.icons.regular.Palette
-import com.phosphor.icons.regular.Shield
-import com.phosphor.icons.regular.Trash
-import com.phosphor.icons.regular.Waveform
+import com.phosphor.icons.regular.Lock
+import com.phosphor.icons.regular.SpeakerHigh
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsScreen(
+fun SystemSettingsScreen(
     onBack: () -> Unit,
-    onOpenModel: () -> Unit = {},
-    onOpenAppearance: () -> Unit = {},
-    onOpenBackground: () -> Unit = {},
-    onOpenAutonomy: () -> Unit = {},
-    onOpenSystem: () -> Unit = {},
-    onOpenVoice: () -> Unit = {},
-    onOpenData: () -> Unit = {},
+    onOpenVoiceSettings: () -> Unit = {},
+    onOpenPermissionManager: () -> Unit = {},
 ) {
     Scaffold(
         containerColor = Color.Transparent,
@@ -65,7 +56,7 @@ fun SettingsScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = "Ayarlar",
+                        text = "Sistem",
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.SemiBold,
                     )
@@ -90,58 +81,44 @@ fun SettingsScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
                 .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(2.dp),
-            contentPadding = PaddingValues(top = 8.dp, bottom = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(24.dp),
+            contentPadding = PaddingValues(bottom = 24.dp),
         ) {
             item {
-                SettingsCategoryCard {
-                    SettingsRow(
-                        icon = PhIcons.Regular.Waveform,
-                        label = "Ses",
+                Spacer(Modifier.height(4.dp))
+
+                Text(
+                    text = "SİSTEM",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = IrisTheme.colors.primary,
+                    letterSpacing = TextUnit(value = 1.2f, type = TextUnitType.Sp),
+                    modifier = Modifier.padding(start = 4.dp, bottom = 8.dp),
+                )
+
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(MaterialTheme.colorScheme.surface),
+                ) {
+                    SystemRow(
+                        icon = PhIcons.Regular.SpeakerHigh,
+                        label = "Ses ayarları",
                         description = "Ses karakteri, sağlayıcı seçimi",
-                        onClick = onOpenVoice,
+                        onClick = onOpenVoiceSettings,
                     )
-                    SettingsDivider()
-                    SettingsRow(
-                        icon = PhIcons.Regular.Cpu,
-                        label = "Model",
-                        description = "AI sağlayıcı ve model seçimi",
-                        onClick = onOpenModel,
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = 52.dp)
+                            .height(0.5.dp)
+                            .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
                     )
-                    SettingsDivider()
-                    SettingsRow(
-                        icon = PhIcons.Regular.Palette,
-                        label = "Görünüm",
-                        description = "Renk teması",
-                        onClick = onOpenAppearance,
-                    )
-                    SettingsDivider()
-                    SettingsRow(
-                        icon = PhIcons.Regular.Headphones,
-                        label = "Arka Plan",
-                        description = "Arka planda dinleme",
-                        onClick = onOpenBackground,
-                    )
-                    SettingsDivider()
-                    SettingsRow(
-                        icon = PhIcons.Regular.Shield,
-                        label = "Otonomi",
-                        description = "İşlem onay seviyesi",
-                        onClick = onOpenAutonomy,
-                    )
-                    SettingsDivider()
-                    SettingsRow(
-                        icon = PhIcons.Regular.Gear,
-                        label = "Sistem",
-                        description = "Ses ayarları, izin yöneticisi",
-                        onClick = onOpenSystem,
-                    )
-                    SettingsDivider()
-                    SettingsRow(
-                        icon = PhIcons.Regular.Trash,
-                        label = "Veri",
-                        description = "Sohbet geçmişini temizle",
-                        onClick = onOpenData,
+                    SystemRow(
+                        icon = PhIcons.Regular.Lock,
+                        label = "İzin yöneticisi",
+                        description = "Tüm uygulama izinlerini görüntüle",
+                        onClick = onOpenPermissionManager,
                     )
                 }
             }
@@ -150,20 +127,10 @@ fun SettingsScreen(
 }
 
 @Composable
-private fun SettingsCategoryCard(content: @Composable () -> Unit) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .background(MaterialTheme.colorScheme.surface),
-    ) { content() }
-}
-
-@Composable
-private fun SettingsRow(
-    icon: ImageVector,
+private fun SystemRow(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
     label: String,
-    description: String,
+    description: String? = null,
     onClick: () -> Unit,
 ) {
     Row(
@@ -189,16 +156,14 @@ private fun SettingsRow(
         }
         Spacer(Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.bodyLarge,
-                color = ColorTextPrimary,
-            )
-            Text(
-                text = description,
-                style = MaterialTheme.typography.bodySmall,
-                color = ColorTextSecondary,
-            )
+            Text(text = label, style = MaterialTheme.typography.bodyLarge, color = ColorTextPrimary)
+            if (description != null) {
+                Text(
+                    text = description,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = ColorTextSecondary,
+                )
+            }
         }
         Icon(
             imageVector = PhIcons.Regular.CaretRight,
@@ -207,15 +172,4 @@ private fun SettingsRow(
             modifier = Modifier.size(16.dp),
         )
     }
-}
-
-@Composable
-private fun SettingsDivider() {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(start = 52.dp)
-            .height(0.5.dp)
-            .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
-    )
 }

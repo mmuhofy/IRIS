@@ -72,9 +72,15 @@ import com.iris.assistant.ui.onboarding.OnboardingMicScreen
 import com.iris.assistant.ui.onboarding.OnboardingViewModel
 import com.iris.assistant.ui.onboarding.OnboardingWakeWordScreen
 import com.iris.assistant.ui.onboarding.OnboardingWelcomeScreen
+import com.iris.assistant.ui.settings.AppearanceSettingsScreen
+import com.iris.assistant.ui.settings.AutonomySettingsScreen
+import com.iris.assistant.ui.settings.BackgroundSettingsScreen
+import com.iris.assistant.ui.settings.DataSettingsScreen
 import com.iris.assistant.ui.settings.LocalModelScreen
+import com.iris.assistant.ui.settings.ModelSettingsScreen
 import com.iris.assistant.ui.settings.PermissionScreen
 import com.iris.assistant.ui.settings.SettingsScreen
+import com.iris.assistant.ui.settings.SystemSettingsScreen
 import com.iris.assistant.ui.settings.VoiceSettingsScreen
 import com.iris.assistant.ui.theme.ColorTextSecondary
 import com.iris.assistant.ui.theme.IrisTheme
@@ -384,10 +390,47 @@ private fun NavContent(
         }
         composable(route = NavRoute.Settings.route) {
             SettingsScreen(
+                onBack            = { navController.popBackStack() },
+                onOpenVoice       = { navController.navigate(NavRoute.VoiceSettings.route) },
+                onOpenModel       = { navController.navigate(NavRoute.SettingsModel.route) },
+                onOpenAppearance  = { navController.navigate(NavRoute.SettingsAppearance.route) },
+                onOpenBackground  = { navController.navigate(NavRoute.SettingsBackground.route) },
+                onOpenAutonomy    = { navController.navigate(NavRoute.SettingsAutonomy.route) },
+                onOpenSystem      = { navController.navigate(NavRoute.SettingsSystem.route) },
+                onOpenData        = { navController.navigate(NavRoute.SettingsData.route) },
+            )
+        }
+        composable(route = NavRoute.SettingsModel.route) {
+            ModelSettingsScreen(
+                onBack            = { navController.popBackStack() },
+                onOpenLocalModels = { navController.navigate(NavRoute.LocalModels.route) },
+            )
+        }
+        composable(route = NavRoute.SettingsAppearance.route) {
+            AppearanceSettingsScreen(
+                onBack = { navController.popBackStack() },
+            )
+        }
+        composable(route = NavRoute.SettingsBackground.route) {
+            BackgroundSettingsScreen(
+                onBack = { navController.popBackStack() },
+            )
+        }
+        composable(route = NavRoute.SettingsAutonomy.route) {
+            AutonomySettingsScreen(
+                onBack = { navController.popBackStack() },
+            )
+        }
+        composable(route = NavRoute.SettingsSystem.route) {
+            SystemSettingsScreen(
                 onBack                  = { navController.popBackStack() },
-                onOpenLocalModels       = { navController.navigate(NavRoute.LocalModels.route) },
-                onOpenPermissionManager = { navController.navigate(NavRoute.PermissionManager.route) },
                 onOpenVoiceSettings     = { navController.navigate(NavRoute.VoiceSettings.route) },
+                onOpenPermissionManager = { navController.navigate(NavRoute.PermissionManager.route) },
+            )
+        }
+        composable(route = NavRoute.SettingsData.route) {
+            DataSettingsScreen(
+                onBack = { navController.popBackStack() },
             )
         }
         composable(route = NavRoute.LocalModels.route) {
