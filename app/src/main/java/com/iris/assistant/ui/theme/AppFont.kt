@@ -1,39 +1,85 @@
 package com.iris.assistant.ui.theme
 
+import android.content.Context
+import android.net.Uri
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import com.iris.assistant.R
+import java.io.File
 
-enum class AppFont(
+sealed class AppFont(
+    val key: String,
     val displayName: String,
     val fontFamily: FontFamily
 ) {
-    SystemDefault(
+    data object SystemDefault : AppFont(
+        key = "system_default",
         displayName = "Varsayılan",
         fontFamily = FontFamily.Default
-    ),
-    Inter(
+    )
+    data object Inter : AppFont(
+        key = "inter",
         displayName = "Inter",
-        fontFamily = FontFamily(Font(R.font.inter_variable))
-    ),
-    PlusJakartaSans(
+        fontFamily = variableFontFamily(R.font.inter_variable)
+    )
+    data object PlusJakartaSans : AppFont(
+        key = "plus_jakarta_sans",
         displayName = "Plus Jakarta Sans",
-        fontFamily = FontFamily(Font(R.font.plus_jakarta_sans_variable))
-    ),
-    Outfit(
+        fontFamily = variableFontFamily(R.font.plus_jakarta_sans_variable)
+    )
+    data object Outfit : AppFont(
+        key = "outfit",
         displayName = "Outfit",
-        fontFamily = FontFamily(Font(R.font.outfit_variable))
-    ),
-    Geist(
+        fontFamily = variableFontFamily(R.font.outfit_variable)
+    )
+    data object Geist : AppFont(
+        key = "geist",
         displayName = "Geist",
-        fontFamily = FontFamily(Font(R.font.geist_variable))
-    );
+        fontFamily = variableFontFamily(R.font.geist_variable)
+    )
+
+    class Custom(
+        val filePath: String,
+        displayName: String
+    ) : AppFont(
+        key = "custom_$filePath",
+        displayName = displayName,
+        fontFamily = FontFamily(Font(File(filePath)))
+    )
 
     fun toTypography(): Typography = IrisTypography(fontFamily)
+
+    companion object {
+        val builtin: List<AppFont> get() = listOf(SystemDefault, Inter, PlusJakartaSans, Outfit, Geist)
+
+        fun fromKey(key: String, customFonts: List<Custom> = emptyList()): AppFont =
+            builtin.firstOrNull { it.key == key }
+                ?: customFonts.firstOrNull { it.key == key }
+                ?: SystemDefault
+
+        fun customDir(context: Context): File {
+            val dir = File(context.filesDir, "fonts")
+            dir.mkdirs()
+            return dir
+        }
+
+        private fun variableFontFamily(resId: Int): FontFamily = FontFamily(
+            Font(resId, weight = FontWeight.Thin),
+            Font(resId, weight = FontWeight.ExtraLight),
+            Font(resId, weight = FontWeight.Light),
+            Font(resId, weight = FontWeight.Normal),
+            Font(resId, weight = FontWeight.Medium),
+            Font(resId, weight = FontWeight.SemiBold),
+            Font(resId, weight = FontWeight.Bold),
+            Font(resId, weight = FontWeight.ExtraBold),
+            Font(resId, weight = FontWeight.Black),
+        )
+    }
 }
 
 fun IrisTypography(fontFamily: FontFamily): Typography = Typography(

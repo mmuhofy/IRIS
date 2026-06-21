@@ -59,8 +59,9 @@ class PreferencesRepository @Inject constructor(
                 ?: AutonomyLevel.SAFE,
             localModelName = prefs[Keys.LOCAL_MODEL_NAME] ?: "",
             localModelPath = prefs[Keys.LOCAL_MODEL_PATH] ?: "",
+            fontFamilyKey = prefs[Keys.FONT_FAMILY] ?: AppFont.SystemDefault.key,
             fontFamily = prefs[Keys.FONT_FAMILY]
-                ?.let { runCatching { AppFont.valueOf(it) }.getOrDefault(AppFont.SystemDefault) }
+                ?.let { AppFont.fromKey(it) }
                 ?: AppFont.SystemDefault,
             ttsProvider = prefs[Keys.TTS_PROVIDER]
                 ?.let { TtsProviderType.fromKey(it) }
@@ -113,6 +114,6 @@ class PreferencesRepository @Inject constructor(
     }
 
     suspend fun setFontFamily(font: AppFont) {
-        context.dataStore.edit { it[Keys.FONT_FAMILY] = font.name }
+        context.dataStore.edit { it[Keys.FONT_FAMILY] = font.key }
     }
 }

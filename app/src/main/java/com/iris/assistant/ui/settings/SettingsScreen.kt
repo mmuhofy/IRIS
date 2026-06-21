@@ -1,5 +1,8 @@
 package com.iris.assistant.ui.settings
 
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -38,6 +41,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -71,7 +75,18 @@ fun SettingsScreen(
     viewModel        : SettingsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val customFonts by viewModel.customFonts.collectAsStateWithLifecycle()
     var showClearDialog by remember { mutableStateOf(false) }
+
+    val context = LocalContext.current
+    val fontPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri != null) {
+            viewModel.importFont(uri)
+            Toast.makeText(context, "Yazı tipi içe aktarıldı", Toast.LENGTH_SHORT).show()
+        }
+    }
 
     if (showClearDialog) {
         AlertDialog(
@@ -207,8 +222,40 @@ fun SettingsScreen(
                     FontSelector(
                         current  = uiState.fontFamily,
                         onChange = viewModel::onFontFamilyChange,
+                        customFonts = customFonts,
                     )
                 }
+                if (customFonts.isNotEmpty()) {
+                    customFonts.forEach { font ->
+                        SettingsGroupDivider()
+                        SettingsRowWithContent(
+                            icon = PhIcons.Regular.File,
+                            label = font.displayName,
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                                    .clickable { viewModel.removeCustomFont(font) }
+                                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Text(
+                                    text = "Sil",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.error,
+                                )
+                            }
+                        }
+                    }
+                }
+                SettingsGroupDivider()
+                SettingsTappableRow(
+                    icon = PhIcons.Regular.Upload,
+                    label = "Özel yazı tipi ekle",
+                    description = ".ttf veya .otf dosyası seçin",
+                    onClick = { fontPickerLauncher.launch(arrayOf("application/octet-stream", "font/ttf", "font/otf", "application/x-font-ttf", "application/x-font-otf")) },
+                )
             }
 
             // ── Arka Plan ──────────────────────────────────────────────────────
@@ -651,10 +698,16 @@ private fun AutonomyLevelSelector(
 private fun FontSelector(
     current : AppFont,
     onChange: (AppFont) -> Unit,
+    customFonts: List<AppFont.Custom> = emptyList(),
 ) {
-    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        AppFont.entries.forEach { font ->
+    val allFonts: List<AppFont> = AppFont.builtin + customFonts
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        allFonts.forEach { font ->
             val selected = font == current
+            val label = if (font is AppFont.Custom) "✦ ${font.displayName}" else font.displayName
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(8.dp))
@@ -667,9 +720,8 @@ private fun FontSelector(
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
-                    text = font.displayName,
+                    text = label,
                     style = MaterialTheme.typography.labelSmall,
-                    fontFamily = if (selected) font.fontFamily else MaterialTheme.typography.labelSmall.fontFamily,
                     color = if (selected) MaterialTheme.colorScheme.background
                             else ColorTextPrimary,
                     fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
