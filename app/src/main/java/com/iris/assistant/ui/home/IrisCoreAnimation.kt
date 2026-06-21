@@ -297,8 +297,11 @@ fun IrisCoreAnimation(
             shader.setFloatUniform("uRingScale",   ringScale)
             shader.setFloatUniform("uGlowIntens",  glowIntens)
 
-            // Single draw call — entire animation in one shader pass
-            drawRect(brush = ShaderBrush(shader), size = size)
+            // Clip to circle before drawing shader — prevents square gradient
+            // edges and corner ring artifacts from aspect-ratio correction.
+            clipToCircle(cx = size.width / 2f, cy = size.height / 2f, radius = size.minDimension / 2f) {
+                drawRect(brush = ShaderBrush(shader), size = size)
+            }
 
             // Outer ring arc — drawn on top of shader (still CPU, but only 1 draw call)
             drawIrisRingArc(
@@ -337,6 +340,24 @@ fun IrisCoreAnimation(
             timeState    = timeState
         )
     }
+}
+
+// ---------------------------------------------------------------------------
+// Clip draw calls to a circle — prevents shader square-edge artifacts
+// ---------------------------------------------------------------------------
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.clipToCircle(
+    cx: Float, cy: Float, radius: Float,
+    block: androidx.compose.ui.graphics.drawscope.DrawScope.() -> Unit
+) {
+    clipPath(
+        path = androidx.compose.ui.graphics.Path().apply {
+            addOval(androidx.compose.ui.geometry.Rect(
+                center = Offset(cx, cy),
+                radius = radius
+            ))
+        },
+        block = block
+    )
 }
 
 // ---------------------------------------------------------------------------
