@@ -1,12 +1,11 @@
 package com.iris.assistant.ui.theme
 
 import android.content.Context
-import android.net.Uri
+import android.graphics.Typeface
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import com.iris.assistant.R
@@ -25,22 +24,22 @@ sealed class AppFont(
     data object Inter : AppFont(
         key = "inter",
         displayName = "Inter",
-        fontFamily = variableFontFamily(R.font.inter_variable)
+        fontFamily = FontFamily(Font(R.font.inter))
     )
     data object PlusJakartaSans : AppFont(
         key = "plus_jakarta_sans",
         displayName = "Plus Jakarta Sans",
-        fontFamily = variableFontFamily(R.font.plus_jakarta_sans_variable)
+        fontFamily = FontFamily(Font(R.font.plus_jakarta_sans))
     )
     data object Outfit : AppFont(
         key = "outfit",
         displayName = "Outfit",
-        fontFamily = variableFontFamily(R.font.outfit_variable)
+        fontFamily = FontFamily(Font(R.font.outfit))
     )
     data object Geist : AppFont(
         key = "geist",
         displayName = "Geist",
-        fontFamily = variableFontFamily(R.font.geist_variable)
+        fontFamily = FontFamily(Font(R.font.geist))
     )
 
     class Custom(
@@ -49,7 +48,7 @@ sealed class AppFont(
     ) : AppFont(
         key = "custom_$filePath",
         displayName = displayName,
-        fontFamily = FontFamily(Font(File(filePath)))
+        fontFamily = FontFamily(Font(Typeface.createFromFile(filePath)))
     )
 
     fun toTypography(): Typography = IrisTypography(fontFamily)
@@ -68,17 +67,6 @@ sealed class AppFont(
             return dir
         }
 
-        private fun variableFontFamily(resId: Int): FontFamily = FontFamily(
-            Font(resId, weight = FontWeight.Thin),
-            Font(resId, weight = FontWeight.ExtraLight),
-            Font(resId, weight = FontWeight.Light),
-            Font(resId, weight = FontWeight.Normal),
-            Font(resId, weight = FontWeight.Medium),
-            Font(resId, weight = FontWeight.SemiBold),
-            Font(resId, weight = FontWeight.Bold),
-            Font(resId, weight = FontWeight.ExtraBold),
-            Font(resId, weight = FontWeight.Black),
-        )
     }
 }
 
