@@ -214,7 +214,8 @@ fun IrisNavGraph(
     val navBackStack by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStack?.destination?.route
 
-    val showDrawer = currentRoute?.startsWith("onboarding") == false
+    val showDrawer       = currentRoute?.startsWith("onboarding") == false
+    val drawerGestures   = currentRoute?.startsWith("chat") != true
 
     Box(
         modifier = Modifier
@@ -223,7 +224,8 @@ fun IrisNavGraph(
     ) {
         if (showDrawer) {
             ModalNavigationDrawer(
-                drawerState = drawerState,
+                drawerState     = drawerState,
+                gesturesEnabled = drawerGestures,
                 drawerContent = {
                     IrisDrawerSheet(
                         drawerState          = drawerState,
