@@ -98,114 +98,43 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-// ---------------------------------------------------------------------------
-// Transition helpers
-// ---------------------------------------------------------------------------
+fun enterAnim(): EnterTransition = slideInHorizontally(
+    initialOffsetX = { it },
+    animationSpec = tween(durationMillis = 340)
+) + fadeIn(animationSpec = tween(durationMillis = 340))
 
-private fun onboardingEnter(): EnterTransition =
-    slideInHorizontally(tween(Constants.NAV_ANIM_DURATION_MS)) { it / 4 } +
-        fadeIn(tween(Constants.NAV_ANIM_DURATION_MS))
+fun exitAnim(): ExitTransition = slideOutHorizontally(
+    targetOffsetX = { -it / 4 },
+    animationSpec = tween(durationMillis = 340)
+) + fadeOut(animationSpec = tween(durationMillis = 340))
 
-private fun onboardingExit(): ExitTransition =
-    slideOutHorizontally(tween(Constants.NAV_ANIM_DURATION_MS)) { -it / 4 } +
-        fadeOut(tween(Constants.NAV_ANIM_DURATION_MS))
+fun popEnterAnim(): EnterTransition = slideInHorizontally(
+    initialOffsetX = { -it / 4 },
+    animationSpec = tween(durationMillis = 340)
+) + fadeIn(animationSpec = tween(durationMillis = 340))
 
-private fun onboardingPopEnter(): EnterTransition =
-    slideInHorizontally(tween(Constants.NAV_ANIM_DURATION_MS)) { -it / 4 } +
-        fadeIn(tween(Constants.NAV_ANIM_DURATION_MS))
-
-private fun onboardingPopExit(): ExitTransition =
-    slideOutHorizontally(tween(Constants.NAV_ANIM_DURATION_MS)) { it / 4 } +
-        fadeOut(tween(Constants.NAV_ANIM_DURATION_MS))
-
-/**
- * ROOT CAUSE INVESTIGATION (see Constants.kt history comment for the full
- * timeline): forward nav and predictive-back GESTURE both animate correctly.
- * Hardware/system back button and the TopAppBar back arrow (both routed
- * through navController.popBackStack()) do NOT animate, despite
- * popEnterTransition/popExitTransition being explicitly defined both here
- * and on every composable() below.
- *
- * Leading candidate (not yet confirmed working): ModalDrawerSheet was
- * missing the drawerState parameter. Per official Compose docs
- * (developer.android.com/develop/ui/compose/system/predictive-back-setup):
- * "ModalNavigationDrawer, ModalDrawerSheet, DismissibleDrawerSheet, and
- * DismissibleNavigationDrawer require you to pass the drawerState to their
- * respective sheet content composables" for predictive back to work
- * correctly. Also relevant: a known Material Components issue
- * (material-components-android#4449) where NavHost's back handler, being
- * lower in the composition hierarchy, can take precedence over the drawer's
- * own back handling. Fix applied below (drawerState now passed to
- * ModalDrawerSheet) — needs on-device confirmation.
- */
-private fun mainEnter(): EnterTransition =
-    slideInHorizontally(
-        animationSpec = tween(Constants.NAV_ANIM_DURATION_MS)
-    ) { fullWidth -> fullWidth / Constants.NAV_SLIDE_ENTER_DIVISOR } +
-    scaleIn(
-        animationSpec = tween(Constants.NAV_ANIM_DURATION_MS),
-        initialScale = Constants.NAV_SCALE_ENTER_FROM
-    ) + fadeIn(animationSpec = tween(Constants.NAV_ANIM_DURATION_MS))
-
-private fun mainExit(): ExitTransition =
-    slideOutHorizontally(
-        animationSpec = tween(Constants.NAV_ANIM_DURATION_MS)
-    ) { fullWidth -> -fullWidth / Constants.NAV_SLIDE_EXIT_DIVISOR } +
-    scaleOut(
-        animationSpec = tween(Constants.NAV_ANIM_DURATION_MS),
-        targetScale = Constants.NAV_SCALE_EXIT_TO
-    ) + fadeOut(animationSpec = tween(Constants.NAV_ANIM_DURATION_MS))
-
-private fun mainPopEnter(): EnterTransition =
-    slideInHorizontally(
-        animationSpec = tween(Constants.NAV_ANIM_DURATION_MS)
-    ) { fullWidth -> -fullWidth / Constants.NAV_SLIDE_EXIT_DIVISOR } +
-    scaleIn(
-        animationSpec = tween(Constants.NAV_ANIM_DURATION_MS),
-        initialScale = Constants.NAV_SCALE_EXIT_TO
-    ) + fadeIn(animationSpec = tween(Constants.NAV_ANIM_DURATION_MS))
-
-private fun mainPopExit(): ExitTransition =
-    slideOutHorizontally(
-        animationSpec = tween(Constants.NAV_ANIM_DURATION_MS)
-    ) { fullWidth -> fullWidth / Constants.NAV_SLIDE_ENTER_DIVISOR } +
-    scaleOut(
-        animationSpec = tween(Constants.NAV_ANIM_DURATION_MS),
-        targetScale = Constants.NAV_SCALE_ENTER_FROM
-    ) + fadeOut(animationSpec = tween(Constants.NAV_ANIM_DURATION_MS))
-
-private fun chatEnter(): EnterTransition =
-    slideInHorizontally(tween(Constants.NAV_ANIM_DURATION_MS)) { it } +
-        fadeIn(tween(Constants.NAV_ANIM_DURATION_MS))
-
-private fun chatExit(): ExitTransition =
-    slideOutHorizontally(tween(Constants.NAV_ANIM_DURATION_MS)) { it } +
-        fadeOut(tween(Constants.NAV_ANIM_DURATION_MS))
-
-private fun chatPopEnter(): EnterTransition =
-    slideInHorizontally(tween(Constants.NAV_ANIM_DURATION_MS)) { -it } +
-        fadeIn(tween(Constants.NAV_ANIM_DURATION_MS))
-
-// ---------------------------------------------------------------------------
-// DrawerViewModel
-// ---------------------------------------------------------------------------
+fun popExitAnim(): ExitTransition = slideOutHorizontally(
+    targetOffsetX = { it },
+    animationSpec = tween(durationMillis = 340)
+) + fadeOut(animationSpec = tween(durationMillis = 340))
 
 @HiltViewModel
 class DrawerViewModel @Inject constructor(
-    private val repo: ConversationRepository,
+    private val repository: ConversationRepository
 ) : ViewModel() {
-
-    val conversations: StateFlow<List<Conversation>> = repo.observeConversations()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+    val conversations: StateFlow<List<Conversation>> = repository.getAllConversations()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
 
     fun deleteConversation(id: Long) {
-        viewModelScope.launch { repo.deleteConversation(id) }
+        viewModelScope.launch {
+            repository.deleteConversation(id)
+        }
     }
 }
-
-// ---------------------------------------------------------------------------
-// IrisNavGraph — root composable, owns drawer state
-// ---------------------------------------------------------------------------
 
 @Composable
 fun IrisNavGraph(
@@ -221,32 +150,32 @@ fun IrisNavGraph(
     val navBackStack by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStack?.destination?.route
 
-    val showDrawer       = currentRoute?.startsWith("onboarding") == false
-    val drawerGestures   = currentRoute != NavRoute.Home.route && currentRoute?.startsWith("chat") != true
+    val showDrawer = currentRoute?.startsWith("onboarding") == false
+    val drawerGestures = currentRoute == NavRoute.Home.route
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
-        if (showDrawer) {
-            ModalNavigationDrawer(
-                drawerState     = drawerState,
-                gesturesEnabled = drawerGestures,
-                scrimColor      = DrawerDefaults.scrimColor,
-                drawerContent = {
+        ModalNavigationDrawer(
+            drawerState = drawerState,
+            gesturesEnabled = showDrawer && drawerGestures,
+            scrimColor = DrawerDefaults.scrimColor,
+            drawerContent = {
+                if (showDrawer) {
                     IrisDrawerSheet(
-                        drawerState          = drawerState,
-                        conversations       = conversations,
-                        currentRoute        = currentRoute,
-                        onHomeClick         = {
+                        drawerState = drawerState,
+                        conversations = conversations,
+                        currentRoute = currentRoute,
+                        onHomeClick = {
                             scope.launch { drawerState.close() }
                             navController.navigate(NavRoute.Home.route) {
                                 popUpTo(NavRoute.Home.route) { inclusive = false }
                                 launchSingleTop = true
                             }
                         },
-                        onNewChatClick      = {
+                        onNewChatClick = {
                             scope.launch { drawerState.close() }
                             navController.navigate(NavRoute.Chat.NEW) {
                                 launchSingleTop = false
@@ -262,29 +191,18 @@ fun IrisNavGraph(
                             drawerViewModel.deleteConversation(conv.id)
                         },
                     )
-                },
-            ) {
-                NavContent(
-                    navController       = navController,
-                    startDestination    = startDestination,
-                    onboardingViewModel = onboardingViewModel,
-                    drawerState         = drawerState,
-                )
-            }
-        } else {
+                }
+            },
+        ) {
             NavContent(
-                navController       = navController,
-                startDestination    = startDestination,
+                navController = navController,
+                startDestination = startDestination,
                 onboardingViewModel = onboardingViewModel,
-                drawerState         = drawerState,
+                drawerState = drawerState,
             )
         }
     }
 }
-
-// ---------------------------------------------------------------------------
-// NavContent
-// ---------------------------------------------------------------------------
 
 @Composable
 private fun NavContent(
@@ -293,187 +211,43 @@ private fun NavContent(
     onboardingViewModel: OnboardingViewModel,
     drawerState: DrawerState,
 ) {
-    val scope = rememberCoroutineScope()
-    val openDrawer: () -> Unit = { scope.launch { drawerState.open() } }
-
     NavHost(
-        navController      = navController,
-        startDestination   = startDestination,
-        enterTransition    = { mainEnter() },
-        exitTransition     = { mainExit() },
-        popEnterTransition = { mainPopEnter() },
-        popExitTransition  = { mainPopExit() },
+        navController = navController,
+        startDestination = startDestination,
+        enterTransition = { enterAnim() },
+        exitTransition = { exitAnim() },
+        popEnterTransition = { popEnterAnim() },
+        popExitTransition = { popExitAnim() },
+        modifier = Modifier.fillMaxSize()
     ) {
-        // --- Onboarding ---
-        composable(
-            route           = NavRoute.OnboardingWelcome.route,
-            enterTransition = { onboardingEnter() },
-            exitTransition  = { onboardingExit() },
-        ) {
-            val userName by onboardingViewModel.userName.collectAsStateWithLifecycle()
-            OnboardingWelcomeScreen(
-                userName         = userName,
-                onUserNameChange = onboardingViewModel::setUserName,
-                onNext           = { navController.navigate(NavRoute.OnboardingMic.route) },
-            )
-        }
-        composable(
-            route              = NavRoute.OnboardingMic.route,
-            enterTransition    = { onboardingEnter() },
-            exitTransition     = { onboardingExit() },
-            popEnterTransition = { onboardingPopEnter() },
-            popExitTransition  = { onboardingPopExit() },
-        ) {
-            OnboardingMicScreen(
-                onNext = { navController.navigate(NavRoute.OnboardingWakeWord.route) },
-                onBack = { navController.popBackStack() },
-            )
-        }
-        composable(
-            route              = NavRoute.OnboardingWakeWord.route,
-            enterTransition    = { onboardingEnter() },
-            exitTransition     = { onboardingExit() },
-            popEnterTransition = { onboardingPopEnter() },
-            popExitTransition  = { onboardingPopExit() },
-        ) {
-            OnboardingWakeWordScreen(
-                onNext = { navController.navigate(NavRoute.OnboardingDemo.route) },
-                onBack = { navController.popBackStack() },
-            )
-        }
-        composable(
-            route              = NavRoute.OnboardingDemo.route,
-            enterTransition    = { onboardingEnter() },
-            exitTransition     = { onboardingExit() },
-            popEnterTransition = { onboardingPopEnter() },
-            popExitTransition  = { onboardingPopExit() },
-        ) {
-            OnboardingDemoScreen(
-                onNext = { navController.navigate(NavRoute.OnboardingAssistant.route) },
-                onBack = { navController.popBackStack() },
-            )
-        }
-        composable(
-            route              = NavRoute.OnboardingAssistant.route,
-            enterTransition    = { onboardingEnter() },
-            exitTransition     = { onboardingExit() },
-            popEnterTransition = { onboardingPopEnter() },
-            popExitTransition  = { onboardingPopExit() },
-        ) {
-            OnboardingAssistantScreen(
-                onNext = { navController.navigate(NavRoute.OnboardingBattery.route) },
-                onBack = { navController.popBackStack() },
-            )
-        }
-        composable(
-            route              = NavRoute.OnboardingBattery.route,
-            enterTransition    = { onboardingEnter() },
-            exitTransition     = { mainExit() },
-            popEnterTransition = { onboardingPopEnter() },
-            popExitTransition  = { onboardingPopExit() },
-        ) {
-            OnboardingBatteryScreen(
-                onFinish = {
-                    navController.navigate(NavRoute.Home.route) {
-                        popUpTo(NavRoute.OnboardingWelcome.route) { inclusive = true }
-                    }
-                },
-                onBack    = { navController.popBackStack() },
-                viewModel = onboardingViewModel,
-            )
-        }
+        composable(NavRoute.OnboardingWelcome.route) { OnboardingWelcomeScreen(navController, onboardingViewModel) }
+        composable(NavRoute.OnboardingMic.route) { OnboardingMicScreen(navController, onboardingViewModel) }
+        composable(NavRoute.OnboardingWakeWord.route) { OnboardingWakeWordScreen(navController, onboardingViewModel) }
+        composable(NavRoute.OnboardingDemo.route) { OnboardingDemoScreen(navController, onboardingViewModel) }
+        composable(NavRoute.OnboardingAssistant.route) { OnboardingAssistantScreen(navController, onboardingViewModel) }
+        composable(NavRoute.OnboardingBattery.route) { OnboardingBatteryScreen(navController, onboardingViewModel) }
 
-        // --- Main ---
-        composable(route = NavRoute.Home.route) {
-            HomeScreen(
-                onOpenSettings = { navController.navigate(NavRoute.Settings.route) },
-                onOpenDrawer   = openDrawer,
-            )
-        }
-        composable(route = NavRoute.Settings.route) {
-            SettingsScreen(
-                onBack            = { navController.popBackStack() },
-                onOpenVoice       = { navController.navigate(NavRoute.VoiceSettings.route) },
-                onOpenModel       = { navController.navigate(NavRoute.SettingsModel.route) },
-                onOpenAppearance  = { navController.navigate(NavRoute.SettingsAppearance.route) },
-                onOpenBackground  = { navController.navigate(NavRoute.SettingsBackground.route) },
-                onOpenAutonomy    = { navController.navigate(NavRoute.SettingsAutonomy.route) },
-                onOpenSystem      = { navController.navigate(NavRoute.SettingsSystem.route) },
-                onOpenData        = { navController.navigate(NavRoute.SettingsData.route) },
-            )
-        }
-        composable(route = NavRoute.SettingsModel.route) {
-            ModelSettingsScreen(
-                onBack            = { navController.popBackStack() },
-                onOpenLocalModels = { navController.navigate(NavRoute.LocalModels.route) },
-            )
-        }
-        composable(route = NavRoute.SettingsAppearance.route) {
-            AppearanceSettingsScreen(
-                onBack = { navController.popBackStack() },
-            )
-        }
-        composable(route = NavRoute.SettingsBackground.route) {
-            BackgroundSettingsScreen(
-                onBack = { navController.popBackStack() },
-            )
-        }
-        composable(route = NavRoute.SettingsAutonomy.route) {
-            AutonomySettingsScreen(
-                onBack = { navController.popBackStack() },
-            )
-        }
-        composable(route = NavRoute.SettingsSystem.route) {
-            SystemSettingsScreen(
-                onBack                  = { navController.popBackStack() },
-                onOpenVoiceSettings     = { navController.navigate(NavRoute.VoiceSettings.route) },
-                onOpenPermissionManager = { navController.navigate(NavRoute.PermissionManager.route) },
-            )
-        }
-        composable(route = NavRoute.SettingsData.route) {
-            DataSettingsScreen(
-                onBack = { navController.popBackStack() },
-            )
-        }
-        composable(route = NavRoute.LocalModels.route) {
-            LocalModelScreen(
-                onBack = { navController.popBackStack() },
-            )
-        }
-        composable(route = NavRoute.PermissionManager.route) {
-            PermissionScreen(
-                onBack = { navController.popBackStack() },
-            )
-        }
-        composable(route = NavRoute.VoiceSettings.route) {
-            VoiceSettingsScreen(
-                onBack = { navController.popBackStack() },
-            )
-        }
+        composable(NavRoute.Home.route) { HomeScreen(navController, drawerState) }
+        composable(NavRoute.Settings.route) { SettingsScreen(navController) }
+        composable(NavRoute.SettingsModel.route) { ModelSettingsScreen(navController) }
+        composable(NavRoute.SettingsAppearance.route) { AppearanceSettingsScreen(navController) }
+        composable(NavRoute.SettingsBackground.route) { BackgroundSettingsScreen(navController) }
+        composable(NavRoute.SettingsAutonomy.route) { AutonomySettingsScreen(navController) }
+        composable(NavRoute.SettingsSystem.route) { SystemSettingsScreen(navController) }
+        composable(NavRoute.SettingsData.route) { DataSettingsScreen(navController) }
+        composable(NavRoute.LocalModels.route) { LocalModelScreen(navController) }
+        composable(NavRoute.PermissionManager.route) { PermissionScreen(navController) }
+        composable(NavRoute.VoiceSettings.route) { VoiceSettingsScreen(navController) }
 
-        // --- Chat ---
         composable(
             route = NavRoute.Chat.route,
-            arguments = listOf(
-                navArgument(NavRoute.Chat.ARG) { type = NavType.LongType }
-            ),
-            enterTransition    = { chatEnter() },
-            exitTransition     = { chatExit() },
-            popEnterTransition = { chatPopEnter() },
-            popExitTransition  = { chatExit() },
+            arguments = listOf(navArgument(NavRoute.Chat.ARG) { type = NavType.LongType })
         ) { backStackEntry ->
             val conversationId = backStackEntry.arguments?.getLong(NavRoute.Chat.ARG) ?: 0L
-            ChatScreen(
-                conversationId = conversationId,
-                onBack         = { navController.popBackStack() },
-            )
+            ChatScreen(navController, drawerState, conversationId)
         }
     }
 }
-
-// ---------------------------------------------------------------------------
-// IrisDrawerSheet
-// ---------------------------------------------------------------------------
 
 @Composable
 private fun IrisDrawerSheet(
@@ -485,190 +259,166 @@ private fun IrisDrawerSheet(
     onConversationClick: (Conversation) -> Unit,
     onDeleteConversation: (Conversation) -> Unit,
 ) {
-    val primary = IrisTheme.colors.primary
-    val gradientEnd = IrisTheme.colors.gradientEnd
-
-    // NOTE: drawerState is now passed to ModalDrawerSheet. Per official
-    // Compose docs (developer.android.com/develop/ui/compose/system/predictive-back-setup):
-    // "ModalNavigationDrawer, ModalDrawerSheet, DismissibleDrawerSheet, and
-    // DismissibleNavigationDrawer require you to pass the drawerState to
-    // their respective sheet content composables" for predictive back
-    // animations to work correctly. This was previously missing — leading
-    // candidate for why navController.popBackStack() (hardware back button /
-    // TopAppBar back icon) doesn't animate while the gesture-driven
-    // predictive back preview does. Not confirmed as root cause yet — test
-    // on-device after this change.
     ModalDrawerSheet(
-        drawerState = drawerState,
         drawerContainerColor = MaterialTheme.colorScheme.surface,
+        drawerContentColor = MaterialTheme.colorScheme.onSurface,
         drawerShape = RoundedCornerShape(topEnd = 16.dp, bottomEnd = 16.dp),
         modifier = Modifier
             .fillMaxHeight()
-            .fillMaxWidth(0.82f),
+            .width(310.dp)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .statusBarsPadding(),
+                .statusBarsPadding()
         ) {
-            // Header
-            Row(
-                modifier = Modifier.padding(horizontal = 20.dp, vertical = 20.dp),
-                verticalAlignment = Alignment.CenterVertically,
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 24.dp)
             ) {
                 Text(
                     text = "Iris",
-                    style = MaterialTheme.typography.titleLarge,
-                    color = ColorTextSecondary,
-                    fontWeight = FontWeight.Medium,
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
                 )
             }
 
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
-            Spacer(Modifier.height(8.dp))
-
-            // Nav rows
-            DrawerNavItem(
-                icon     = PhIcons.Regular.House,
-                label    = "Ana Ekran",
-                selected = currentRoute == NavRoute.Home.route,
-                onClick  = onHomeClick,
-            )
-            DrawerNavItem(
-                icon     = PhIcons.Regular.ChatCircle,
-                label    = "Sohbet",
-                selected = currentRoute?.startsWith("chat/") == true,
-                onClick  = onNewChatClick,
+            DrawerNavigationItem(
+                icon = PhIcons.Regular.House,
+                label = "Ana Sayfa",
+                isSelected = currentRoute == NavRoute.Home.route,
+                onClick = onHomeClick
             )
 
-            Spacer(Modifier.height(8.dp))
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
-            Spacer(Modifier.height(8.dp))
+            DrawerNavigationItem(
+                icon = PhIcons.Regular.Plus,
+                label = "Yeni Sohbet",
+                isSelected = currentRoute == NavRoute.Chat.NEW || (currentRoute?.startsWith("chat") == true && conversations.none { NavRoute.Chat.withId(it.id) == currentRoute }),
+                onClick = onNewChatClick
+            )
 
-            // Conversation list header
-            Row(
+            Spacer(Modifier.height(16.dp))
+            HorizontalDivider(
+                modifier = Modifier.padding(horizontal = 16.dp),
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+            )
+            Spacer(Modifier.height(16.dp))
+
+            LazyColumn(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 4.dp),
-                verticalAlignment = Alignment.CenterVertically,
+                    .weight(1f)
             ) {
-                Text(
-                    text = "Sohbetler",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.weight(1f),
-                )
-                Surface(
-                    onClick  = onNewChatClick,
-                    shape    = CircleShape,
-                    color    = primary.copy(alpha = 0.12f),
-                    modifier = Modifier.size(32.dp),
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            PhIcons.Regular.Plus,
-                            contentDescription = "Yeni Sohbet",
-                            tint     = primary,
-                            modifier = Modifier.size(16.dp),
-                        )
-                    }
-                }
-            }
-
-            Spacer(Modifier.height(4.dp))
-
-            // Conversation list
-            LazyColumn(modifier = Modifier.weight(1f)) {
-                if (conversations.isEmpty()) {
-                    item {
-                        Text(
-                            text = "Henüz sohbet yok",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
-                        )
-                    }
-                } else {
-                    items(conversations, key = { it.id }) { conv ->
-                        DrawerConversationItem(
-                            conversation = conv,
-                            onClick      = { onConversationClick(conv) },
-                            onDelete     = { onDeleteConversation(conv) },
-                        )
-                    }
+                items(conversations, key = { it.id }) { conversation ->
+                    val isSelected = currentRoute == NavRoute.Chat.withId(conversation.id)
+                    DrawerConversationItem(
+                        conversation = conversation,
+                        isSelected = isSelected,
+                        onClick = { onConversationClick(conversation) },
+                        onDelete = { onDeleteConversation(conversation) }
+                    )
                 }
             }
         }
     }
 }
 
-// ---------------------------------------------------------------------------
-// DrawerNavItem — single tappable nav row (Ana Ekran / Sohbet)
-// ---------------------------------------------------------------------------
 @Composable
-private fun DrawerNavItem(
+private fun DrawerNavigationItem(
     icon: ImageVector,
     label: String,
-    selected: Boolean,
+    isSelected: Boolean,
     onClick: () -> Unit,
 ) {
-    val primary = IrisTheme.colors.primary
-
-    Surface(
-        onClick = onClick,
-        shape = RoundedCornerShape(14.dp),
-        color = if (selected) primary.copy(alpha = 0.12f) else Color.Transparent,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 4.dp),
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = if (selected) primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(20.dp),
+    val background = if (isSelected) {
+        Brush.horizontalGradient(
+            colors = listOf(
+                MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                Color.Transparent
             )
-            Spacer(Modifier.width(12.dp))
-            Text(
-                text = label,
-                style = MaterialTheme.typography.bodyMedium,
-                color = if (selected) primary else MaterialTheme.colorScheme.onSurface,
-            )
-        }
+        )
+    } else {
+        Brush.horizontalGradient(colors = listOf(Color.Transparent, Color.Transparent))
     }
-}
 
-// ---------------------------------------------------------------------------
-// DrawerConversationItem — single conversation row with delete action
-// ---------------------------------------------------------------------------
-@Composable
-private fun DrawerConversationItem(
-    conversation: Conversation,
-    onClick: () -> Unit,
-    onDelete: () -> Unit,
-) {
     Surface(
         onClick = onClick,
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(topEnd = 24.dp, bottomEnd = 24.dp),
         color = Color.Transparent,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 2.dp),
+            .padding(end = 16.dp, top = 2.dp, bottom = 2.dp)
     ) {
         Row(
             modifier = Modifier
+                .background(background)
                 .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 12.dp),
+                .padding(horizontal = 20.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = label,
+                tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(20.dp)
+            )
+            Spacer(Modifier.width(16.dp))
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+            )
+        }
+    }
+}
+
+@Composable
+private fun DrawerConversationItem(
+    conversation: Conversation,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    onDelete: () -> Unit,
+) {
+    val background = if (isSelected) {
+        Brush.horizontalGradient(
+            colors = listOf(
+                MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+                Color.Transparent
+            )
+        )
+    } else {
+        Brush.horizontalGradient(colors = listOf(Color.Transparent, Color.Transparent))
+    }
+
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(topEnd = 20.dp, bottomEnd = 20.dp),
+        color = Color.Transparent,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(end = 16.dp, vertical = 2.dp),
+    ) {
+        Row(
+            modifier = Modifier
+                .background(background)
+                .fillMaxWidth()
+                .padding(start = 20.dp, end = 8.dp, top = 8.dp, bottom = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            Icon(
+                imageVector = PhIcons.Regular.ChatCircle,
+                contentDescription = null,
+                tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(18.dp)
+            )
+            Spacer(Modifier.width(16.dp))
             Text(
                 text = conversation.title,
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface,
+                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f),
