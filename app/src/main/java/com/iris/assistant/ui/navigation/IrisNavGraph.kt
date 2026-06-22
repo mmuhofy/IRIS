@@ -40,17 +40,14 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -80,6 +77,7 @@ import com.iris.assistant.ui.settings.DataSettingsScreen
 import com.iris.assistant.ui.settings.LocalModelScreen
 import com.iris.assistant.ui.settings.ModelSettingsScreen
 import com.iris.assistant.ui.settings.PermissionScreen
+import com.iris.assistant.ui.settings.PowerModeScreen
 import com.iris.assistant.ui.settings.SettingsScreen
 import com.iris.assistant.ui.settings.SystemSettingsScreen
 import com.iris.assistant.ui.settings.VoiceSettingsScreen
@@ -118,33 +116,13 @@ private fun onboardingPopExit(): ExitTransition =
     slideOutHorizontally(tween(Constants.NAV_ANIM_DURATION_MS)) { it / 4 } +
         fadeOut(tween(Constants.NAV_ANIM_DURATION_MS))
 
-/**
- * ROOT CAUSE INVESTIGATION (see Constants.kt history comment for the full
- * timeline): forward nav and predictive-back GESTURE both animate correctly.
- * Hardware/system back button and the TopAppBar back arrow (both routed
- * through navController.popBackStack()) do NOT animate, despite
- * popEnterTransition/popExitTransition being explicitly defined both here
- * and on every composable() below.
- *
- * Leading candidate (not yet confirmed working): ModalDrawerSheet was
- * missing the drawerState parameter. Per official Compose docs
- * (developer.android.com/develop/ui/compose/system/predictive-back-setup):
- * "ModalNavigationDrawer, ModalDrawerSheet, DismissibleDrawerSheet, and
- * DismissibleNavigationDrawer require you to pass the drawerState to their
- * respective sheet content composables" for predictive back to work
- * correctly. Also relevant: a known Material Components issue
- * (material-components-android#4449) where NavHost's back handler, being
- * lower in the composition hierarchy, can take precedence over the drawer's
- * own back handling. Fix applied below (drawerState now passed to
- * ModalDrawerSheet) — needs on-device confirmation.
- */
 private fun mainEnter(): EnterTransition =
     slideInHorizontally(
         animationSpec = tween(Constants.NAV_ANIM_DURATION_MS)
     ) { fullWidth -> fullWidth / Constants.NAV_SLIDE_ENTER_DIVISOR } +
     scaleIn(
         animationSpec = tween(Constants.NAV_ANIM_DURATION_MS),
-        initialScale = Constants.NAV_SCALE_ENTER_FROM
+        initialScale  = Constants.NAV_SCALE_ENTER_FROM
     ) + fadeIn(animationSpec = tween(Constants.NAV_ANIM_DURATION_MS))
 
 private fun mainExit(): ExitTransition =
@@ -153,7 +131,7 @@ private fun mainExit(): ExitTransition =
     ) { fullWidth -> -fullWidth / Constants.NAV_SLIDE_EXIT_DIVISOR } +
     scaleOut(
         animationSpec = tween(Constants.NAV_ANIM_DURATION_MS),
-        targetScale = Constants.NAV_SCALE_EXIT_TO
+        targetScale   = Constants.NAV_SCALE_EXIT_TO
     ) + fadeOut(animationSpec = tween(Constants.NAV_ANIM_DURATION_MS))
 
 private fun mainPopEnter(): EnterTransition =
@@ -162,7 +140,7 @@ private fun mainPopEnter(): EnterTransition =
     ) { fullWidth -> -fullWidth / Constants.NAV_SLIDE_EXIT_DIVISOR } +
     scaleIn(
         animationSpec = tween(Constants.NAV_ANIM_DURATION_MS),
-        initialScale = Constants.NAV_SCALE_EXIT_TO
+        initialScale  = Constants.NAV_SCALE_EXIT_TO
     ) + fadeIn(animationSpec = tween(Constants.NAV_ANIM_DURATION_MS))
 
 private fun mainPopExit(): ExitTransition =
@@ -171,7 +149,7 @@ private fun mainPopExit(): ExitTransition =
     ) { fullWidth -> fullWidth / Constants.NAV_SLIDE_ENTER_DIVISOR } +
     scaleOut(
         animationSpec = tween(Constants.NAV_ANIM_DURATION_MS),
-        targetScale = Constants.NAV_SCALE_ENTER_FROM
+        targetScale   = Constants.NAV_SCALE_ENTER_FROM
     ) + fadeOut(animationSpec = tween(Constants.NAV_ANIM_DURATION_MS))
 
 private fun chatEnter(): EnterTransition =
@@ -221,8 +199,9 @@ fun IrisNavGraph(
     val navBackStack by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStack?.destination?.route
 
-    val showDrawer       = currentRoute?.startsWith("onboarding") == false
-    val drawerGestures   = currentRoute != NavRoute.Home.route && currentRoute?.startsWith("chat") != true
+    val showDrawer     = currentRoute?.startsWith("onboarding") == false
+    val drawerGestures = currentRoute != NavRoute.Home.route &&
+                         currentRoute?.startsWith("chat") != true
 
     Box(
         modifier = Modifier
@@ -234,25 +213,25 @@ fun IrisNavGraph(
                 drawerState     = drawerState,
                 gesturesEnabled = drawerGestures,
                 scrimColor      = DrawerDefaults.scrimColor,
-                drawerContent = {
+                drawerContent   = {
                     IrisDrawerSheet(
                         drawerState          = drawerState,
-                        conversations       = conversations,
-                        currentRoute        = currentRoute,
-                        onHomeClick         = {
+                        conversations        = conversations,
+                        currentRoute         = currentRoute,
+                        onHomeClick          = {
                             scope.launch { drawerState.close() }
                             navController.navigate(NavRoute.Home.route) {
                                 popUpTo(NavRoute.Home.route) { inclusive = false }
                                 launchSingleTop = true
                             }
                         },
-                        onNewChatClick      = {
+                        onNewChatClick       = {
                             scope.launch { drawerState.close() }
                             navController.navigate(NavRoute.Chat.NEW) {
                                 launchSingleTop = false
                             }
                         },
-                        onConversationClick = { conv ->
+                        onConversationClick  = { conv ->
                             scope.launch { drawerState.close() }
                             navController.navigate(NavRoute.Chat.withId(conv.id)) {
                                 launchSingleTop = false
@@ -373,7 +352,7 @@ private fun NavContent(
             popExitTransition  = { onboardingPopExit() },
         ) {
             OnboardingBatteryScreen(
-                onFinish = {
+                onFinish  = {
                     navController.navigate(NavRoute.Home.route) {
                         popUpTo(NavRoute.OnboardingWelcome.route) { inclusive = true }
                     }
@@ -392,14 +371,15 @@ private fun NavContent(
         }
         composable(route = NavRoute.Settings.route) {
             SettingsScreen(
-                onBack            = { navController.popBackStack() },
-                onOpenVoice       = { navController.navigate(NavRoute.VoiceSettings.route) },
-                onOpenModel       = { navController.navigate(NavRoute.SettingsModel.route) },
-                onOpenAppearance  = { navController.navigate(NavRoute.SettingsAppearance.route) },
-                onOpenBackground  = { navController.navigate(NavRoute.SettingsBackground.route) },
-                onOpenAutonomy    = { navController.navigate(NavRoute.SettingsAutonomy.route) },
-                onOpenSystem      = { navController.navigate(NavRoute.SettingsSystem.route) },
-                onOpenData        = { navController.navigate(NavRoute.SettingsData.route) },
+                onBack           = { navController.popBackStack() },
+                onOpenVoice      = { navController.navigate(NavRoute.VoiceSettings.route) },
+                onOpenModel      = { navController.navigate(NavRoute.SettingsModel.route) },
+                onOpenAppearance = { navController.navigate(NavRoute.SettingsAppearance.route) },
+                onOpenBackground = { navController.navigate(NavRoute.SettingsBackground.route) },
+                onOpenAutonomy   = { navController.navigate(NavRoute.SettingsAutonomy.route) },
+                onOpenSystem     = { navController.navigate(NavRoute.SettingsSystem.route) },
+                onOpenData       = { navController.navigate(NavRoute.SettingsData.route) },
+                onOpenPowerMode  = { navController.navigate(NavRoute.SettingsPowerMode.route) },
             )
         }
         composable(route = NavRoute.SettingsModel.route) {
@@ -409,19 +389,13 @@ private fun NavContent(
             )
         }
         composable(route = NavRoute.SettingsAppearance.route) {
-            AppearanceSettingsScreen(
-                onBack = { navController.popBackStack() },
-            )
+            AppearanceSettingsScreen(onBack = { navController.popBackStack() })
         }
         composable(route = NavRoute.SettingsBackground.route) {
-            BackgroundSettingsScreen(
-                onBack = { navController.popBackStack() },
-            )
+            BackgroundSettingsScreen(onBack = { navController.popBackStack() })
         }
         composable(route = NavRoute.SettingsAutonomy.route) {
-            AutonomySettingsScreen(
-                onBack = { navController.popBackStack() },
-            )
+            AutonomySettingsScreen(onBack = { navController.popBackStack() })
         }
         composable(route = NavRoute.SettingsSystem.route) {
             SystemSettingsScreen(
@@ -431,32 +405,26 @@ private fun NavContent(
             )
         }
         composable(route = NavRoute.SettingsData.route) {
-            DataSettingsScreen(
-                onBack = { navController.popBackStack() },
-            )
+            DataSettingsScreen(onBack = { navController.popBackStack() })
         }
         composable(route = NavRoute.LocalModels.route) {
-            LocalModelScreen(
-                onBack = { navController.popBackStack() },
-            )
+            LocalModelScreen(onBack = { navController.popBackStack() })
         }
         composable(route = NavRoute.PermissionManager.route) {
-            PermissionScreen(
-                onBack = { navController.popBackStack() },
-            )
+            PermissionScreen(onBack = { navController.popBackStack() })
         }
         composable(route = NavRoute.VoiceSettings.route) {
-            VoiceSettingsScreen(
-                onBack = { navController.popBackStack() },
-            )
+            VoiceSettingsScreen(onBack = { navController.popBackStack() })
+        }
+        // Phase 4 — Power Mode
+        composable(route = NavRoute.SettingsPowerMode.route) {
+            PowerModeScreen(onBack = { navController.popBackStack() })
         }
 
         // --- Chat ---
         composable(
-            route = NavRoute.Chat.route,
-            arguments = listOf(
-                navArgument(NavRoute.Chat.ARG) { type = NavType.LongType }
-            ),
+            route      = NavRoute.Chat.route,
+            arguments  = listOf(navArgument(NavRoute.Chat.ARG) { type = NavType.LongType }),
             enterTransition    = { chatEnter() },
             exitTransition     = { chatExit() },
             popEnterTransition = { chatPopEnter() },
@@ -486,23 +454,12 @@ private fun IrisDrawerSheet(
     onDeleteConversation: (Conversation) -> Unit,
 ) {
     val primary = IrisTheme.colors.primary
-    val gradientEnd = IrisTheme.colors.gradientEnd
 
-    // NOTE: drawerState is now passed to ModalDrawerSheet. Per official
-    // Compose docs (developer.android.com/develop/ui/compose/system/predictive-back-setup):
-    // "ModalNavigationDrawer, ModalDrawerSheet, DismissibleDrawerSheet, and
-    // DismissibleNavigationDrawer require you to pass the drawerState to
-    // their respective sheet content composables" for predictive back
-    // animations to work correctly. This was previously missing — leading
-    // candidate for why navController.popBackStack() (hardware back button /
-    // TopAppBar back icon) doesn't animate while the gesture-driven
-    // predictive back preview does. Not confirmed as root cause yet — test
-    // on-device after this change.
     ModalDrawerSheet(
-        drawerState = drawerState,
+        drawerState          = drawerState,
         drawerContainerColor = MaterialTheme.colorScheme.surface,
-        drawerShape = RoundedCornerShape(topEnd = 16.dp, bottomEnd = 16.dp),
-        modifier = Modifier
+        drawerShape          = RoundedCornerShape(topEnd = 16.dp, bottomEnd = 16.dp),
+        modifier             = Modifier
             .fillMaxHeight()
             .fillMaxWidth(0.82f),
     ) {
@@ -511,15 +468,14 @@ private fun IrisDrawerSheet(
                 .fillMaxSize()
                 .statusBarsPadding(),
         ) {
-            // Header
             Row(
-                modifier = Modifier.padding(horizontal = 20.dp, vertical = 20.dp),
+                modifier         = Modifier.padding(horizontal = 20.dp, vertical = 20.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = "Iris",
-                    style = MaterialTheme.typography.titleLarge,
-                    color = ColorTextSecondary,
+                    text       = "Iris",
+                    style      = MaterialTheme.typography.titleLarge,
+                    color      = ColorTextSecondary,
                     fontWeight = FontWeight.Medium,
                 )
             }
@@ -527,7 +483,6 @@ private fun IrisDrawerSheet(
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
             Spacer(Modifier.height(8.dp))
 
-            // Nav rows
             DrawerNavItem(
                 icon     = PhIcons.Regular.House,
                 label    = "Ana Ekran",
@@ -545,17 +500,16 @@ private fun IrisDrawerSheet(
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
             Spacer(Modifier.height(8.dp))
 
-            // Conversation list header
             Row(
-                modifier = Modifier
+                modifier          = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 20.dp, vertical = 4.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = "Sohbetler",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    text     = "Sohbetler",
+                    style    = MaterialTheme.typography.labelMedium,
+                    color    = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.weight(1f),
                 )
                 Surface(
@@ -577,14 +531,13 @@ private fun IrisDrawerSheet(
 
             Spacer(Modifier.height(4.dp))
 
-            // Conversation list
             LazyColumn(modifier = Modifier.weight(1f)) {
                 if (conversations.isEmpty()) {
                     item {
                         Text(
-                            text = "Henüz sohbet yok",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                            text     = "Henüz sohbet yok",
+                            style    = MaterialTheme.typography.bodySmall,
+                            color    = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                             modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
                         )
                     }
@@ -603,8 +556,9 @@ private fun IrisDrawerSheet(
 }
 
 // ---------------------------------------------------------------------------
-// DrawerNavItem — single tappable nav row (Ana Ekran / Sohbet)
+// DrawerNavItem
 // ---------------------------------------------------------------------------
+
 @Composable
 private fun DrawerNavItem(
     icon: ImageVector,
@@ -613,28 +567,27 @@ private fun DrawerNavItem(
     onClick: () -> Unit,
 ) {
     val primary = IrisTheme.colors.primary
-
     Surface(
-        onClick = onClick,
-        shape = RoundedCornerShape(14.dp),
-        color = if (selected) primary.copy(alpha = 0.12f) else Color.Transparent,
+        onClick  = onClick,
+        shape    = RoundedCornerShape(14.dp),
+        color    = if (selected) primary.copy(alpha = 0.12f) else Color.Transparent,
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 12.dp, vertical = 4.dp),
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp),
+            modifier          = Modifier.padding(horizontal = 12.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
-                imageVector = icon,
+                imageVector        = icon,
                 contentDescription = null,
-                tint = if (selected) primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(20.dp),
+                tint               = if (selected) primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier           = Modifier.size(20.dp),
             )
             Spacer(Modifier.width(12.dp))
             Text(
-                text = label,
+                text  = label,
                 style = MaterialTheme.typography.bodyMedium,
                 color = if (selected) primary else MaterialTheme.colorScheme.onSurface,
             )
@@ -643,8 +596,9 @@ private fun DrawerNavItem(
 }
 
 // ---------------------------------------------------------------------------
-// DrawerConversationItem — single conversation row with delete action
+// DrawerConversationItem
 // ---------------------------------------------------------------------------
+
 @Composable
 private fun DrawerConversationItem(
     conversation: Conversation,
@@ -652,37 +606,37 @@ private fun DrawerConversationItem(
     onDelete: () -> Unit,
 ) {
     Surface(
-        onClick = onClick,
-        shape = RoundedCornerShape(12.dp),
-        color = Color.Transparent,
+        onClick  = onClick,
+        shape    = RoundedCornerShape(12.dp),
+        color    = Color.Transparent,
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 12.dp, vertical = 2.dp),
     ) {
         Row(
-            modifier = Modifier
+            modifier          = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 12.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                text = conversation.title,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface,
+                text     = conversation.title,
+                style    = MaterialTheme.typography.bodyMedium,
+                color    = MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f),
             )
             Spacer(Modifier.width(8.dp))
             IconButton(
-                onClick = onDelete,
+                onClick  = onDelete,
                 modifier = Modifier.size(32.dp),
             ) {
                 Icon(
-                    imageVector = PhIcons.Regular.TrashSimple,
+                    imageVector        = PhIcons.Regular.TrashSimple,
                     contentDescription = "Sil",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(16.dp),
+                    tint               = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier           = Modifier.size(16.dp),
                 )
             }
         }

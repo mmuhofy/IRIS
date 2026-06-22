@@ -39,6 +39,9 @@ class PreferencesRepository @Inject constructor(
         val LOCAL_MODEL_PATH     = stringPreferencesKey("local_model_path")
         val FONT_FAMILY          = stringPreferencesKey("font_family")
         val TTS_PROVIDER         = stringPreferencesKey("tts_provider")
+        // Phase 4 — Power Mode
+        val POWER_MODE_ENABLED   = booleanPreferencesKey("power_mode_enabled")
+        val SHELL_SECURITY       = stringPreferencesKey("shell_security")
     }
 
     val preferences: Flow<UserPreferences> = context.dataStore.data.map { prefs ->
@@ -48,24 +51,27 @@ class PreferencesRepository @Inject constructor(
                 ?: ColorSchemeOption.LAVENDER,
             backgroundListening = prefs[Keys.BACKGROUND_LISTENING] ?: true,
             onboardingCompleted = prefs[Keys.ONBOARDING_COMPLETED] ?: false,
-            ttsVoice            = prefs[Keys.TTS_VOICE]
+            ttsVoice = prefs[Keys.TTS_VOICE]
                 ?.let { TtsVoice.fromApiName(it) }
                 ?: TtsVoice.DEFAULT,
-            userName = prefs[Keys.USER_NAME] ?: Constants.USER_NAME,
-            llmProvider = prefs[Keys.LLM_PROVIDER] ?: Constants.LLM_PROVIDER_GEMINI,
-            llmModel = prefs[Keys.LLM_MODEL] ?: Constants.GEMINI_MODEL,
-            autonomyLevel = prefs[Keys.AUTONOMY_LEVEL]
+            userName        = prefs[Keys.USER_NAME]    ?: Constants.USER_NAME,
+            llmProvider     = prefs[Keys.LLM_PROVIDER] ?: Constants.LLM_PROVIDER_GEMINI,
+            llmModel        = prefs[Keys.LLM_MODEL]    ?: Constants.GEMINI_MODEL,
+            autonomyLevel   = prefs[Keys.AUTONOMY_LEVEL]
                 ?.let { runCatching { AutonomyLevel.valueOf(it) }.getOrDefault(AutonomyLevel.SAFE) }
                 ?: AutonomyLevel.SAFE,
-            localModelName = prefs[Keys.LOCAL_MODEL_NAME] ?: "",
-            localModelPath = prefs[Keys.LOCAL_MODEL_PATH] ?: "",
-            fontFamilyKey = prefs[Keys.FONT_FAMILY] ?: AppFont.SystemDefault.key,
-            fontFamily = prefs[Keys.FONT_FAMILY]
+            localModelName  = prefs[Keys.LOCAL_MODEL_NAME] ?: "",
+            localModelPath  = prefs[Keys.LOCAL_MODEL_PATH] ?: "",
+            fontFamilyKey   = prefs[Keys.FONT_FAMILY] ?: AppFont.SystemDefault.key,
+            fontFamily      = prefs[Keys.FONT_FAMILY]
                 ?.let { AppFont.fromKey(it) }
                 ?: AppFont.SystemDefault,
-            ttsProvider = prefs[Keys.TTS_PROVIDER]
+            ttsProvider     = prefs[Keys.TTS_PROVIDER]
                 ?.let { TtsProviderType.fromKey(it) }
-                ?: TtsProviderType.GEMINI
+                ?: TtsProviderType.GEMINI,
+            // Phase 4 — Power Mode
+            powerModeEnabled = prefs[Keys.POWER_MODE_ENABLED] ?: false,
+            shellSecurity    = prefs[Keys.SHELL_SECURITY] ?: Constants.SHELL_SECURITY_DEFAULT,
         )
     }
 
@@ -115,5 +121,14 @@ class PreferencesRepository @Inject constructor(
 
     suspend fun setFontFamily(font: AppFont) {
         context.dataStore.edit { it[Keys.FONT_FAMILY] = font.key }
+    }
+
+    // Phase 4 — Power Mode
+    suspend fun setPowerModeEnabled(enabled: Boolean) {
+        context.dataStore.edit { it[Keys.POWER_MODE_ENABLED] = enabled }
+    }
+
+    suspend fun setShellSecurity(level: String) {
+        context.dataStore.edit { it[Keys.SHELL_SECURITY] = level }
     }
 }

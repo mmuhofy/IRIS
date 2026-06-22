@@ -44,20 +44,22 @@ import com.phosphor.icons.regular.Gear
 import com.phosphor.icons.regular.Headphones
 import com.phosphor.icons.regular.Palette
 import com.phosphor.icons.regular.Shield
+import com.phosphor.icons.regular.Terminal
 import com.phosphor.icons.regular.Trash
 import com.phosphor.icons.regular.Waveform
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
-    onBack: () -> Unit,
-    onOpenModel: () -> Unit = {},
-    onOpenAppearance: () -> Unit = {},
-    onOpenBackground: () -> Unit = {},
-    onOpenAutonomy: () -> Unit = {},
-    onOpenSystem: () -> Unit = {},
-    onOpenVoice: () -> Unit = {},
-    onOpenData: () -> Unit = {},
+    onBack           : () -> Unit,
+    onOpenModel      : () -> Unit = {},
+    onOpenAppearance : () -> Unit = {},
+    onOpenBackground : () -> Unit = {},
+    onOpenAutonomy   : () -> Unit = {},
+    onOpenSystem     : () -> Unit = {},
+    onOpenVoice      : () -> Unit = {},
+    onOpenData       : () -> Unit = {},
+    onOpenPowerMode  : () -> Unit = {},   // Phase 4
 ) {
     Scaffold(
         containerColor = Color.Transparent,
@@ -65,87 +67,93 @@ fun SettingsScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = "Ayarlar",
-                        style = MaterialTheme.typography.titleLarge,
+                        text       = "Ayarlar",
+                        style      = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.SemiBold,
                     )
                 },
                 navigationIcon = {
                     IconButton(
-                        onClick = onBack,
+                        onClick  = onBack,
                         modifier = Modifier.size(48.dp),
                     ) {
                         Icon(
                             PhIcons.Regular.ArrowLeft,
                             contentDescription = "Geri",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            tint     = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(24.dp),
                         )
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent,
-                ),
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
             )
         },
     ) { innerPadding ->
         LazyColumn(
-            modifier = Modifier
+            modifier            = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(2.dp),
-            contentPadding = PaddingValues(top = 8.dp, bottom = 24.dp),
+            contentPadding      = PaddingValues(top = 8.dp, bottom = 24.dp),
         ) {
             item {
                 SettingsCategoryCard {
                     SettingsRow(
-                        icon = PhIcons.Regular.Waveform,
-                        label = "Ses",
+                        icon        = PhIcons.Regular.Waveform,
+                        label       = "Ses",
                         description = "Ses karakteri, sağlayıcı seçimi",
-                        onClick = onOpenVoice,
+                        onClick     = onOpenVoice,
                     )
                     SettingsDivider()
                     SettingsRow(
-                        icon = PhIcons.Regular.Cpu,
-                        label = "Model",
+                        icon        = PhIcons.Regular.Cpu,
+                        label       = "Model",
                         description = "AI sağlayıcı ve model seçimi",
-                        onClick = onOpenModel,
+                        onClick     = onOpenModel,
                     )
                     SettingsDivider()
                     SettingsRow(
-                        icon = PhIcons.Regular.Palette,
-                        label = "Görünüm",
+                        icon        = PhIcons.Regular.Palette,
+                        label       = "Görünüm",
                         description = "Renk teması",
-                        onClick = onOpenAppearance,
+                        onClick     = onOpenAppearance,
                     )
                     SettingsDivider()
                     SettingsRow(
-                        icon = PhIcons.Regular.Headphones,
-                        label = "Arka Plan",
+                        icon        = PhIcons.Regular.Headphones,
+                        label       = "Arka Plan",
                         description = "Arka planda dinleme",
-                        onClick = onOpenBackground,
+                        onClick     = onOpenBackground,
                     )
                     SettingsDivider()
                     SettingsRow(
-                        icon = PhIcons.Regular.Shield,
-                        label = "Otonomi",
+                        icon        = PhIcons.Regular.Shield,
+                        label       = "Otonomi",
                         description = "İşlem onay seviyesi",
-                        onClick = onOpenAutonomy,
+                        onClick     = onOpenAutonomy,
                     )
                     SettingsDivider()
                     SettingsRow(
-                        icon = PhIcons.Regular.Gear,
-                        label = "Sistem",
+                        icon        = PhIcons.Regular.Gear,
+                        label       = "Sistem",
                         description = "Ses ayarları, izin yöneticisi",
-                        onClick = onOpenSystem,
+                        onClick     = onOpenSystem,
                     )
                     SettingsDivider()
                     SettingsRow(
-                        icon = PhIcons.Regular.Trash,
-                        label = "Veri",
+                        icon        = PhIcons.Regular.Trash,
+                        label       = "Veri",
                         description = "Sohbet geçmişini temizle",
-                        onClick = onOpenData,
+                        onClick     = onOpenData,
+                    )
+                    SettingsDivider()
+                    // Phase 4 — Power Mode
+                    SettingsRow(
+                        icon        = PhIcons.Regular.Terminal,
+                        label       = "Power Mode",
+                        description = "Gömülü Linux shell, terminal, script çalıştırma",
+                        onClick     = onOpenPowerMode,
                     )
                 }
             }
@@ -164,57 +172,57 @@ private fun SettingsCategoryCard(content: @Composable () -> Unit) {
 }
 
 @Composable
-private fun SettingsRow(
-    icon: ImageVector,
-    label: String,
-    description: String,
-    onClick: () -> Unit,
+fun SettingsRow(
+    icon        : ImageVector,
+    label       : String,
+    description : String,
+    onClick     : () -> Unit,
 ) {
     Row(
-        modifier = Modifier
+        modifier          = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
-            modifier = Modifier
+            modifier         = Modifier
                 .size(34.dp)
                 .clip(CircleShape)
                 .background(IrisTheme.colors.primary.copy(alpha = 0.12f)),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
-                imageVector = icon,
+                imageVector        = icon,
                 contentDescription = null,
-                tint = IrisTheme.colors.primary,
-                modifier = Modifier.size(16.dp),
+                tint               = IrisTheme.colors.primary,
+                modifier           = Modifier.size(16.dp),
             )
         }
         Spacer(Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = label,
+                text  = label,
                 style = MaterialTheme.typography.bodyLarge,
                 color = ColorTextPrimary,
             )
             Text(
-                text = description,
+                text  = description,
                 style = MaterialTheme.typography.bodySmall,
                 color = ColorTextSecondary,
             )
         }
         Icon(
-            imageVector = PhIcons.Regular.CaretRight,
+            imageVector        = PhIcons.Regular.CaretRight,
             contentDescription = null,
-            tint = ColorTextSecondary,
-            modifier = Modifier.size(16.dp),
+            tint               = ColorTextSecondary,
+            modifier           = Modifier.size(16.dp),
         )
     }
 }
 
 @Composable
-private fun SettingsDivider() {
+fun SettingsDivider() {
     Box(
         modifier = Modifier
             .fillMaxWidth()

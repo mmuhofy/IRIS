@@ -168,7 +168,14 @@ object Constants {
     const val DATABASE_NAME    = "iris_database"
     const val DATABASE_VERSION = 2
 
-    // --- Phase 4 — Power Mode / Embedded Shell ---
+    // ─────────────────────────────────────────────────────────────────────────
+    // Phase 4 — Power Mode / Embedded Shell
+    // ─────────────────────────────────────────────────────────────────────────
+
+    // Maximum number of terminal lines kept in memory for the UI.
+    // Older lines are dropped from the head (ring-buffer semantics via takeLast).
+    const val TERMINAL_MAX_LINES = 500
+
     // Termux bootstrap is sourced from termux/termux-packages GitHub Releases.
     // Asset naming convention (verified 2025-12):
     //   bootstrap-aarch64.zip  → arm64-v8a
@@ -178,7 +185,8 @@ object Constants {
     //
     // We fetch the latest release tag dynamically via the GitHub Releases API
     // so the URL never needs to be hardcoded or updated manually.
-    const val BOOTSTRAP_GITHUB_API = "https://api.github.com/repos/termux/termux-packages/releases"
+    const val BOOTSTRAP_GITHUB_API =
+        "https://api.github.com/repos/termux/termux-packages/releases"
 
     // Subdirectory inside filesDir where the Termux environment lives.
     //   filesDir/termux/usr/   = TERMUX_PREFIX
@@ -201,25 +209,9 @@ object Constants {
 
     // Timeout for a single shell command when running in AI tool-fallback mode.
     // User-driven terminal commands have no timeout (session is persistent).
-    const val SHELL_TOOL_TIMEOUT_MS = 30000L
+    const val SHELL_TOOL_TIMEOUT_MS = 30_000L
 
     // Max bytes of stdout/stderr captured per AI shell tool call.
     // Prevents unbounded output from flooding the LLM context.
     const val SHELL_TOOL_OUTPUT_MAX_BYTES = 8 * 1024 // 8 KB
-
-    // --- DataStore ---
-    const val DATASTORE_NAME = "iris_preferences"
-
-    // --- Screen Interaction ---
-    // Maximum number of nodes included in a single read_screen dump sent to the LLM.
-    // Higher values = more context but longer prompt = slower inference.
-    const val SCREEN_MAX_NODES = 80
-
-    // Scroll gesture fallback (used when ACTION_SCROLL_FORWARD/BACKWARD fails).
-    // Ratios are relative to screen height — avoids hardcoded pixel values across devices.
-    // For "scroll down": gesture starts at START_RATIO (70% down), ends at END_RATIO (25% down).
-    // For "scroll up":  gesture starts at END_RATIO (25% down), ends at START_RATIO (70% down).
-    const val SCROLL_GESTURE_START_RATIO  = 0.70f // finger start position (as fraction of screen height)
-    const val SCROLL_GESTURE_END_RATIO    = 0.25f // finger end position
-    const val SCROLL_GESTURE_DURATION_MS  = 200L  // swipe duration in milliseconds
-}
+}    

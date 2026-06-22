@@ -20,5 +20,8 @@ data class UserPreferences(
     val localModelPath      : String            = "",
     val ttsProvider         : TtsProviderType   = TtsProviderType.GEMINI,
     val fontFamily          : AppFont           = AppFont.Inter,
-    val fontFamilyKey       : String            = AppFont.Inter.key
+    val fontFamilyKey       : String            = AppFont.Inter.key,
+    // Phase 4 — Power Mode
+    val powerModeEnabled    : Boolean           = false,
+    val shellSecurity       : String            = Constants.SHELL_SECURITY_DEFAULT,
 )
