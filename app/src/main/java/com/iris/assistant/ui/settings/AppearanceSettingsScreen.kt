@@ -42,8 +42,8 @@ import com.iris.assistant.ui.theme.ColorSchemeOption
 import com.iris.assistant.ui.theme.ColorTextSecondary
 import com.iris.assistant.ui.theme.IrisTheme
 import com.phosphor.icons.PhIcons
-import com.phosphor.icons.fill.CheckCircle
 import com.phosphor.icons.regular.ArrowLeft
+import com.phosphor.icons.regular.CheckCircle
 
 // ---------------------------------------------------------------------------
 // Per-theme display metadata
