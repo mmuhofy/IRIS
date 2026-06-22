@@ -25,18 +25,22 @@ val LocalIrisColorScheme = staticCompositionLocalOf {
 // ---------------------------------------------------------------------------
 // Predefined schemes
 // ---------------------------------------------------------------------------
-val IrisColorSchemeLavender    = IrisColorScheme(LavenderPrimary,    LavenderGradient,    LavenderSecondary)
-val IrisColorSchemeSunset      = IrisColorScheme(SunsetPrimary,      SunsetGradient,      SunsetSecondary)
-val IrisColorSchemeOcean       = IrisColorScheme(OceanPrimary,       OceanGradient,       OceanSecondary)
-val IrisColorSchemeForest      = IrisColorScheme(ForestPrimary,      ForestGradient,      ForestSecondary)
-val IrisColorSchemeRose        = IrisColorScheme(RosePrimary,        RoseGradient,        RoseSecondary)
-val IrisColorSchemeMonochrome  = IrisColorScheme(MonochromePrimary,  MonochromeGradient,  MonochromeSecondary)
+val IrisColorSchemeLavender   = IrisColorScheme(LavenderPrimary,   LavenderGradient,   LavenderSecondary)
+val IrisColorSchemeSunset     = IrisColorScheme(SunsetPrimary,     SunsetGradient,     SunsetSecondary)
+val IrisColorSchemeOcean      = IrisColorScheme(OceanPrimary,      OceanGradient,      OceanSecondary)
+val IrisColorSchemeForest     = IrisColorScheme(ForestPrimary,     ForestGradient,     ForestSecondary)
+val IrisColorSchemeRose       = IrisColorScheme(RosePrimary,       RoseGradient,       RoseSecondary)
+val IrisColorSchemeMonochrome = IrisColorScheme(MonochromePrimary, MonochromeGradient, MonochromeSecondary)
+val IrisColorSchemeNeural     = IrisColorScheme(NeuralPrimary,     NeuralGradient,     NeuralSecondary)
+val IrisColorSchemeAurora     = IrisColorScheme(AuroraPrimary,     AuroraGradient,     AuroraSecondary)
+val IrisColorSchemeMonolith   = IrisColorScheme(MonolithPrimary,   MonolithGradient,   MonolithSecondary)
 
 // ---------------------------------------------------------------------------
 // ColorSchemeOption enum — used in Settings + DataStore
 // ---------------------------------------------------------------------------
 enum class ColorSchemeOption {
-    LAVENDER, SUNSET, OCEAN, FOREST, ROSE, MONOCHROME;
+    LAVENDER, SUNSET, OCEAN, FOREST, ROSE, MONOCHROME,
+    NEURAL, AURORA, MONOLITH;
 
     fun toIrisColorScheme(): IrisColorScheme = when (this) {
         LAVENDER   -> IrisColorSchemeLavender
@@ -45,6 +49,9 @@ enum class ColorSchemeOption {
         FOREST     -> IrisColorSchemeForest
         ROSE       -> IrisColorSchemeRose
         MONOCHROME -> IrisColorSchemeMonochrome
+        NEURAL     -> IrisColorSchemeNeural
+        AURORA     -> IrisColorSchemeAurora
+        MONOLITH   -> IrisColorSchemeMonolith
     }
 }
 

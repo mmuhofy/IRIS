@@ -44,3 +44,28 @@ val RoseSecondary = Color(0xFFFCD34D)
 val MonochromePrimary   = Color(0xFFE4E4E7)
 val MonochromeGradient  = Color(0xFFA1A1AA)
 val MonochromeSecondary = Color(0xFF34D399)
+
+// ---------------------------------------------------------------------------
+// NEW — Neural / Cosmic
+// Buz mavisi zeka + derin mor + soft fuşya.
+// AGSL animasyonuyla siyan→mor geçişi çok güçlü görünür.
+// ---------------------------------------------------------------------------
+val NeuralPrimary   = Color(0xFF6EE7F7)   // ice blue / cyan
+val NeuralGradient  = Color(0xFFA78BFA)   // deep lavender
+val NeuralSecondary = Color(0xFFF0ABFC)   // soft fuchsia
+
+// ---------------------------------------------------------------------------
+// NEW — Aurora
+// Kuzey ışıkları: turkuaz → mavi → mor.
+// ---------------------------------------------------------------------------
+val AuroraPrimary   = Color(0xFF34EBC4)   // turquoise
+val AuroraGradient  = Color(0xFF5B8DEF)   // sky blue
+val AuroraSecondary = Color(0xFFC084FC)   // purple
+
+// ---------------------------------------------------------------------------
+// NEW — Monolith
+// Premium minimal: ghost white accent, tek sıcak renk.
+// ---------------------------------------------------------------------------
+val MonolithPrimary   = Color(0xFFE2E8FF)   // ghost white/blue
+val MonolithGradient  = Color(0xFF8B9CF4)   // slate blue
+val MonolithSecondary = Color(0xFFFF6B6B)   // single warm accent
