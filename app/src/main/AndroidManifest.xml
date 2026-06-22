@@ -2,7 +2,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- Core permissions -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
@@ -11,7 +10,6 @@
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
-    <!-- Phase 2: requested on first tool use, not at startup -->
     <uses-permission android:name="android.permission.CALL_PHONE" />
     <uses-permission android:name="android.permission.SEND_SMS" />
     <uses-permission android:name="android.permission.READ_CONTACTS" />
@@ -20,7 +18,6 @@
     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES"
         tools:ignore="QueryAllPackagesPermission" />
 
-    <!-- Phase 2 — System tools -->
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
     <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
@@ -29,13 +26,17 @@
     <uses-permission android:name="android.permission.WRITE_SETTINGS"
         tools:ignore="ProtectedPermissions" />
 
-    <!-- Phase 2 — Productivity tools -->
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.WRITE_CALENDAR" />
     <uses-permission android:name="android.permission.READ_CALENDAR" />
 
-    <!-- Phase 3 -->
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+
+    <uses-permission
+        android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
+
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
 
     <application
         android:name=".IrisApplication"
@@ -64,10 +65,6 @@
             android:taskAffinity=""
             android:windowSoftInputMode="adjustResize" />
 
-        <!--
-            WakeWordService — used ONLY by onboarding for the "Hey IRIS" test step.
-            No longer a foreground service; the main app uses WakeWordManager directly.
-        -->
         <service
             android:name=".service.WakeWordService"
             android:exported="false" />
@@ -88,12 +85,6 @@
                 android:resource="@xml/accessibility_service_config" />
         </service>
 
-        <!--
-            VoiceInteractionService — system-bound default assistant services.
-            Activated when user long-presses power button with IRIS set as default assistant.
-            Requires android.permission.BIND_VOICE_INTERACTION (signature-level, auto-granted
-            to the default assistant app).
-        -->
         <service
             android:name=".service.voice.IrisVoiceInteractionService"
             android:exported="true"
@@ -111,13 +102,6 @@
             android:exported="true"
             android:permission="android.permission.BIND_VOICE_INTERACTION" />
 
-        <!--
-            RecognitionService — required by VoiceInteractionServiceInfo parser.
-            The voice_interaction_service.xml MUST specify a valid recognitionService
-            attribute, otherwise VoiceInteractionServiceInfo.getParseError() is set
-            and the assistant is filtered out of the default-assistant picker.
-            This service is also used by other apps via SpeechRecognizer.
-        -->
         <service
             android:name=".service.voice.IrisRecognitionService"
             android:exported="true"

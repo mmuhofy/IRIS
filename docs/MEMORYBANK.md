@@ -93,8 +93,9 @@ Three providers, selectable in Settings → Voice:
 - All three implement same `suspend fun synthesize(text: String): AudioResult` contract so switching is transparent to the orchestrator.
 - Voice/accent sub-selection (e.g., Ahmet vs Emel for Edge TTS) is a secondary setting shown only when that provider is active.
 
-## 4. UI / Theme
+---
 
+## 4. UI / Theme
 
 ### Design Language
 - **Apple-style Modern Minimal**. Flat colors + subtle real shadows (NOT blur/glassmorphism). Gradients allowed for accents and Iris Core animation.
@@ -160,7 +161,7 @@ JarvisTool implementation
     ↓ (if screen action)
 ActionPreviewOverlay (per Autonomy Level)
     ↓
-Native API / AccessibilityService / Embedded Shell
+Native API / AccessibilityService / EmbeddedShell
     ↓
 ToolResult (Success | Error | PermissionRequired | Cancelled)
 ```
@@ -198,12 +199,24 @@ ToolResult (Success | Error | PermissionRequired | Cancelled)
 
 ## 7. Embedded Shell / "Power Mode" (Phase 4)
 
-### Decision Summary (overrides earlier Termux-as-separate-app discussion)
+### Purpose — Two Use Cases (confirmed by Muhofy)
+
+1. **Tool Fallback** — When no structured JarvisTool exists for a task, Gemini writes and executes a raw shell command to accomplish it (e.g., batch rename files, compress a folder, run a one-off task).
+2. **Direct Shell Use** — Full general-purpose terminal capability: run Python servers, execute scripts, manage processes, anything a Linux shell can do.
+
+### Decision Summary
 - **No separate Termux app required.** A minimal Linux environment (proot + Termux bootstrap) is downloaded and embedded inside IRIS itself, activated via Settings → "Power Mode".
-- AI does **not** call a structured "file tool" — it writes **raw shell commands directly** (e.g., `cp a.txt b.txt`), executed via `EmbeddedShell.execute(command)`.
-- Scope: **not limited to file operations** — any shell-executable task not covered by other tools.
+- AI writes **raw shell commands directly** (e.g., `python3 server.py`, `cp a.txt b.txt`, `pip install flask`), executed via `EmbeddedShell.execute(command)`.
+- Scope: **unrestricted** — any shell-executable task, not limited to file operations.
 - Bootstrap (~50-100MB) downloaded only when user enables Power Mode (not bundled in APK).
 - Storage access via bind-mount (`/storage:/storage`) inside proot; `~/storage/shared` etc. symlinks set up during install.
+- Shell session is **persistent** (long-running process) — not spawned per command. Supports stateful workflows (e.g., activate venv, then run script).
+- stdout/stderr streamed back to IRIS in real time — both displayed in terminal UI and optionally summarized by Gemini.
+
+### Terminal UI (Settings → Power Mode → Terminal)
+- Full terminal screen: scrollable output, text input field, send button.
+- Used for both AI-driven commands and manual user input.
+- Running processes shown with a stop button (SIGTERM/SIGKILL).
 
 ### Security Model — User-Configurable, Default UNRESTRICTED
 | Level | Behavior |
@@ -212,7 +225,7 @@ ToolResult (Success | Error | PermissionRequired | Cancelled)
 | CONFIRM_EACH | Every command shown in ActionPreviewOverlay (command text + 1s countdown + cancel) before execution. |
 | RESTRICTED | Regex blacklist for dangerous patterns (`rm -rf /`, `dd if=`, `chmod -R 777 /`, fork bombs) + path whitelist to `/storage/emulated/0/*`. |
 
-### Open Verification Items (flagged in Todo)
+### Open Verification Items (flagged — verify before implementation)
 - Exact Termux bootstrap release URLs/asset names per ABI — verify against Termux GitHub releases before implementation.
 - Whether proot binary ships inside bootstrap or requires custom NDK build.
 - `MANAGE_EXTERNAL_STORAGE` permission requirement for scoped storage on target SDK.
@@ -254,7 +267,7 @@ ToolResult (Success | Error | PermissionRequired | Cancelled)
 - **Phase 1 (MVP)**: Wake word, STT, Gemini chat, TTS, Iris Core UI, Chat mode, local history, onboarding, theming.
 - **Phase 2**: Tool system + permission-on-first-use + background service.
 - **Phase 3**: Screen reading/control + Action Preview Overlay + Autonomy Levels.
-- **Phase 4**: Embedded Shell (Power Mode), macros, cross-app workflows, floating bubble, default-assistant (VoiceInteractionService) + power-button trigger.
+- **Phase 4**: Embedded Shell (Power Mode) — tool fallback + direct shell; macros, cross-app workflows, floating bubble, default-assistant (VoiceInteractionService) + power-button trigger.
 - **Phase 5**: Multi-language, proactive suggestions, notification filtering, light theme, sentiment-based TTS tuning.
 
 ---
@@ -294,3 +307,4 @@ ToolResult (Success | Error | PermissionRequired | Cancelled)
 - ❌ Fully automatic AI-written-and-compiled Kotlin tools (security/feasibility — rejected; raw shell via Power Mode is the chosen "flexible execution" path instead).
 - ❌ Max-step cap on screen-control loops (explicitly rejected by Muhofy).
 - ❌ Separate Termux app + termux-api dependency (replaced by embedded proot environment).
+- ❌ Shell scope limited to file operations only (rejected — full general-purpose shell; see §7).

@@ -2,7 +2,7 @@
 
 ---
 
-## Phase 1-2: Tamamlanan
+## Phase 1-2: Tamamlanan ✅
 
 - [x] Onboarding flow
 - [x] Theme sistemi (Lavender, Sunset, Ocean, Forest, Rose, Monochrome)
@@ -19,7 +19,9 @@
 - [x] Color scheme picker
 - [x] System prompt (İngilizce, tool-calling odaklı)
 
-## Phase 3: Kısmi — Devam Eden
+---
+
+## Phase 3: Tamamlanan ✅ (2 madde sonraya bırakıldı)
 
 - [x] AutonomyLevel (SAFE / BALANCED / FULL_AUTO / CUSTOM)
 - [x] ScreenInteractionRepository
@@ -27,20 +29,51 @@
 - [x] Screen tools: click, type, scroll, navigate_back, read_screen
 - [x] ActionPreviewOverlay (spotlight, countdown, ripple, cancel)
 - [x] ScreenActionGate (overlay üzerinden approval)
-- [x] **Autonomy Level picker UI** — Settings'te seçici henüz yok
-- [ ] **Accessibility service aktivasyon rehberi** — Kullanıcıya adım adım açıklama ekranı gerek
-- [x] **NavigateTool** — label iyileştirildi, koordinatsız (sistem aksiyonu)
-- [x] **Accessibility performans fix** — background thread + 150ms debounce + node recycling
-- [ ] **Sensitive app blacklist** — bankacılık/şifre uygulamaları için kara liste
+- [x] Autonomy Level picker UI (Settings)
+- [x] NavigateTool — label iyileştirildi, koordinatsız (sistem aksiyonu)
+- [x] Accessibility performans fix — background thread + 150ms debounce + node recycling
 
-## Phase 4: Henüz Başlanmadı
+**Sonraya bırakıldı (Phase 5 polish):**
+- [ ] Accessibility service aktivasyon rehberi — kullanıcıya adım adım açıklama ekranı
+- [ ] Sensitive app blacklist — bankacılık/şifre uygulamaları için kara liste
 
-- [ ] Termux entegrasyonu (dosya işlemleri: move, copy, delete, read, write, list, search, rename)
+---
+
+## Phase 4: Devam Ediyor 🔄
+
+### 4a. Embedded Shell / Power Mode — ANA HEDEF
+
+**2 kullanım amacı (Muhofy tarafından tanımlandı):**
+1. **Tool Fallback** — Gemini'nin mevcut tool'u olmadığında shell ile halleder (AI raw command yazar)
+2. **Doğrudan Shell** — Python server açma, script çalıştırma, genel terminal kullanımı
+
+- [ ] Termux bootstrap indirme sistemi (ABI-aware: arm64-v8a / armeabi-v7a / x86_64)
+- [ ] proot kurulum + storage bind-mount (`/storage:/storage`)
+- [ ] `EmbeddedShell` — persistent session, stdin/stdout/stderr stream
+- [ ] `ShellTool` — JarvisTool interface implementasyonu (AI shell fallback için)
+- [ ] Terminal UI ekranı (Settings → Power Mode → Terminal)
+  - Scrollable output
+  - Text input + send button
+  - Running process → stop button (SIGTERM/SIGKILL)
+- [ ] Power Mode toggle (Settings) + ilk aktivasyon uyarı dialogu
+- [ ] Shell güvenlik seviyesi seçici (UNRESTRICTED / CONFIRM_EACH / RESTRICTED)
+- [ ] stdout/stderr → Gemini özetleme (opsiyonel, AI-driven komutlarda)
+- [ ] Stop/interrupt entegrasyonu (⏹ butonu shell process'i de durdurur)
+
+**Doğrulanması gereken (implement başlamadan önce):**
+- Termux bootstrap release URL'leri ve ABI asset adları (Termux GitHub releases)
+- proot binary bootstrap içinde mi, yoksa custom NDK build mi?
+- `MANAGE_EXTERNAL_STORAGE` permission gereksinimi (SDK 36 hedefinde)
+
+### 4b. Diğer Phase 4 Özellikleri
+
 - [ ] Macro/workflow kaydetme & tekrarlama
 - [ ] Cross-app workflow
 - [ ] Floating bubble assistant
 - [ ] VoiceInteractionService (varsayılan asistan / power button trigger)
 - [ ] AssistStructure-based screen context
+
+---
 
 ## Phase 5: Henüz Başlanmadı
 
@@ -48,13 +81,16 @@
 - [ ] Proactive suggestions / habit learning
 - [ ] Smart notification filtering
 - [ ] Light theme
+- [ ] Accessibility service aktivasyon rehberi (Phase 3'ten taşındı)
+- [ ] Sensitive app blacklist (Phase 3'ten taşındı)
+
+---
 
 ## Bilinen Buglar & Problemler
 
 ### 1. Groq LLM tool calling — ÇÖZÜLDÜ (commit 980af53)
-- Sorun: Groq Llama 3.3 70B native function calling'i malformed XML üretiyordu (`<function-name...` ile `=` yerine `-`)
-- Çözüm: Native `tools` parametresi kaldırıldı, JSON-based tool calling'e geçildi (LocalLlmRepository ile aynı yaklaşım)
-- Tool description'lar system prompt'a ekleniyor, model `{"tool": "name", "args": {}}` formatında yanıt veriyor
+- Sorun: Groq Llama 3.3 70B native function calling'i malformed XML üretiyordu
+- Çözüm: Native `tools` parametresi kaldırıldı, JSON-based tool calling'e geçildi
 
 ### 2. Local model generation çok yavaş (çözüm beklemede)
 - Llama-3.2-1B-Instruct-Q4_K_M.gguf: prompt >6000 chars → generation >30s
@@ -62,16 +98,17 @@
 - Test edilmedi — cihazda denenmeli
 
 ### 3. Weather tool hata döndürüyor
-- `WEATHER_API_KEY` environment variable set olmasına rağmen `get_weather` error dönüyor
+- `WEATHER_API_KEY` set olmasına rağmen `get_weather` error dönüyor
 - Weatherapi endpoint/kod kontrol edilmeli
 
 ### 4. Microphone permission bug
-- İlk izin istendiğinde bazen beklemede kalıyor veya hata dönüyor
+- İlk izin istendiğinde bazen beklemede kalıyor
 - Onboarding Screen 2'de tekrar test edilmeli
 
-## UX İyileştirmeleri
+---
 
-- [ ] Accessibility service aktivasyonu için adım adım rehber ekranı
+## UX İyileştirmeleri (Biriktirilen)
+
 - [ ] Autonomy Level değiştirirken uyarı dialog'u (özellikle FULL_AUTO)
 - [ ] Screen action preview sırasında geri sayım sesi/titreşim
 - [ ] İlk tool kullanımında permission dialog'u (PermissionRequiredException)
@@ -82,24 +119,11 @@
 
 ## Local TTS (XTTS) Planı
 
-**Durum:** Şu anda Kokoro TTS (HuggingFace Inference API) kullanılıyor.
-
-**XTTS-v2 için gerekenler:**
-- Model boyutu: ~1.2GB (XTTS-v2) — cihazda yer açılmalı
-- HF Inference API: XTTS-v2 destekleniyor (`https://api-inference.huggingface.co/models/coqui/XTTS-v2`)
-  - API ile kullanım: Kokoro ile aynı endpoint pattern, sadece model değişir
-- On-device: şu an için mümkün değil (llama.cpp ses modelleri henüz stabil değil, mobil için optimize model yok)
-- Alternatif: **OuteTTS** (0.5B parametre) — daha küçük, mobil için daha uygun olabilir
+**Durum:** Şu anda Edge TTS kullanılıyor (Kokoro dropped — Turkish desteği yok).
 
 **Plan:**
-1. **Kısa vade (Phase 1-2):** Kokoro TTS devam ediyor
-2. **Orta vade (Phase 3-4 bitince):** HF Inference API üzerinden XTTS-v2 entegrasyonu (ses klonlama için)
-   - `MultiSpeakerTtsRepository` veya `TtsProvider` arayüzü
-   - Provider seçimi: Kokoro veya XTTS
-   - Voice cloning: kullanıcı sesini kaydedip XTTS'e gönderme
+1. **Kısa vade:** Edge TTS devam ediyor
+2. **Orta vade (Phase 3-4 bitince):** HF Inference API üzerinden XTTS-v2 entegrasyonu
 3. **Uzun vade (Phase 5 sonrası):** On-device TTS araştırması
-   - executorch + XTTS quantized
-   - OuteTTS mobil port
-   - llama.cpp ses modeli desteği stabil olunca
 
-**Kesin zaman:** XTTS entegrasyonu Phase 3-4 bittiğinde başlayabilir. Şu anki hedef: Eylül 2026.
+**Hedef:** XTTS entegrasyonu Eylül 2026.

@@ -168,6 +168,45 @@ object Constants {
     const val DATABASE_NAME    = "iris_database"
     const val DATABASE_VERSION = 2
 
+    // --- Phase 4 — Power Mode / Embedded Shell ---
+    // Termux bootstrap is sourced from termux/termux-packages GitHub Releases.
+    // Asset naming convention (verified 2025-12):
+    //   bootstrap-aarch64.zip  → arm64-v8a
+    //   bootstrap-arm.zip      → armeabi-v7a
+    //   bootstrap-x86_64.zip   → x86_64
+    //   bootstrap-i686.zip     → x86
+    //
+    // We fetch the latest release tag dynamically via the GitHub Releases API
+    // so the URL never needs to be hardcoded or updated manually.
+    const val BOOTSTRAP_GITHUB_API = "https://api.github.com/repos/termux/termux-packages/releases"
+
+    // Subdirectory inside filesDir where the Termux environment lives.
+    //   filesDir/termux/usr/   = TERMUX_PREFIX
+    //   filesDir/termux/home/  = TERMUX_HOME
+    const val TERMUX_DIR_NAME    = "termux"
+    const val TERMUX_PREFIX_NAME = "usr"
+    const val TERMUX_HOME_NAME   = "home"
+
+    // Subdirectory inside filesDir used for temporary bootstrap download files.
+    const val BOOTSTRAP_DIR_NAME = "bootstrap"
+
+    // Shell security levels (stored as string in DataStore)
+    const val SHELL_SECURITY_UNRESTRICTED = "UNRESTRICTED"
+    const val SHELL_SECURITY_CONFIRM_EACH = "CONFIRM_EACH"
+    const val SHELL_SECURITY_RESTRICTED   = "RESTRICTED"
+
+    // Default shell security level — UNRESTRICTED per Muhofy's explicit decision.
+    // One-time warning dialog is shown on first Power Mode activation.
+    const val SHELL_SECURITY_DEFAULT = SHELL_SECURITY_UNRESTRICTED
+
+    // Timeout for a single shell command when running in AI tool-fallback mode.
+    // User-driven terminal commands have no timeout (session is persistent).
+    const val SHELL_TOOL_TIMEOUT_MS = 30000L
+
+    // Max bytes of stdout/stderr captured per AI shell tool call.
+    // Prevents unbounded output from flooding the LLM context.
+    const val SHELL_TOOL_OUTPUT_MAX_BYTES = 8 * 1024 // 8 KB
+
     // --- DataStore ---
     const val DATASTORE_NAME = "iris_preferences"
 
