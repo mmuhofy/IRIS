@@ -221,7 +221,7 @@ fun IrisNavGraph(
     val currentRoute = navBackStack?.destination?.route
 
     val showDrawer       = currentRoute?.startsWith("onboarding") == false
-    val drawerGestures   = currentRoute?.startsWith("chat") != true
+    val drawerGestures   = currentRoute != NavRoute.Home.route && currentRoute?.startsWith("chat") != true
 
     Box(
         modifier = Modifier
