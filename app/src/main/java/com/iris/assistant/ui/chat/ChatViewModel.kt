@@ -59,15 +59,12 @@ class ChatViewModel @Inject constructor(
         if (conversationId == rawId && rawId != 0L) return // already loaded
 
         viewModelScope.launch {
-            // 0 = "new conversation" - create one on the fly
-            val id = if (rawId == 0L) {
-                conversationRepo.createConversation()
-            } else {
-                rawId
-            }
-            conversationId = id
-            _uiState.update { it.copy(conversationId = id) }
-            observeMessages(id)
+            conversationId = rawId
+            _uiState.update { it.copy(conversationId = rawId) }
+            // Only observe if this is an existing conversation (non-zero id).
+            // Zero means "new conversation" — the DB record will be created
+            // on the first actual message sent (see sendToLlm / startRecording).
+            if (rawId != 0L) observeMessages(rawId)
         }
     }
 
@@ -150,12 +147,17 @@ class ChatViewModel @Inject constructor(
     // ---------------------------------------------------------------------------
 
     private fun sendToLlm(text: String) {
-        val convId = conversationId
-        if (convId == 0L) return
-
         sendJob?.cancel()
         sendJob = viewModelScope.launch {
-            // 1. Persist user message
+            // 1. Create conversation if this is the first message
+            if (conversationId == 0L) {
+                conversationId = conversationRepo.createConversation()
+                _uiState.update { it.copy(conversationId = conversationId) }
+                observeMessages(conversationId)
+            }
+            val convId = conversationId
+
+            // 2. Persist user message
             val userMsg = ChatMessage(
                 conversationId = convId,
                 role           = ChatMessage.Role.USER,
