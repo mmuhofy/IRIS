@@ -111,6 +111,11 @@ fun popExitAnim(): ExitTransition = slideOutHorizontally(
     animationSpec = tween(durationMillis = 340)
 ) + fadeOut(animationSpec = tween(durationMillis = 340))
 
+private fun mainEnter(): EnterTransition = enterAnim()
+private fun mainExit(): ExitTransition = exitAnim()
+private fun mainPopEnter(): EnterTransition = popEnterAnim()
+private fun mainPopExit(): ExitTransition = popExitAnim()
+
 @HiltViewModel
 class DrawerViewModel @Inject constructor(
     private val repository: ConversationRepository
@@ -148,7 +153,6 @@ fun IrisNavGraph(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
     ) {
         ModalNavigationDrawer(
             drawerState = drawerState,
@@ -217,17 +221,83 @@ private fun NavContent(
         composable(NavRoute.OnboardingAssistant.route) { OnboardingAssistantScreen(navController) }
         composable(NavRoute.OnboardingBattery.route) { OnboardingBatteryScreen(navController) }
 
-        composable(NavRoute.Home.route) { HomeScreen(navController, drawerState) }
-        composable(NavRoute.Settings.route) { SettingsScreen(navController) }
-        composable(NavRoute.SettingsModel.route) { ModelSettingsScreen(navController) }
-        composable(NavRoute.SettingsAppearance.route) { AppearanceSettingsScreen(navController) }
-        composable(NavRoute.SettingsBackground.route) { BackgroundSettingsScreen(navController) }
-        composable(NavRoute.SettingsAutonomy.route) { AutonomySettingsScreen(navController) }
-        composable(NavRoute.SettingsSystem.route) { SystemSettingsScreen(navController) }
-        composable(NavRoute.SettingsData.route) { DataSettingsScreen(navController) }
-        composable(NavRoute.LocalModels.route) { LocalModelScreen(navController) }
-        composable(NavRoute.PermissionManager.route) { PermissionScreen(navController) }
-        composable(NavRoute.VoiceSettings.route) { VoiceSettingsScreen(navController) }
+        composable(
+            route              = NavRoute.Home.route,
+            enterTransition    = { mainEnter() },
+            exitTransition     = { mainExit() },
+            popEnterTransition = { mainPopEnter() },
+            popExitTransition  = { mainPopExit() },
+        ) { HomeScreen(navController, drawerState) }
+        composable(
+            route              = NavRoute.Settings.route,
+            enterTransition    = { mainEnter() },
+            exitTransition     = { mainExit() },
+            popEnterTransition = { mainPopEnter() },
+            popExitTransition  = { mainPopExit() },
+        ) { SettingsScreen(navController) }
+        composable(
+            route              = NavRoute.SettingsModel.route,
+            enterTransition    = { mainEnter() },
+            exitTransition     = { mainExit() },
+            popEnterTransition = { mainPopEnter() },
+            popExitTransition  = { mainPopExit() },
+        ) { ModelSettingsScreen(navController) }
+        composable(
+            route              = NavRoute.SettingsAppearance.route,
+            enterTransition    = { mainEnter() },
+            exitTransition     = { mainExit() },
+            popEnterTransition = { mainPopEnter() },
+            popExitTransition  = { mainPopExit() },
+        ) { AppearanceSettingsScreen(navController) }
+        composable(
+            route              = NavRoute.SettingsBackground.route,
+            enterTransition    = { mainEnter() },
+            exitTransition     = { mainExit() },
+            popEnterTransition = { mainPopEnter() },
+            popExitTransition  = { mainPopExit() },
+        ) { BackgroundSettingsScreen(navController) }
+        composable(
+            route              = NavRoute.SettingsAutonomy.route,
+            enterTransition    = { mainEnter() },
+            exitTransition     = { mainExit() },
+            popEnterTransition = { mainPopEnter() },
+            popExitTransition  = { mainPopExit() },
+        ) { AutonomySettingsScreen(navController) }
+        composable(
+            route              = NavRoute.SettingsSystem.route,
+            enterTransition    = { mainEnter() },
+            exitTransition     = { mainExit() },
+            popEnterTransition = { mainPopEnter() },
+            popExitTransition  = { mainPopExit() },
+        ) { SystemSettingsScreen(navController) }
+        composable(
+            route              = NavRoute.SettingsData.route,
+            enterTransition    = { mainEnter() },
+            exitTransition     = { mainExit() },
+            popEnterTransition = { mainPopEnter() },
+            popExitTransition  = { mainPopExit() },
+        ) { DataSettingsScreen(navController) }
+        composable(
+            route              = NavRoute.LocalModels.route,
+            enterTransition    = { mainEnter() },
+            exitTransition     = { mainExit() },
+            popEnterTransition = { mainPopEnter() },
+            popExitTransition  = { mainPopExit() },
+        ) { LocalModelScreen(navController) }
+        composable(
+            route              = NavRoute.PermissionManager.route,
+            enterTransition    = { mainEnter() },
+            exitTransition     = { mainExit() },
+            popEnterTransition = { mainPopEnter() },
+            popExitTransition  = { mainPopExit() },
+        ) { PermissionScreen(navController) }
+        composable(
+            route              = NavRoute.VoiceSettings.route,
+            enterTransition    = { mainEnter() },
+            exitTransition     = { mainExit() },
+            popEnterTransition = { mainPopEnter() },
+            popExitTransition  = { mainPopExit() },
+        ) { VoiceSettingsScreen(navController) }
 
         composable(
             route = NavRoute.Chat.route,
