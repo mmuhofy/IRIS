@@ -44,6 +44,7 @@ import com.iris.assistant.ui.theme.IrisTheme
 import com.phosphor.icons.PhIcons
 import com.phosphor.icons.regular.ArrowLeft
 import com.phosphor.icons.regular.CheckCircle
+import com.phosphor.icons.regular.Palette
 
 // ---------------------------------------------------------------------------
 // Per-theme display metadata
