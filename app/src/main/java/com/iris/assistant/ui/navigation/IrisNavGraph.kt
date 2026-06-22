@@ -259,8 +259,8 @@ private fun NavContent(
         }
         composable(NavRoute.OnboardingBattery.route) {
             OnboardingBatteryScreen(
-                onFinish = {
-                    onboardingViewModel.completeOnboarding()
+                    onFinish = {
+                        onboardingViewModel.onOnboardingCompleted()
                     navController.navigate(NavRoute.Home.route) {
                         popUpTo(0) { inclusive = true }
                     }
@@ -277,9 +277,10 @@ private fun NavContent(
             popEnterTransition = { mainPopEnter() },
             popExitTransition  = { mainPopExit() },
         ) {
+            val scope = rememberCoroutineScope()
             HomeScreen(
                 onOpenSettings = { navController.navigate(NavRoute.Settings.route) },
-                onOpenDrawer   = { drawerState.open() },
+                onOpenDrawer   = { scope.launch { drawerState.open() } },
             )
         }
 
@@ -548,7 +549,8 @@ private fun DrawerConversationItem(
         color = Color.Transparent,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(end = 16.dp, vertical = 2.dp),
+            .padding(end = 16.dp)
+            .padding(vertical = 2.dp),
     ) {
         Row(
             modifier = Modifier
