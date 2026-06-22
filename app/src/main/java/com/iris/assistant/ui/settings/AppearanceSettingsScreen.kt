@@ -44,7 +44,6 @@ import com.iris.assistant.ui.theme.IrisTheme
 import com.phosphor.icons.PhIcons
 import com.phosphor.icons.regular.ArrowLeft
 import com.phosphor.icons.regular.CheckCircle
-import com.phosphor.icons.regular.Palette
 
 // ---------------------------------------------------------------------------
 // Per-theme display metadata
@@ -103,12 +102,12 @@ fun AppearanceSettingsScreen(
         },
     ) { innerPadding ->
         LazyColumn(
-            modifier        = Modifier
+            modifier            = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
-            contentPadding  = PaddingValues(bottom = 24.dp),
+            contentPadding      = PaddingValues(bottom = 24.dp),
         ) {
             item {
                 Spacer(Modifier.height(4.dp))
@@ -195,7 +194,7 @@ private fun ThemeCard(
         if (selected) {
             Spacer(Modifier.width(8.dp))
             Icon(
-                imageVector        = PhIcons.Fill.CheckCircle,
+                imageVector        = PhIcons.Regular.CheckCircle,
                 contentDescription = null,
                 tint               = colors.primary,
                 modifier           = Modifier.size(22.dp),
