@@ -5,8 +5,6 @@ import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.background
@@ -24,7 +22,6 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.DrawerDefaults
 import androidx.compose.material3.DrawerState
@@ -70,7 +67,6 @@ import com.iris.assistant.ui.onboarding.OnboardingAssistantScreen
 import com.iris.assistant.ui.onboarding.OnboardingBatteryScreen
 import com.iris.assistant.ui.onboarding.OnboardingDemoScreen
 import com.iris.assistant.ui.onboarding.OnboardingMicScreen
-import com.iris.assistant.ui.onboarding.OnboardingViewModel
 import com.iris.assistant.ui.onboarding.OnboardingWakeWordScreen
 import com.iris.assistant.ui.onboarding.OnboardingWelcomeScreen
 import com.iris.assistant.ui.settings.AppearanceSettingsScreen
@@ -83,9 +79,6 @@ import com.iris.assistant.ui.settings.PermissionScreen
 import com.iris.assistant.ui.settings.SettingsScreen
 import com.iris.assistant.ui.settings.SystemSettingsScreen
 import com.iris.assistant.ui.settings.VoiceSettingsScreen
-import com.iris.assistant.ui.theme.ColorTextSecondary
-import com.iris.assistant.ui.theme.IrisTheme
-import com.iris.assistant.util.Constants
 import com.phosphor.icons.PhIcons
 import com.phosphor.icons.regular.ChatCircle
 import com.phosphor.icons.regular.House
@@ -122,7 +115,7 @@ fun popExitAnim(): ExitTransition = slideOutHorizontally(
 class DrawerViewModel @Inject constructor(
     private val repository: ConversationRepository
 ) : ViewModel() {
-    val conversations: StateFlow<List<Conversation>> = repository.getAllConversations()
+    val conversations: StateFlow<List<Conversation>> = repository.getConversations()
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
@@ -141,7 +134,6 @@ fun IrisNavGraph(
     navController: NavHostController = rememberNavController(),
     startDestination: String = NavRoute.OnboardingWelcome.route,
 ) {
-    val onboardingViewModel: OnboardingViewModel = hiltViewModel()
     val drawerViewModel: DrawerViewModel = hiltViewModel()
     val conversations by drawerViewModel.conversations.collectAsStateWithLifecycle()
 
@@ -197,7 +189,6 @@ fun IrisNavGraph(
             NavContent(
                 navController = navController,
                 startDestination = startDestination,
-                onboardingViewModel = onboardingViewModel,
                 drawerState = drawerState,
             )
         }
@@ -208,7 +199,6 @@ fun IrisNavGraph(
 private fun NavContent(
     navController: NavHostController,
     startDestination: String,
-    onboardingViewModel: OnboardingViewModel,
     drawerState: DrawerState,
 ) {
     NavHost(
@@ -220,12 +210,12 @@ private fun NavContent(
         popExitTransition = { popExitAnim() },
         modifier = Modifier.fillMaxSize()
     ) {
-        composable(NavRoute.OnboardingWelcome.route) { OnboardingWelcomeScreen(navController, onboardingViewModel) }
-        composable(NavRoute.OnboardingMic.route) { OnboardingMicScreen(navController, onboardingViewModel) }
-        composable(NavRoute.OnboardingWakeWord.route) { OnboardingWakeWordScreen(navController, onboardingViewModel) }
-        composable(NavRoute.OnboardingDemo.route) { OnboardingDemoScreen(navController, onboardingViewModel) }
-        composable(NavRoute.OnboardingAssistant.route) { OnboardingAssistantScreen(navController, onboardingViewModel) }
-        composable(NavRoute.OnboardingBattery.route) { OnboardingBatteryScreen(navController, onboardingViewModel) }
+        composable(NavRoute.OnboardingWelcome.route) { OnboardingWelcomeScreen(navController) }
+        composable(NavRoute.OnboardingMic.route) { OnboardingMicScreen(navController) }
+        composable(NavRoute.OnboardingWakeWord.route) { OnboardingWakeWordScreen(navController) }
+        composable(NavRoute.OnboardingDemo.route) { OnboardingDemoScreen(navController) }
+        composable(NavRoute.OnboardingAssistant.route) { OnboardingAssistantScreen(navController) }
+        composable(NavRoute.OnboardingBattery.route) { OnboardingBatteryScreen(navController) }
 
         composable(NavRoute.Home.route) { HomeScreen(navController, drawerState) }
         composable(NavRoute.Settings.route) { SettingsScreen(navController) }
