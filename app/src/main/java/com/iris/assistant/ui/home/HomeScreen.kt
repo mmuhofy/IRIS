@@ -275,7 +275,7 @@ fun HomeScreen(
 @Composable
 private fun HomeTopBar(
     modelName: String,
-    llmProvider: Any,          // opaque — passed directly to Constants.modelsForProvider
+    llmProvider: String,
     dropdownExpanded: Boolean,
     onDropdownExpandChange: (Boolean) -> Unit,
     onModelChange: (String) -> Unit,
@@ -305,7 +305,6 @@ private fun HomeTopBar(
                 onClick = { onDropdownExpandChange(true) }
             )
 
-            @Suppress("UNCHECKED_CAST")
             val models = Constants.modelsForProvider(llmProvider)
             DropdownMenu(
                 expanded = dropdownExpanded,
