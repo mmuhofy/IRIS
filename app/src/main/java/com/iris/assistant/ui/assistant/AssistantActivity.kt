@@ -842,9 +842,14 @@ private fun PillActionButton(
         modifier = Modifier
             .size(40.dp)
             .clip(CircleShape)
-            .background(
-                if (isDisabled) Color(0xFF27272A)
-                else Brush.linearGradient(listOf(primary, IrisTheme.colors.gradientEnd))
+            .then(
+                if (isDisabled)
+                    Modifier.background(Color(0xFF27272A), CircleShape)
+                else
+                    Modifier.background(
+                        Brush.linearGradient(listOf(primary, IrisTheme.colors.gradientEnd)),
+                        CircleShape
+                    )
             )
             .clickable(
                 enabled           = !isDisabled,
