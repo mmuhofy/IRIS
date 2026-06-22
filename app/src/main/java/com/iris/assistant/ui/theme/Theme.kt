@@ -1,11 +1,14 @@
 package com.iris.assistant.ui.theme
 
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 
 // ---------------------------------------------------------------------------
@@ -90,8 +93,14 @@ fun IrisTheme(
         MaterialTheme(
             colorScheme = buildDarkColorScheme(irisColors),
             typography  = fontFamily.toTypography(),
-            content     = content
-        )
+        ) {
+            Surface(
+                modifier = Modifier.fillMaxSize(),
+                color    = MaterialTheme.colorScheme.background,
+            ) {
+                content()
+            }
+        }
     }
 }
 

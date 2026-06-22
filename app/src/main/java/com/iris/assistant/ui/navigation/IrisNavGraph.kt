@@ -206,7 +206,6 @@ fun IrisNavGraph(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
     ) {
         if (showDrawer) {
             ModalNavigationDrawer(
