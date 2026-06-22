@@ -141,7 +141,7 @@ class EmbeddedShell @Inject constructor(
             }
         }, "iris-shell-stderr").also { it.isDaemon = true; it.start() }
 
-        Log.d(TAG, "Shell session started (pid ${proc.pid()})")
+        Log.d(TAG, "Shell session started")
     }
 
     /**

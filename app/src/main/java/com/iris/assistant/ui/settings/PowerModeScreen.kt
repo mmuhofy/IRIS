@@ -2,8 +2,6 @@ package com.iris.assistant.ui.settings
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -430,11 +428,7 @@ private fun TerminalCard(
                     }
                 }
                 // "Shell not running" overlay
-                AnimatedVisibility(
-                    visible = !shellRunning && lines.isEmpty(),
-                    enter   = fadeIn(),
-                    exit    = fadeOut(),
-                ) {
+                if (!shellRunning && lines.isEmpty()) {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Text(
                             text  = "Press Start to open a shell session",

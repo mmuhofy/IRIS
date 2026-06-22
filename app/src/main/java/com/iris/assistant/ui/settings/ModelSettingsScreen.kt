@@ -23,6 +23,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -35,6 +36,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.TextUnitType
@@ -67,8 +69,8 @@ fun ModelSettingsScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = "Model",
-                        style = MaterialTheme.typography.titleLarge,
+                        text       = "Model",
+                        style      = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.SemiBold,
                     )
                 },
@@ -81,19 +83,17 @@ fun ModelSettingsScreen(
                         )
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent,
-                ),
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
             )
         },
     ) { innerPadding ->
         LazyColumn(
-            modifier = Modifier
+            modifier            = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp),
-            contentPadding = PaddingValues(bottom = 24.dp),
+            contentPadding      = PaddingValues(bottom = 24.dp),
         ) {
             item {
                 Spacer(Modifier.height(4.dp))
@@ -116,13 +116,14 @@ fun ModelSettingsScreen(
             } else {
                 item {
                     SectionLabel("Yerel Model")
-                    SettingsRow(
-                        icon = PhIcons.Regular.Download,
-                        label = "Yerel Model Seç",
+                    // Uses the file-local variant to avoid ambiguity with SettingsScreen's SettingsRow
+                    LocalSettingsRow(
+                        icon        = PhIcons.Regular.Download,
+                        label       = "Yerel Model Seç",
                         description = uiState.localModelName.ifBlank { "Henüz seçilmedi" },
                     ) {
                         Text(
-                            text = uiState.localModelName.ifBlank { "Seçilmedi" },
+                            text  = uiState.localModelName.ifBlank { "Seçilmedi" },
                             style = MaterialTheme.typography.bodyMedium,
                             color = IrisTheme.colors.primary,
                         )
@@ -138,9 +139,9 @@ fun ModelSettingsScreen(
                         contentAlignment = Alignment.Center,
                     ) {
                         Text(
-                            text = "Yerel Modelleri Yönet",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = IrisTheme.colors.primary,
+                            text       = "Yerel Modelleri Yönet",
+                            style      = MaterialTheme.typography.bodyMedium,
+                            color      = IrisTheme.colors.primary,
                             fontWeight = FontWeight.Medium,
                         )
                     }
@@ -153,11 +154,11 @@ fun ModelSettingsScreen(
 @Composable
 private fun SectionLabel(text: String) {
     Text(
-        text = text.uppercase(),
-        style = MaterialTheme.typography.labelSmall,
-        color = IrisTheme.colors.primary,
+        text          = text.uppercase(),
+        style         = MaterialTheme.typography.labelSmall,
+        color         = IrisTheme.colors.primary,
         letterSpacing = TextUnit(value = 1.2f, type = TextUnitType.Sp),
-        modifier = Modifier.padding(start = 4.dp, bottom = 8.dp),
+        modifier      = Modifier.padding(start = 4.dp, bottom = 8.dp),
     )
 }
 
@@ -173,28 +174,28 @@ private fun ProviderSelector(
             .background(MaterialTheme.colorScheme.surface),
     ) {
         Row(
-            modifier = Modifier
+            modifier          = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(
-                modifier = Modifier
+                modifier         = Modifier
                     .size(34.dp)
                     .clip(CircleShape)
                     .background(IrisTheme.colors.primary.copy(alpha = 0.12f)),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
-                    imageVector = PhIcons.Regular.Cpu,
+                    imageVector        = PhIcons.Regular.Cpu,
                     contentDescription = null,
-                    tint = IrisTheme.colors.primary,
-                    modifier = Modifier.size(16.dp),
+                    tint               = IrisTheme.colors.primary,
+                    modifier           = Modifier.size(16.dp),
                 )
             }
             Spacer(Modifier.width(12.dp))
             Row(
-                modifier = Modifier.weight(1f),
+                modifier              = Modifier.weight(1f),
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 Constants.LLM_PROVIDERS.forEach { provider ->
@@ -211,10 +212,10 @@ private fun ProviderSelector(
                         contentAlignment = Alignment.Center,
                     ) {
                         Text(
-                            text = Constants.providerDisplayName(provider),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = if (selected) MaterialTheme.colorScheme.background
-                                    else ColorTextPrimary,
+                            text       = Constants.providerDisplayName(provider),
+                            style      = MaterialTheme.typography.labelSmall,
+                            color      = if (selected) MaterialTheme.colorScheme.background
+                                         else ColorTextPrimary,
                             fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
                         )
                     }
@@ -232,7 +233,7 @@ private fun ModelSelector(
     onChange: (String) -> Unit,
 ) {
     var expanded by remember { mutableStateOf(false) }
-    val models = Constants.modelsForProvider(provider)
+    val models        = Constants.modelsForProvider(provider)
     val selectedModel = models.find { it.apiName == current }
 
     Column(
@@ -243,7 +244,7 @@ private fun ModelSelector(
     ) {
         Box(modifier = Modifier.fillMaxWidth()) {
             Row(
-                modifier = Modifier
+                modifier          = Modifier
                     .fillMaxWidth()
                     .clickable { expanded = true }
                     .padding(horizontal = 16.dp, vertical = 16.dp),
@@ -252,74 +253,71 @@ private fun ModelSelector(
                 Spacer(Modifier.width(46.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "Model",
+                        text  = "Model",
                         style = MaterialTheme.typography.bodyMedium,
                         color = ColorTextSecondary,
                     )
                     Text(
-                        text = selectedModel?.displayName ?: current,
+                        text  = selectedModel?.displayName ?: current,
                         style = MaterialTheme.typography.bodyLarge,
                         color = ColorTextPrimary,
                     )
                 }
                 Icon(
-                    imageVector = PhIcons.Regular.CaretDown,
+                    imageVector        = PhIcons.Regular.CaretDown,
                     contentDescription = null,
-                    tint = ColorTextSecondary,
-                    modifier = Modifier.size(16.dp),
+                    tint               = ColorTextSecondary,
+                    modifier           = Modifier.size(16.dp),
                 )
             }
 
             DropdownMenu(
-                expanded = expanded,
+                expanded         = expanded,
                 onDismissRequest = { expanded = false },
-                shape = RoundedCornerShape(16.dp),
-                modifier = Modifier
+                shape            = RoundedCornerShape(16.dp),
+                modifier         = Modifier
                     .fillMaxWidth(0.85f)
                     .background(
-                        color = MaterialTheme.colorScheme.surface,
-                        shape = RoundedCornerShape(16.dp),
+                        color  = MaterialTheme.colorScheme.surface,
+                        shape  = RoundedCornerShape(16.dp),
                     ),
             ) {
                 Column(modifier = Modifier.padding(vertical = 4.dp)) {
                     models.forEachIndexed { index, model ->
                         val isSelected = model.apiName == current
-                        androidx.compose.material3.Surface(
-                            onClick = {
-                                onChange(model.apiName)
-                                expanded = false
-                            },
-                            shape = RoundedCornerShape(12.dp),
-                            color = Color.Transparent,
+                        Surface(
+                            onClick  = { onChange(model.apiName); expanded = false },
+                            shape    = RoundedCornerShape(12.dp),
+                            color    = Color.Transparent,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(horizontal = 6.dp, vertical = 2.dp),
                         ) {
                             Row(
-                                modifier = Modifier
+                                modifier          = Modifier
                                     .fillMaxWidth()
                                     .padding(horizontal = 12.dp, vertical = 14.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
-                                        text = model.displayName,
+                                        text  = model.displayName,
                                         style = MaterialTheme.typography.bodyLarge,
                                         color = if (isSelected) IrisTheme.colors.primary
                                                 else ColorTextPrimary,
                                     )
                                     Text(
-                                        text = model.apiName,
+                                        text  = model.apiName,
                                         style = MaterialTheme.typography.bodySmall,
                                         color = ColorTextSecondary,
                                     )
                                 }
                                 if (isSelected) {
                                     Icon(
-                                        imageVector = PhIcons.Regular.Check,
+                                        imageVector        = PhIcons.Regular.Check,
                                         contentDescription = null,
-                                        tint = IrisTheme.colors.primary,
-                                        modifier = Modifier.size(18.dp),
+                                        tint               = IrisTheme.colors.primary,
+                                        modifier           = Modifier.size(18.dp),
                                     )
                                 }
                             }
@@ -330,7 +328,9 @@ private fun ModelSelector(
                                     .fillMaxWidth()
                                     .padding(horizontal = 18.dp)
                                     .height(0.5.dp)
-                                    .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f)),
+                                    .background(
+                                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f)
+                                    ),
                             )
                         }
                     }
@@ -340,12 +340,16 @@ private fun ModelSelector(
     }
 }
 
+/**
+ * File-local row variant with a trailing content slot.
+ * Named [LocalSettingsRow] to avoid ambiguity with [SettingsRow] exported from SettingsScreen.kt.
+ */
 @Composable
-private fun SettingsRow(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    label: String,
-    description: String? = null,
-    content: @Composable () -> Unit,
+private fun LocalSettingsRow(
+    icon        : ImageVector,
+    label       : String,
+    description : String? = null,
+    content     : @Composable () -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -354,31 +358,35 @@ private fun SettingsRow(
             .background(MaterialTheme.colorScheme.surface),
     ) {
         Row(
-            modifier = Modifier
+            modifier          = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(
-                modifier = Modifier
+                modifier         = Modifier
                     .size(34.dp)
                     .clip(CircleShape)
                     .background(IrisTheme.colors.primary.copy(alpha = 0.12f)),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
-                    imageVector = icon,
+                    imageVector        = icon,
                     contentDescription = null,
-                    tint = IrisTheme.colors.primary,
-                    modifier = Modifier.size(16.dp),
+                    tint               = IrisTheme.colors.primary,
+                    modifier           = Modifier.size(16.dp),
                 )
             }
             Spacer(Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(text = label, style = MaterialTheme.typography.bodyLarge, color = ColorTextPrimary)
+                Text(
+                    text  = label,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = ColorTextPrimary,
+                )
                 if (description != null) {
                     Text(
-                        text = description,
+                        text  = description,
                         style = MaterialTheme.typography.bodySmall,
                         color = ColorTextSecondary,
                     )
