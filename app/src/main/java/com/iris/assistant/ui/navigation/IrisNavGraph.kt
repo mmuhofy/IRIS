@@ -26,6 +26,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.DrawerDefaults
 import androidx.compose.material3.DrawerState
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.HorizontalDivider
@@ -232,6 +233,7 @@ fun IrisNavGraph(
             ModalNavigationDrawer(
                 drawerState     = drawerState,
                 gesturesEnabled = drawerGestures,
+                scrimColor      = DrawerDefaults.scrimColor,
                 drawerContent = {
                     IrisDrawerSheet(
                         drawerState          = drawerState,
@@ -499,7 +501,7 @@ private fun IrisDrawerSheet(
     ModalDrawerSheet(
         drawerState = drawerState,
         drawerContainerColor = MaterialTheme.colorScheme.surface,
-        drawerShape = RoundedCornerShape(topEnd = 0.dp, bottomEnd = 0.dp),
+        drawerShape = RoundedCornerShape(topEnd = 16.dp, bottomEnd = 16.dp),
         modifier = Modifier
             .fillMaxHeight()
             .fillMaxWidth(0.82f),
