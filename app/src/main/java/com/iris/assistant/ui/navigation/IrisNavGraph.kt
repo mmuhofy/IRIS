@@ -37,8 +37,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -68,6 +70,12 @@ import com.iris.assistant.ui.onboarding.OnboardingBatteryScreen
 import com.iris.assistant.ui.onboarding.OnboardingDemoScreen
 import com.iris.assistant.ui.onboarding.OnboardingMicScreen
 import com.iris.assistant.ui.onboarding.OnboardingWakeWordScreen
+import com.iris.assistant.ui.onboarding.OnboardingAssistantScreen
+import com.iris.assistant.ui.onboarding.OnboardingBatteryScreen
+import com.iris.assistant.ui.onboarding.OnboardingDemoScreen
+import com.iris.assistant.ui.onboarding.OnboardingMicScreen
+import com.iris.assistant.ui.onboarding.OnboardingViewModel
+import com.iris.assistant.ui.onboarding.OnboardingWakeWordScreen
 import com.iris.assistant.ui.onboarding.OnboardingWelcomeScreen
 import com.iris.assistant.ui.settings.AppearanceSettingsScreen
 import com.iris.assistant.ui.settings.AutonomySettingsScreen
@@ -79,6 +87,7 @@ import com.iris.assistant.ui.settings.PermissionScreen
 import com.iris.assistant.ui.settings.SettingsScreen
 import com.iris.assistant.ui.settings.SystemSettingsScreen
 import com.iris.assistant.ui.settings.VoiceSettingsScreen
+import com.iris.assistant.util.Constants
 import com.phosphor.icons.PhIcons
 import com.phosphor.icons.regular.ChatCircle
 import com.phosphor.icons.regular.House
@@ -120,7 +129,7 @@ private fun mainPopExit(): ExitTransition = popExitAnim()
 class DrawerViewModel @Inject constructor(
     private val repository: ConversationRepository
 ) : ViewModel() {
-    val conversations: StateFlow<List<Conversation>> = repository.getConversations()
+    val conversations: StateFlow<List<Conversation>> = repository.observeConversations()
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
@@ -205,6 +214,9 @@ private fun NavContent(
     startDestination: String,
     drawerState: DrawerState,
 ) {
+    val onboardingViewModel: OnboardingViewModel = hiltViewModel()
+    var userName by remember { mutableStateOf(Constants.USER_NAME) }
+
     NavHost(
         navController = navController,
         startDestination = startDestination,
@@ -214,12 +226,49 @@ private fun NavContent(
         popExitTransition = { popExitAnim() },
         modifier = Modifier.fillMaxSize()
     ) {
-        composable(NavRoute.OnboardingWelcome.route) { OnboardingWelcomeScreen(navController) }
-        composable(NavRoute.OnboardingMic.route) { OnboardingMicScreen(navController) }
-        composable(NavRoute.OnboardingWakeWord.route) { OnboardingWakeWordScreen(navController) }
-        composable(NavRoute.OnboardingDemo.route) { OnboardingDemoScreen(navController) }
-        composable(NavRoute.OnboardingAssistant.route) { OnboardingAssistantScreen(navController) }
-        composable(NavRoute.OnboardingBattery.route) { OnboardingBatteryScreen(navController) }
+        composable(NavRoute.OnboardingWelcome.route) {
+            OnboardingWelcomeScreen(
+                userName         = userName,
+                onUserNameChange = { userName = it },
+                onNext           = { navController.navigate(NavRoute.OnboardingMic.route) },
+            )
+        }
+        composable(NavRoute.OnboardingMic.route) {
+            OnboardingMicScreen(
+                onNext = { navController.navigate(NavRoute.OnboardingWakeWord.route) },
+                onBack = { navController.popBackStack() },
+            )
+        }
+        composable(NavRoute.OnboardingWakeWord.route) {
+            OnboardingWakeWordScreen(
+                onNext = { navController.navigate(NavRoute.OnboardingDemo.route) },
+                onBack = { navController.popBackStack() },
+            )
+        }
+        composable(NavRoute.OnboardingDemo.route) {
+            OnboardingDemoScreen(
+                onNext = { navController.navigate(NavRoute.OnboardingAssistant.route) },
+                onBack = { navController.popBackStack() },
+            )
+        }
+        composable(NavRoute.OnboardingAssistant.route) {
+            OnboardingAssistantScreen(
+                onNext = { navController.navigate(NavRoute.OnboardingBattery.route) },
+                onBack = { navController.popBackStack() },
+            )
+        }
+        composable(NavRoute.OnboardingBattery.route) {
+            OnboardingBatteryScreen(
+                onFinish = {
+                    onboardingViewModel.completeOnboarding()
+                    navController.navigate(NavRoute.Home.route) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                },
+                onBack   = { navController.popBackStack() },
+                viewModel = onboardingViewModel,
+            )
+        }
 
         composable(
             route              = NavRoute.Home.route,
@@ -227,84 +276,124 @@ private fun NavContent(
             exitTransition     = { mainExit() },
             popEnterTransition = { mainPopEnter() },
             popExitTransition  = { mainPopExit() },
-        ) { HomeScreen(navController, drawerState) }
+        ) {
+            HomeScreen(
+                onOpenSettings = { navController.navigate(NavRoute.Settings.route) },
+                onOpenDrawer   = { drawerState.open() },
+            )
+        }
+
         composable(
             route              = NavRoute.Settings.route,
             enterTransition    = { mainEnter() },
             exitTransition     = { mainExit() },
             popEnterTransition = { mainPopEnter() },
             popExitTransition  = { mainPopExit() },
-        ) { SettingsScreen(navController) }
+        ) {
+            SettingsScreen(
+                onBack            = { navController.popBackStack() },
+                onOpenModel       = { navController.navigate(NavRoute.SettingsModel.route) },
+                onOpenAppearance  = { navController.navigate(NavRoute.SettingsAppearance.route) },
+                onOpenBackground  = { navController.navigate(NavRoute.SettingsBackground.route) },
+                onOpenAutonomy    = { navController.navigate(NavRoute.SettingsAutonomy.route) },
+                onOpenSystem      = { navController.navigate(NavRoute.SettingsSystem.route) },
+                onOpenVoice       = { navController.navigate(NavRoute.VoiceSettings.route) },
+                onOpenData        = { navController.navigate(NavRoute.SettingsData.route) },
+            )
+        }
+
         composable(
             route              = NavRoute.SettingsModel.route,
             enterTransition    = { mainEnter() },
             exitTransition     = { mainExit() },
             popEnterTransition = { mainPopEnter() },
             popExitTransition  = { mainPopExit() },
-        ) { ModelSettingsScreen(navController) }
+        ) {
+            ModelSettingsScreen(
+                onBack            = { navController.popBackStack() },
+                onOpenLocalModels = { navController.navigate(NavRoute.LocalModels.route) },
+            )
+        }
+
         composable(
             route              = NavRoute.SettingsAppearance.route,
             enterTransition    = { mainEnter() },
             exitTransition     = { mainExit() },
             popEnterTransition = { mainPopEnter() },
             popExitTransition  = { mainPopExit() },
-        ) { AppearanceSettingsScreen(navController) }
+        ) { AppearanceSettingsScreen(onBack = { navController.popBackStack() }) }
+
         composable(
             route              = NavRoute.SettingsBackground.route,
             enterTransition    = { mainEnter() },
             exitTransition     = { mainExit() },
             popEnterTransition = { mainPopEnter() },
             popExitTransition  = { mainPopExit() },
-        ) { BackgroundSettingsScreen(navController) }
+        ) { BackgroundSettingsScreen(onBack = { navController.popBackStack() }) }
+
         composable(
             route              = NavRoute.SettingsAutonomy.route,
             enterTransition    = { mainEnter() },
             exitTransition     = { mainExit() },
             popEnterTransition = { mainPopEnter() },
             popExitTransition  = { mainPopExit() },
-        ) { AutonomySettingsScreen(navController) }
+        ) { AutonomySettingsScreen(onBack = { navController.popBackStack() }) }
+
         composable(
             route              = NavRoute.SettingsSystem.route,
             enterTransition    = { mainEnter() },
             exitTransition     = { mainExit() },
             popEnterTransition = { mainPopEnter() },
             popExitTransition  = { mainPopExit() },
-        ) { SystemSettingsScreen(navController) }
+        ) {
+            SystemSettingsScreen(
+                onBack                  = { navController.popBackStack() },
+                onOpenVoiceSettings     = { navController.navigate(NavRoute.VoiceSettings.route) },
+                onOpenPermissionManager = { navController.navigate(NavRoute.PermissionManager.route) },
+            )
+        }
+
         composable(
             route              = NavRoute.SettingsData.route,
             enterTransition    = { mainEnter() },
             exitTransition     = { mainExit() },
             popEnterTransition = { mainPopEnter() },
             popExitTransition  = { mainPopExit() },
-        ) { DataSettingsScreen(navController) }
+        ) { DataSettingsScreen(onBack = { navController.popBackStack() }) }
+
         composable(
             route              = NavRoute.LocalModels.route,
             enterTransition    = { mainEnter() },
             exitTransition     = { mainExit() },
             popEnterTransition = { mainPopEnter() },
             popExitTransition  = { mainPopExit() },
-        ) { LocalModelScreen(navController) }
+        ) { LocalModelScreen(onBack = { navController.popBackStack() }) }
+
         composable(
             route              = NavRoute.PermissionManager.route,
             enterTransition    = { mainEnter() },
             exitTransition     = { mainExit() },
             popEnterTransition = { mainPopEnter() },
             popExitTransition  = { mainPopExit() },
-        ) { PermissionScreen(navController) }
+        ) { PermissionScreen(onBack = { navController.popBackStack() }) }
+
         composable(
             route              = NavRoute.VoiceSettings.route,
             enterTransition    = { mainEnter() },
             exitTransition     = { mainExit() },
             popEnterTransition = { mainPopEnter() },
             popExitTransition  = { mainPopExit() },
-        ) { VoiceSettingsScreen(navController) }
+        ) { VoiceSettingsScreen(onBack = { navController.popBackStack() }) }
 
         composable(
             route = NavRoute.Chat.route,
             arguments = listOf(navArgument(NavRoute.Chat.ARG) { type = NavType.LongType })
         ) { backStackEntry ->
             val conversationId = backStackEntry.arguments?.getLong(NavRoute.Chat.ARG) ?: 0L
-            ChatScreen(navController, drawerState, conversationId)
+            ChatScreen(
+                conversationId = conversationId,
+                onBack         = { navController.popBackStack() },
+            )
         }
     }
 }
