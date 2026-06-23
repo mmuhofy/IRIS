@@ -1,10 +1,10 @@
 package com.iris.assistant.ui.navigation
 
+import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
+import androidx.navigation.NavBackStackEntry
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -21,6 +21,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.DrawerDefaults
 import androidx.compose.material3.DrawerState
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.HorizontalDivider
@@ -28,6 +29,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
+import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberDrawerState
@@ -49,6 +51,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.iris.assistant.domain.model.Conversation
@@ -92,16 +95,56 @@ import javax.inject.Inject
 // ---------------------------------------------------------------------------
 
 object NavTransitions {
-    val popEnterTransition = fadeIn(tween(250)) + slideInHorizontally { -it / 2 }
-    val popExitTransition = fadeOut(tween(200)) + slideOutHorizontally { it / 2 }
-    val enterTransition = fadeIn(tween(250)) + slideInHorizontally { it / 2 }
-    val exitTransition = fadeOut(tween(200)) + slideOutHorizontally { -it / 2 }
+    val enterTransition: AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition = {
+        slideIntoContainer(
+            towards = AnimatedContentTransitionScope.SlideDirection.Start,
+            animationSpec = tween(700)
+        )
+    }
+    val exitTransition: AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition = {
+        slideOutOfContainer(
+            towards = AnimatedContentTransitionScope.SlideDirection.Start,
+            animationSpec = tween(700)
+        )
+    }
+    val popEnterTransition: AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition = {
+        slideIntoContainer(
+            towards = AnimatedContentTransitionScope.SlideDirection.End,
+            animationSpec = tween(700)
+        )
+    }
+    val popExitTransition: AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition = {
+        slideOutOfContainer(
+            towards = AnimatedContentTransitionScope.SlideDirection.End,
+            animationSpec = tween(700)
+        )
+    }
 }
 
-private val chatEnter = fadeIn(tween(250)) + slideInHorizontally { it }
-private val chatExit = fadeOut(tween(200)) + slideOutHorizontally { -it }
-private val chatPopEnter = fadeIn(tween(250)) + slideInHorizontally { -it }
-private val chatPopExit = fadeOut(tween(200)) + slideOutHorizontally { it }
+private val chatEnter: AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition = {
+    slideIntoContainer(
+        towards = AnimatedContentTransitionScope.SlideDirection.Start,
+        animationSpec = tween(700)
+    )
+}
+private val chatExit: AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition = {
+    slideOutOfContainer(
+        towards = AnimatedContentTransitionScope.SlideDirection.Start,
+        animationSpec = tween(700)
+    )
+}
+private val chatPopEnter: AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition = {
+    slideIntoContainer(
+        towards = AnimatedContentTransitionScope.SlideDirection.End,
+        animationSpec = tween(700)
+    )
+}
+private val chatPopExit: AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition = {
+    slideOutOfContainer(
+        towards = AnimatedContentTransitionScope.SlideDirection.End,
+        animationSpec = tween(700)
+    )
+}
 
 // ---------------------------------------------------------------------------
 // DrawerViewModel
@@ -130,17 +173,67 @@ fun IrisNavGraph(
     startDestination: String = NavRoute.OnboardingWelcome.route,
 ) {
     val onboardingViewModel: OnboardingViewModel = hiltViewModel()
+    val drawerViewModel: DrawerViewModel = hiltViewModel()
+    val conversations by drawerViewModel.conversations.collectAsStateWithLifecycle()
 
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
+    val navBackStack by navController.currentBackStackEntryAsState()
+    val currentRoute = navBackStack?.destination?.route
+
+    val showDrawer = currentRoute?.startsWith("onboarding") == false
 
     Box(modifier = Modifier.fillMaxSize()) {
-        NavContent(
-            navController       = navController,
-            startDestination    = startDestination,
-            onboardingViewModel = onboardingViewModel,
-            drawerState         = drawerState,
-        )
+        if (showDrawer) {
+            ModalNavigationDrawer(
+                drawerState     = drawerState,
+                gesturesEnabled = showDrawer,
+                scrimColor      = DrawerDefaults.scrimColor,
+                drawerContent   = {
+                    IrisDrawerSheet(
+                        drawerState          = drawerState,
+                        conversations        = conversations,
+                        currentRoute         = currentRoute,
+                        onHomeClick          = {
+                            scope.launch { drawerState.close() }
+                            navController.navigate(NavRoute.Home.route) {
+                                popUpTo(NavRoute.Home.route) { inclusive = false }
+                                launchSingleTop = true
+                            }
+                        },
+                        onNewChatClick       = {
+                            scope.launch { drawerState.close() }
+                            navController.navigate(NavRoute.Chat.NEW) {
+                                launchSingleTop = false
+                            }
+                        },
+                        onConversationClick  = { conv ->
+                            scope.launch { drawerState.close() }
+                            navController.navigate(NavRoute.Chat.withId(conv.id)) {
+                                launchSingleTop = false
+                            }
+                        },
+                        onDeleteConversation = { conv ->
+                            drawerViewModel.deleteConversation(conv.id)
+                        },
+                    )
+                },
+            ) {
+                NavContent(
+                    navController       = navController,
+                    startDestination    = startDestination,
+                    onboardingViewModel = onboardingViewModel,
+                    drawerState         = drawerState,
+                )
+            }
+        } else {
+            NavContent(
+                navController       = navController,
+                startDestination    = startDestination,
+                onboardingViewModel = onboardingViewModel,
+                drawerState         = drawerState,
+            )
+        }
     }
 }
 
@@ -161,10 +254,10 @@ private fun NavContent(
     NavHost(
         navController      = navController,
         startDestination   = startDestination,
-        enterTransition    = { NavTransitions.enterTransition },
-        exitTransition     = { NavTransitions.exitTransition },
-        popEnterTransition = { NavTransitions.popEnterTransition },
-        popExitTransition  = { NavTransitions.popExitTransition },
+        enterTransition    = NavTransitions.enterTransition,
+        exitTransition     = NavTransitions.exitTransition,
+        popEnterTransition = NavTransitions.popEnterTransition,
+        popExitTransition  = NavTransitions.popExitTransition,
     ) {
         // --- Onboarding ---
         composable(route = NavRoute.OnboardingWelcome.route) {
@@ -273,10 +366,10 @@ private fun NavContent(
         composable(
             route      = NavRoute.Chat.route,
             arguments  = listOf(navArgument(NavRoute.Chat.ARG) { type = NavType.LongType }),
-            enterTransition    = { chatEnter },
-            exitTransition     = { chatExit },
-            popEnterTransition = { chatPopEnter },
-            popExitTransition  = { chatPopExit },
+            enterTransition    = chatEnter,
+            exitTransition     = chatExit,
+            popEnterTransition = chatPopEnter,
+            popExitTransition  = chatPopExit,
         ) { backStackEntry ->
             val conversationId = backStackEntry.arguments?.getLong(NavRoute.Chat.ARG) ?: 0L
             ChatScreen(
