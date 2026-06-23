@@ -9,7 +9,6 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -43,7 +42,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -200,9 +198,7 @@ fun IrisNavGraph(
     val navBackStack by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStack?.destination?.route
 
-    val showDrawer     = currentRoute?.startsWith("onboarding") == false
-    val drawerGestures = currentRoute != NavRoute.Home.route &&
-                         currentRoute?.startsWith("chat") != true
+    val showDrawer = currentRoute?.startsWith("onboarding") == false
 
     Box(
         modifier = Modifier
@@ -211,7 +207,7 @@ fun IrisNavGraph(
         if (showDrawer) {
             ModalNavigationDrawer(
                 drawerState     = drawerState,
-                gesturesEnabled = drawerGestures,
+                gesturesEnabled = showDrawer,
                 scrimColor      = DrawerDefaults.scrimColor,
                 drawerContent   = {
                     IrisDrawerSheet(
@@ -567,31 +563,16 @@ private fun DrawerNavItem(
     onClick: () -> Unit,
 ) {
     val primary = IrisTheme.colors.primary
-    val backgroundGradient = if (selected) {
-        Brush.horizontalGradient(
-            colors = listOf(
-                primary.copy(alpha = 0.12f),
-                Color.Transparent,
-            ),
-        )
-    } else {
-        Brush.horizontalGradient(
-            colors = listOf(Color.Transparent, Color.Transparent),
-        )
-    }
     Surface(
         onClick  = onClick,
-        shape    = RoundedCornerShape(topEnd = 24.dp, bottomEnd = 24.dp),
-        color    = Color.Transparent,
+        shape    = RoundedCornerShape(14.dp),
+        color    = if (selected) primary.copy(alpha = 0.12f) else Color.Transparent,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(end = 16.dp, top = 2.dp, bottom = 2.dp),
+            .padding(horizontal = 12.dp, vertical = 4.dp),
     ) {
         Row(
-            modifier          = Modifier
-                .background(backgroundGradient)
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 12.dp),
+            modifier          = Modifier.padding(horizontal = 12.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
