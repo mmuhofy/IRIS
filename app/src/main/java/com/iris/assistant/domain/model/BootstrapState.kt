@@ -35,6 +35,15 @@ sealed interface BootstrapState {
     data object Extracting : BootstrapState
 
     /**
+     * Bootstrap extracted; now running `apt install` for required packages (e.g. proot).
+     *
+     * @param packageName  name of the package currently being installed
+     */
+    data class InstallingPackages(
+        val packageName: String,
+    ) : BootstrapState
+
+    /**
      * Bootstrap is fully installed and ready.
      *
      * @param prefixPath absolute path to the Termux prefix (`$filesDir/termux/usr`)

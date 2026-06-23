@@ -241,12 +241,25 @@ private fun BootstrapStatusCard(
                     }
                     is BootstrapState.Extracting -> {
                         Row(
-                            verticalAlignment   = Alignment.CenterVertically,
+                            verticalAlignment     = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
                             CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
                             Text(
                                 text  = "Extracting…",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                    is BootstrapState.InstallingPackages -> {
+                        Row(
+                            verticalAlignment     = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
+                            Text(
+                                text  = "Installing ${bState.packageName}…",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -504,12 +517,3 @@ private fun PowerModeWarningDialog(
         confirmButton = {
             TextButton(onClick = onConfirm) {
                 Text("Enable", color = MaterialTheme.colorScheme.primary)
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel")
-            }
-        },
-    )
-}

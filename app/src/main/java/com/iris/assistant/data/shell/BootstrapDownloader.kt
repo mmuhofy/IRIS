@@ -205,10 +205,33 @@ class BootstrapDownloader @Inject constructor(
             return@flow
         }
 
-        // ── Step 7: write version marker + cleanup ───────────────────────
+        // ── Step 7: cleanup zip + create home dir ────────────────────────
         destZip.delete()
+        homeDir.mkdirs()
+
+        // ── Step 8: fix binary permissions ───────────────────────────────
+        // Extracted binaries must be executable. ZipInputStream does not
+        // preserve Unix permissions, so we chmod the bin/ and sbin/ dirs.
+        fixPermissions(prefixDir)
+
+        // ── Step 9: install proot via apt ────────────────────────────────
+        // proot is not bundled in the bootstrap zip — it must be pulled via
+        // the Termux package manager. We run apt in a one-shot subprocess
+        // (not via EmbeddedShell, which isn't started yet) to avoid a
+        // circular dependency.
+        emit(BootstrapState.InstallingPackages("proot"))
+        runCatching {
+            installPackage("proot")
+        }.onFailure { ex ->
+            // Non-fatal: proot install failure is logged but does not block
+            // bootstrap from being marked Installed. The shell can still be
+            // used without proot for non-chroot workflows. The UI should
+            // surface a warning when proot is required.
+            Log.w(TAG, "proot install failed (non-fatal): ${ex.message}")
+        }
+
+        // ── Step 10: write version marker ────────────────────────────────
         versionFile.writeText(release.tagName)
-        homeDir.mkdirs() // ensure home dir exists
 
         Log.d(TAG, "Bootstrap installed at ${prefixDir.absolutePath} (${release.tagName})")
         emit(BootstrapState.Installed(prefixDir.absolutePath, release.tagName))
@@ -392,6 +415,81 @@ class BootstrapDownloader @Inject constructor(
             }
         }
         Log.d(TAG, "Extracted $entryCount entries to ${destDir.absolutePath}")
+    }
+
+    /**
+     * Recursively marks all files inside [prefixDir]/bin and [prefixDir]/sbin
+     * as executable. ZipInputStream strips Unix permission bits, so this step
+     * is required after extraction.
+     *
+     * UNTESTED — verify before use
+     */
+    private fun fixPermissions(prefixDir: File) {
+        listOf("bin", "sbin", "lib/apt/methods").forEach { sub ->
+            File(prefixDir, sub).walkTopDown()
+                .filter { it.isFile }
+                .forEach { f ->
+                    if (!f.canExecute()) f.setExecutable(true, false)
+                }
+        }
+        Log.d(TAG, "Binary permissions fixed")
+    }
+
+    /**
+     * Runs `apt-get install -y <packageName>` inside the Termux prefix as a
+     * one-shot blocking subprocess. Does NOT use [EmbeddedShell] — this runs
+     * before the persistent shell session is started.
+     *
+     * Environment mirrors what [EmbeddedShell.start] sets up so that apt can
+     * locate its libraries and configuration.
+     *
+     * Throws [IllegalStateException] if the process exits with a non-zero code
+     * or if the apt binary is not found.
+     *
+     * UNTESTED — verify before use
+     */
+    private fun installPackage(packageName: String) {
+        val prefix   = prefixDir.absolutePath
+        val aptBin   = File(prefixDir, "bin/apt-get")
+        if (!aptBin.exists()) {
+            throw IllegalStateException(
+                "apt-get not found at ${aptBin.absolutePath}. " +
+                "Bootstrap may be incomplete or not an apt-based release."
+            )
+        }
+        if (!aptBin.canExecute()) aptBin.setExecutable(true, false)
+
+        Log.d(TAG, "Running: apt-get install -y $packageName")
+
+        val proc = ProcessBuilder(aptBin.absolutePath, "install", "-y", packageName)
+            .redirectErrorStream(true) // merge stderr into stdout for logging
+            .apply {
+                environment().apply {
+                    put("HOME",             homeDir.absolutePath)
+                    put("PREFIX",           prefix)
+                    put("PATH",             "$prefix/bin:$prefix/sbin:/system/bin:/system/xbin")
+                    put("TMPDIR",           "$prefix/tmp")
+                    put("TERM",             "dumb")
+                    put("LANG",             "en_US.UTF-8")
+                    put("LD_LIBRARY_PATH",  "$prefix/lib")
+                    put("TERMUX_PREFIX",    prefix)
+                    // Suppress interactive prompts
+                    put("DEBIAN_FRONTEND",  "noninteractive")
+                }
+                directory(homeDir)
+            }
+            .start()
+
+        // Log all output from apt at DEBUG level
+        val output = proc.inputStream.bufferedReader().readText()
+        val exit   = proc.waitFor()
+        Log.d(TAG, "apt-get install $packageName exit=$exit\n$output")
+
+        if (exit != 0) {
+            throw IllegalStateException(
+                "apt-get install $packageName failed with exit code $exit"
+            )
+        }
     }
 
     /**
