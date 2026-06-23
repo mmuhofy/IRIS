@@ -94,10 +94,7 @@ object Constants {
     // --- Wake Word ---
     const val WAKE_WORD_COOLDOWN_MS = 1500L
 
-    val WAKE_WORD_MODELS = listOf(
-        WakeWordModelEntry("hey_jarvis", "hey_jarvis.onnx", 0.5f),
-        WakeWordModelEntry("hey_iris",   "hey_iris.onnx",   0.01f),
-    )
+    val WAKE_WORD_MODELS = emptyList<WakeWordModelEntry>()
 
     data class WakeWordModelEntry(
         val name      : String,
