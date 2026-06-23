@@ -85,7 +85,6 @@ class EmbeddedShell @Inject constructor(
         val prefixDir = bootstrapDownloader.prefixDir
         val prefixPath = prefixDir.absolutePath
         val homePath   = bootstrapDownloader.homeDir.absolutePath
-        val nativeLibDir = context.applicationInfo.nativeLibraryDir
 
         if (!shellBin.exists()) {
             throw IllegalStateException(
@@ -100,7 +99,12 @@ class EmbeddedShell @Inject constructor(
             }
         }
 
-        val command = arrayOf(shellBin.absolutePath, "--login")
+        val linker = if (File("/system/bin/linker64").exists()) {
+            "/system/bin/linker64"
+        } else {
+            "/system/bin/linker"
+        }
+        val command = arrayOf(linker, shellBin.absolutePath, "--login")
 
         val pb = ProcessBuilder(*command)
             .redirectErrorStream(false)
@@ -112,7 +116,7 @@ class EmbeddedShell @Inject constructor(
                     put("TMPDIR",        "$prefixPath/tmp")
                     put("TERM",          "xterm-256color")
                     put("LANG",          "en_US.UTF-8")
-                    put("LD_LIBRARY_PATH", nativeLibDir)
+                    put("LD_LIBRARY_PATH", "$prefixPath/lib")
                     put("TERMUX_PREFIX", prefixPath)
                 }
                 directory(File(homePath))

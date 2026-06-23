@@ -2,6 +2,7 @@ package com.iris.assistant.data.shell
 
 import android.content.Context
 import android.os.Build
+import android.system.Os
 import android.util.Log
 import com.iris.assistant.domain.model.BootstrapState
 import com.iris.assistant.util.Constants
@@ -214,15 +215,14 @@ class BootstrapDownloader @Inject constructor(
         // preserve Unix permissions, so we chmod the bin/ and sbin/ dirs.
         fixPermissions(prefixDir)
 
-        // ── Step 9: patch bash ELF symbols in-place ──────────────────────
-        // Modify DT_NEEDED (libreadline.so.8 → libreadline.so) and nullify
-        // DT_RUNPATH via byte-level ELF editing. This preserves the file's
-        // inode and execute permissions (unlike replacing the file).
-        // Bundled jniLibs/*.so (non-versioned SONAMEs) are in the native
-        // library dir (apk_data_file → SELinux approved).
-        patchBashElf()
+        // ── Step 9: fix symlinks ─────────────────────────────────────────
+        // Symlinks in the bootstrap zip are stored as regular files
+        // containing the target path (ZipInputStream limitation). The system
+        // linker needs actual symlinks to resolve DT_NEEDED versioned names
+        // like libreadline.so.8 → libreadline.so.8.0.
+        fixSymlinks(prefixDir)
 
-        // ── Step 10: install proot via apt ───────────────────────────────
+        // ── Step 9: install proot via apt ────────────────────────────────
         // proot is not bundled in the bootstrap zip — it must be pulled via
         // the Termux package manager. We run apt in a one-shot subprocess
         // (not via EmbeddedShell, which isn't started yet) to avoid a
@@ -238,7 +238,7 @@ class BootstrapDownloader @Inject constructor(
             Log.w(TAG, "proot install failed (non-fatal): ${ex.message}")
         }
 
-        // ── Step 11: write version marker ────────────────────────────────
+        // ── Step 10: write version marker ───────────────────────────────
         versionFile.writeText(release.tagName)
 
         Log.d(TAG, "Bootstrap installed at ${prefixDir.absolutePath} (${release.tagName})")
@@ -426,54 +426,6 @@ class BootstrapDownloader @Inject constructor(
     }
 
     /**
-     * Patches the bootstrap's bash ELF binary in-place to:
-     * 1. Change DT_NEEDED "libreadline.so.8" → "libreadline.so"
-     * 2. Nullify the DT_RUNPATH string (empty path → linker ignores it)
-     *
-     * Uses direct byte-level editing to preserve the file's inode and
-     * execute permissions. The .so files bundled in jniLibs/ have matching
-     * non-versioned SONAMEs and are extracted to the native library dir
-     * (SELinux type apk_data_file, linker-approved).
-     */
-    private fun patchBashElf() {
-        val shellBin = File(prefixDir, "bin/bash")
-        if (!shellBin.exists()) {
-            Log.w(TAG, "bash not found, skipping ELF patch")
-            return
-        }
-        try {
-            val bytes = shellBin.readBytes()
-
-            // ── Patch 1: DT_NEEDED "libreadline.so.8" → "libreadline.so" ──
-            val neededStr = "libreadline.so.8".toByteArray()
-            val neededIdx = bytes.indexOf(neededStr)
-            if (neededIdx < 0) {
-                Log.w(TAG, "String 'libreadline.so.8' not found in bash binary")
-            } else {
-                // Zero out the version suffix: positions 14 ('.') and 15 ('8')
-                bytes[neededIdx + 14] = 0
-                bytes[neededIdx + 15] = 0
-                Log.d(TAG, "Patched DT_NEEDED: libreadline.so.8 -> libreadline.so")
-            }
-
-            // ── Patch 2: Nullify DT_RUNPATH string ────────────────────────
-            val runpathStr = "/data/data/com.termux/files/usr/lib".toByteArray()
-            val runpathIdx = bytes.indexOf(runpathStr)
-            if (runpathIdx < 0) {
-                Log.w(TAG, "DT_RUNPATH string not found in bash binary")
-            } else {
-                bytes[runpathIdx] = 0
-                Log.d(TAG, "Nullified DT_RUNPATH string")
-            }
-
-            shellBin.writeBytes(bytes)
-            Log.d(TAG, "Bash ELF patched in-place successfully")
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to patch bash ELF: ${e.message}")
-        }
-    }
-
-    /**
      * Recursively marks all files inside [prefixDir]/bin and [prefixDir]/sbin
      * as executable. ZipInputStream strips Unix permission bits, so this step
      * is required after extraction.
@@ -489,6 +441,34 @@ class BootstrapDownloader @Inject constructor(
                 }
         }
         Log.d(TAG, "Binary permissions fixed")
+    }
+
+    /**
+     * Converts symlink-stored-as-regular-file entries (a limitation of
+     * ZipInputStream) into actual filesystem symlinks. The Termux bootstrap
+     * zip uses symlinks for versioned .so files (e.g. libreadline.so.8 →
+     * libreadline.so.8.0). Without real symlinks, the system linker cannot
+     * resolve DT_NEEDED entries like "libreadline.so.8".
+     *
+     * Detection heuristic: a file < 100 bytes whose content is a relative
+     * path matching a real file in the same directory is a stored symlink.
+     */
+    private fun fixSymlinks(dir: File) {
+        dir.walkTopDown().forEach { file ->
+            if (!file.isFile || file.length() > 100L) return@forEach
+            val content = file.readText().trim()
+            if (content.isEmpty() || content.contains('\n') || content.contains('\0')) return@forEach
+            val target = File(file.parentFile, content)
+            if (target.exists() && target.isFile && target != file) {
+                file.delete()
+                try {
+                    Os.symlink(content, file.absolutePath)
+                    Log.d(TAG, "Symlink: ${file.name} -> $content")
+                } catch (e: Exception) {
+                    Log.w(TAG, "Failed to create symlink ${file.name} -> $content: ${e.message}")
+                }
+            }
+        }
     }
 
     /**
@@ -515,9 +495,15 @@ class BootstrapDownloader @Inject constructor(
         }
         if (!aptBin.canExecute()) aptBin.setExecutable(true, false)
 
-        Log.d(TAG, "Running: apt-get install -y $packageName")
+        val linker = if (File("/system/bin/linker64").exists()) {
+            "/system/bin/linker64"
+        } else {
+            "/system/bin/linker"
+        }
 
-        val proc = ProcessBuilder(aptBin.absolutePath, "install", "-y", packageName)
+        Log.d(TAG, "Running: $linker ${aptBin.absolutePath} install -y $packageName")
+
+        val proc = ProcessBuilder(linker, aptBin.absolutePath, "install", "-y", packageName)
             .redirectErrorStream(true) // merge stderr into stdout for logging
             .apply {
                 environment().apply {
@@ -527,7 +513,7 @@ class BootstrapDownloader @Inject constructor(
                     put("TMPDIR",           "$prefix/tmp")
                     put("TERM",             "dumb")
                     put("LANG",             "en_US.UTF-8")
-                    put("LD_LIBRARY_PATH",  context.applicationInfo.nativeLibraryDir)
+                    put("LD_LIBRARY_PATH",  "$prefix/lib")
                     put("TERMUX_PREFIX",    prefix)
                     // Suppress interactive prompts
                     put("DEBIAN_FRONTEND",  "noninteractive")
