@@ -57,6 +57,15 @@ android {
             keyAlias      = "androiddebugkey"
             keyPassword   = "android"
         }
+        create("release") {
+            val path = System.getenv("RELEASE_KEYSTORE_PATH")
+            if (path != null) {
+                storeFile     = file(path)
+                storePassword = System.getenv("RELEASE_KEYSTORE_PASSWORD") ?: ""
+                keyAlias      = System.getenv("RELEASE_KEY_ALIAS") ?: ""
+                keyPassword   = System.getenv("RELEASE_KEY_PASSWORD") ?: ""
+            }
+        }
     }
 
     buildTypes {
@@ -66,6 +75,10 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            val keystorePath = System.getenv("RELEASE_KEYSTORE_PATH")
+            if (keystorePath != null) {
+                signingConfig = signingConfigs["release"]
+            }
         }
         debug {
             isMinifyEnabled   = false

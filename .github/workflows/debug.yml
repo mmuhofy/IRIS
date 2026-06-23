@@ -1,4 +1,4 @@
-name: CI
+name: Debug
 
 on:
   push:
@@ -20,16 +20,7 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
-          # Intentionally no cache here — handled manually below for full control
 
-      # ── Gradle cache ──────────────────────────────────────────────────────
-      # Caches:
-      #   ~/.gradle/caches      — downloaded deps, compiled scripts, transforms
-      #   ~/.gradle/wrapper     — gradle wrapper binaries
-      #   ~/.android/build-cache— Android build cache (aapt2, dex, etc.)
-      #
-      # Key includes libs.versions.toml + build.gradle.kts hashes so cache
-      # invalidates automatically when deps change, not on every push.
       - name: Cache Gradle & Android build cache
         uses: actions/cache@v4
         with:
