@@ -5,8 +5,6 @@ import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.layout.Box
@@ -96,72 +94,57 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 // ---------------------------------------------------------------------------
-// Transition helpers
+// Transition helpers — TaskManager style: slideInHorizontally + fade only.
+// Scale removed — scale deltas were too small to perceive on device.
+// Using it/2 (half screen) slide distance for strong visual feedback.
+// Duration intentionally set to 500ms for initial testing — tune via Constants.
 // ---------------------------------------------------------------------------
 
+private const val TEST_DURATION_MS = 500 // TODO: replace with Constants.NAV_ANIM_DURATION_MS after test
+
 private fun onboardingEnter(): EnterTransition =
-    slideInHorizontally(tween(Constants.NAV_ANIM_DURATION_MS)) { it / 4 } +
-        fadeIn(tween(Constants.NAV_ANIM_DURATION_MS))
+    slideInHorizontally(tween(TEST_DURATION_MS)) { it / 2 } +
+    fadeIn(tween(TEST_DURATION_MS))
 
 private fun onboardingExit(): ExitTransition =
-    slideOutHorizontally(tween(Constants.NAV_ANIM_DURATION_MS)) { -it / 4 } +
-        fadeOut(tween(Constants.NAV_ANIM_DURATION_MS))
+    slideOutHorizontally(tween(TEST_DURATION_MS)) { -it / 2 } +
+    fadeOut(tween(TEST_DURATION_MS))
 
 private fun onboardingPopEnter(): EnterTransition =
-    slideInHorizontally(tween(Constants.NAV_ANIM_DURATION_MS)) { -it / 4 } +
-        fadeIn(tween(Constants.NAV_ANIM_DURATION_MS))
+    slideInHorizontally(tween(TEST_DURATION_MS)) { -it / 2 } +
+    fadeIn(tween(TEST_DURATION_MS))
 
 private fun onboardingPopExit(): ExitTransition =
-    slideOutHorizontally(tween(Constants.NAV_ANIM_DURATION_MS)) { it / 4 } +
-        fadeOut(tween(Constants.NAV_ANIM_DURATION_MS))
+    slideOutHorizontally(tween(TEST_DURATION_MS)) { it / 2 } +
+    fadeOut(tween(TEST_DURATION_MS))
 
 private fun mainEnter(): EnterTransition =
-    slideInHorizontally(
-        animationSpec = tween(Constants.NAV_ANIM_DURATION_MS)
-    ) { fullWidth -> fullWidth / Constants.NAV_SLIDE_ENTER_DIVISOR } +
-    scaleIn(
-        animationSpec = tween(Constants.NAV_ANIM_DURATION_MS),
-        initialScale  = Constants.NAV_SCALE_ENTER_FROM
-    ) + fadeIn(animationSpec = tween(Constants.NAV_ANIM_DURATION_MS))
+    slideInHorizontally(tween(TEST_DURATION_MS)) { it / 2 } +
+    fadeIn(tween(TEST_DURATION_MS))
 
 private fun mainExit(): ExitTransition =
-    slideOutHorizontally(
-        animationSpec = tween(Constants.NAV_ANIM_DURATION_MS)
-    ) { fullWidth -> -fullWidth / Constants.NAV_SLIDE_EXIT_DIVISOR } +
-    scaleOut(
-        animationSpec = tween(Constants.NAV_ANIM_DURATION_MS),
-        targetScale   = Constants.NAV_SCALE_EXIT_TO
-    ) + fadeOut(animationSpec = tween(Constants.NAV_ANIM_DURATION_MS))
+    slideOutHorizontally(tween(TEST_DURATION_MS)) { -it / 2 } +
+    fadeOut(tween(TEST_DURATION_MS))
 
 private fun mainPopEnter(): EnterTransition =
-    slideInHorizontally(
-        animationSpec = tween(Constants.NAV_ANIM_DURATION_MS)
-    ) { fullWidth -> -fullWidth / Constants.NAV_SLIDE_EXIT_DIVISOR } +
-    scaleIn(
-        animationSpec = tween(Constants.NAV_ANIM_DURATION_MS),
-        initialScale  = Constants.NAV_SCALE_EXIT_TO
-    ) + fadeIn(animationSpec = tween(Constants.NAV_ANIM_DURATION_MS))
+    slideInHorizontally(tween(TEST_DURATION_MS)) { -it / 2 } +
+    fadeIn(tween(TEST_DURATION_MS))
 
 private fun mainPopExit(): ExitTransition =
-    slideOutHorizontally(
-        animationSpec = tween(Constants.NAV_ANIM_DURATION_MS)
-    ) { fullWidth -> fullWidth / Constants.NAV_SLIDE_ENTER_DIVISOR } +
-    scaleOut(
-        animationSpec = tween(Constants.NAV_ANIM_DURATION_MS),
-        targetScale   = Constants.NAV_SCALE_ENTER_FROM
-    ) + fadeOut(animationSpec = tween(Constants.NAV_ANIM_DURATION_MS))
+    slideOutHorizontally(tween(TEST_DURATION_MS)) { it / 2 } +
+    fadeOut(tween(TEST_DURATION_MS))
 
 private fun chatEnter(): EnterTransition =
-    slideInHorizontally(tween(Constants.NAV_ANIM_DURATION_MS)) { it } +
-        fadeIn(tween(Constants.NAV_ANIM_DURATION_MS))
+    slideInHorizontally(tween(TEST_DURATION_MS)) { it } +
+    fadeIn(tween(TEST_DURATION_MS))
 
 private fun chatExit(): ExitTransition =
-    slideOutHorizontally(tween(Constants.NAV_ANIM_DURATION_MS)) { it } +
-        fadeOut(tween(Constants.NAV_ANIM_DURATION_MS))
+    slideOutHorizontally(tween(TEST_DURATION_MS)) { it } +
+    fadeOut(tween(TEST_DURATION_MS))
 
 private fun chatPopEnter(): EnterTransition =
-    slideInHorizontally(tween(Constants.NAV_ANIM_DURATION_MS)) { -it } +
-        fadeIn(tween(Constants.NAV_ANIM_DURATION_MS))
+    slideInHorizontally(tween(TEST_DURATION_MS)) { -it } +
+    fadeIn(tween(TEST_DURATION_MS))
 
 // ---------------------------------------------------------------------------
 // DrawerViewModel
@@ -200,10 +183,7 @@ fun IrisNavGraph(
 
     val showDrawer = currentRoute?.startsWith("onboarding") == false
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-    ) {
+    Box(modifier = Modifier.fillMaxSize()) {
         if (showDrawer) {
             ModalNavigationDrawer(
                 drawerState     = drawerState,
@@ -412,7 +392,6 @@ private fun NavContent(
         composable(route = NavRoute.VoiceSettings.route) {
             VoiceSettingsScreen(onBack = { navController.popBackStack() })
         }
-        // Phase 4 — Power Mode
         composable(route = NavRoute.SettingsPowerMode.route) {
             PowerModeScreen(onBack = { navController.popBackStack() })
         }
@@ -465,7 +444,7 @@ private fun IrisDrawerSheet(
                 .statusBarsPadding(),
         ) {
             Row(
-                modifier         = Modifier.padding(horizontal = 20.dp, vertical = 20.dp),
+                modifier          = Modifier.padding(horizontal = 20.dp, vertical = 20.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(

@@ -67,14 +67,10 @@ fun IrisApp(
         colorSchemeOption = preferences.colorScheme,
         fontFamily        = preferences.fontFamily
     ) {
-        // Surface provides a proper rendering layer for NavHost transitions.
-        // Without Surface, scale/fade animations are invisible because there
-        // is no compositing layer beneath the NavHost screens.
-        Surface(modifier = Modifier.fillMaxSize()) {
-            IrisNavGraph(
-                navController    = navController,
-                startDestination = startDestination
-            )
-        }
+        // Theme.kt already wraps content in Surface — no extra Surface needed here.
+        IrisNavGraph(
+            navController    = navController,
+            startDestination = startDestination
+        )
     }
 }
