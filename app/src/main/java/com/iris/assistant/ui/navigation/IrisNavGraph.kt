@@ -7,7 +7,9 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.slideOutVertically
 import androidx.navigation.NavBackStackEntry
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -142,28 +144,16 @@ object OnboardingTransitions {
 }
 
 private val chatEnter: AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition = {
-    fadeIn(tween(250)) + slideIntoContainer(
-        towards = AnimatedContentTransitionScope.SlideDirection.Start,
-        animationSpec = tween(700)
-    )
+    fadeIn(tween(250)) + slideInVertically(animationSpec = tween(500)) { it }
 }
 private val chatExit: AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition = {
-    fadeOut(tween(200)) + slideOutOfContainer(
-        towards = AnimatedContentTransitionScope.SlideDirection.Start,
-        animationSpec = tween(700)
-    )
+    fadeOut(tween(200)) + slideOutVertically(animationSpec = tween(500)) { -it }
 }
 private val chatPopEnter: AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition = {
-    fadeIn(tween(250)) + slideIntoContainer(
-        towards = AnimatedContentTransitionScope.SlideDirection.End,
-        animationSpec = tween(700)
-    )
+    fadeIn(tween(250))
 }
 private val chatPopExit: AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition = {
-    fadeOut(tween(200)) + slideOutOfContainer(
-        towards = AnimatedContentTransitionScope.SlideDirection.End,
-        animationSpec = tween(700)
-    )
+    fadeOut(tween(200)) + slideOutVertically(animationSpec = tween(500)) { it }
 }
 
 // ---------------------------------------------------------------------------
