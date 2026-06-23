@@ -2,7 +2,6 @@ package com.iris.assistant.data.shell
 
 import android.content.Context
 import android.os.Build
-import android.system.Os
 import android.util.Log
 import com.iris.assistant.domain.model.BootstrapState
 import com.iris.assistant.util.Constants
@@ -444,11 +443,11 @@ class BootstrapDownloader @Inject constructor(
     }
 
     /**
-     * Converts symlink-stored-as-regular-file entries (a limitation of
-     * ZipInputStream) into actual filesystem symlinks. The Termux bootstrap
-     * zip uses symlinks for versioned .so files (e.g. libreadline.so.8 →
-     * libreadline.so.8.0). Without real symlinks, the system linker cannot
-     * resolve DT_NEEDED entries like "libreadline.so.8".
+     * Replaces symlink-stored-as-regular-file entries (a limitation of
+     * ZipInputStream) with actual ELF copies. The Termux bootstrap zip uses
+     * symlinks for versioned .so files (e.g. libreadline.so.8 →
+     * libreadline.so.8.0). Without real files at the versioned name, the
+     * system linker cannot resolve DT_NEEDED entries like "libreadline.so.8".
      *
      * Detection heuristic: a file < 100 bytes whose content is a relative
      * path matching a real file in the same directory is a stored symlink.
@@ -460,12 +459,12 @@ class BootstrapDownloader @Inject constructor(
             if (content.isEmpty() || content.contains('\n') || content.contains('\u0000')) return@forEach
             val target = File(file.parentFile, content)
             if (target.exists() && target.isFile && target != file) {
+                Log.d(TAG, "Replacing symlink-text ${file.name} -> $content")
                 file.delete()
                 try {
-                    Os.symlink(content, file.absolutePath)
-                    Log.d(TAG, "Symlink: ${file.name} -> $content")
+                    target.copyTo(file, overwrite = false)
                 } catch (e: Exception) {
-                    Log.w(TAG, "Failed to create symlink ${file.name} -> $content: ${e.message}")
+                    Log.w(TAG, "Failed to copy $content -> ${file.name}: ${e.message}")
                 }
             }
         }
