@@ -1,8 +1,6 @@
 package com.iris.assistant.ui.navigation
 
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.layout.Box
@@ -95,16 +93,16 @@ import javax.inject.Inject
 // ---------------------------------------------------------------------------
 
 object NavTransitions {
-    val popEnterTransition = fadeIn(tween(250)) + slideInHorizontally { -it / 2 }
-    val popExitTransition = fadeOut(tween(200)) + slideOutHorizontally { it / 2 }
-    val enterTransition = fadeIn(tween(250)) + slideInHorizontally { it / 2 }
-    val exitTransition = fadeOut(tween(200)) + slideOutHorizontally { -it / 2 }
+    val popEnterTransition = slideInHorizontally(tween(400)) { -it }
+    val popExitTransition = slideOutHorizontally(tween(400)) { it }
+    val enterTransition = slideInHorizontally(tween(400)) { it }
+    val exitTransition = slideOutHorizontally(tween(400)) { -it }
 }
 
-private val chatEnter = fadeIn(tween(250)) + slideInHorizontally { it }
-private val chatExit = fadeOut(tween(200)) + slideOutHorizontally { -it }
-private val chatPopEnter = fadeIn(tween(250)) + slideInHorizontally { -it }
-private val chatPopExit = fadeOut(tween(200)) + slideOutHorizontally { it }
+private val chatEnter = slideInHorizontally(tween(400)) { it }
+private val chatExit = slideOutHorizontally(tween(400)) { -it }
+private val chatPopEnter = slideInHorizontally(tween(400)) { -it }
+private val chatPopExit = slideOutHorizontally(tween(400)) { it }
 
 // ---------------------------------------------------------------------------
 // DrawerViewModel
