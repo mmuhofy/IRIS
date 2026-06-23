@@ -93,10 +93,26 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 // ---------------------------------------------------------------------------
-// Navigation transitions — TaskManager style
+// Navigation transitions — subtle crossfade for main screens,
+// fade+slide for onboarding (uğurlama — kullanıcı sevdi)
 // ---------------------------------------------------------------------------
 
 object NavTransitions {
+    val enterTransition: AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition = {
+        fadeIn(tween(200))
+    }
+    val exitTransition: AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition = {
+        fadeOut(tween(150))
+    }
+    val popEnterTransition: AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition = {
+        fadeIn(tween(200))
+    }
+    val popExitTransition: AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition = {
+        fadeOut(tween(150))
+    }
+}
+
+object OnboardingTransitions {
     val enterTransition: AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition = {
         fadeIn(tween(250)) + slideIntoContainer(
             towards = AnimatedContentTransitionScope.SlideDirection.Start,
@@ -261,8 +277,14 @@ private fun NavContent(
         popEnterTransition = NavTransitions.popEnterTransition,
         popExitTransition  = NavTransitions.popExitTransition,
     ) {
-        // --- Onboarding ---
-        composable(route = NavRoute.OnboardingWelcome.route) {
+        // --- Onboarding (fade+slide) ---
+        composable(
+            route              = NavRoute.OnboardingWelcome.route,
+            enterTransition    = OnboardingTransitions.enterTransition,
+            exitTransition     = OnboardingTransitions.exitTransition,
+            popEnterTransition = OnboardingTransitions.popEnterTransition,
+            popExitTransition  = OnboardingTransitions.popExitTransition,
+        ) {
             val userName by onboardingViewModel.userName.collectAsStateWithLifecycle()
             OnboardingWelcomeScreen(
                 userName         = userName,
@@ -270,31 +292,61 @@ private fun NavContent(
                 onNext           = { navController.navigate(NavRoute.OnboardingMic.route) },
             )
         }
-        composable(route = NavRoute.OnboardingMic.route) {
+        composable(
+            route              = NavRoute.OnboardingMic.route,
+            enterTransition    = OnboardingTransitions.enterTransition,
+            exitTransition     = OnboardingTransitions.exitTransition,
+            popEnterTransition = OnboardingTransitions.popEnterTransition,
+            popExitTransition  = OnboardingTransitions.popExitTransition,
+        ) {
             OnboardingMicScreen(
                 onNext = { navController.navigate(NavRoute.OnboardingWakeWord.route) },
                 onBack = { navController.popBackStack() },
             )
         }
-        composable(route = NavRoute.OnboardingWakeWord.route) {
+        composable(
+            route              = NavRoute.OnboardingWakeWord.route,
+            enterTransition    = OnboardingTransitions.enterTransition,
+            exitTransition     = OnboardingTransitions.exitTransition,
+            popEnterTransition = OnboardingTransitions.popEnterTransition,
+            popExitTransition  = OnboardingTransitions.popExitTransition,
+        ) {
             OnboardingWakeWordScreen(
                 onNext = { navController.navigate(NavRoute.OnboardingDemo.route) },
                 onBack = { navController.popBackStack() },
             )
         }
-        composable(route = NavRoute.OnboardingDemo.route) {
+        composable(
+            route              = NavRoute.OnboardingDemo.route,
+            enterTransition    = OnboardingTransitions.enterTransition,
+            exitTransition     = OnboardingTransitions.exitTransition,
+            popEnterTransition = OnboardingTransitions.popEnterTransition,
+            popExitTransition  = OnboardingTransitions.popExitTransition,
+        ) {
             OnboardingDemoScreen(
                 onNext = { navController.navigate(NavRoute.OnboardingAssistant.route) },
                 onBack = { navController.popBackStack() },
             )
         }
-        composable(route = NavRoute.OnboardingAssistant.route) {
+        composable(
+            route              = NavRoute.OnboardingAssistant.route,
+            enterTransition    = OnboardingTransitions.enterTransition,
+            exitTransition     = OnboardingTransitions.exitTransition,
+            popEnterTransition = OnboardingTransitions.popEnterTransition,
+            popExitTransition  = OnboardingTransitions.popExitTransition,
+        ) {
             OnboardingAssistantScreen(
                 onNext = { navController.navigate(NavRoute.OnboardingBattery.route) },
                 onBack = { navController.popBackStack() },
             )
         }
-        composable(route = NavRoute.OnboardingBattery.route) {
+        composable(
+            route              = NavRoute.OnboardingBattery.route,
+            enterTransition    = OnboardingTransitions.enterTransition,
+            exitTransition     = OnboardingTransitions.exitTransition,
+            popEnterTransition = OnboardingTransitions.popEnterTransition,
+            popExitTransition  = OnboardingTransitions.popExitTransition,
+        ) {
             OnboardingBatteryScreen(
                 onFinish  = {
                     navController.navigate(NavRoute.Home.route) {
