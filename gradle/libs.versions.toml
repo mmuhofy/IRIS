@@ -38,8 +38,9 @@ kotlinxSerialization    = "1.8.1"
 # Kotlin library wrapping openWakeWord for Android via ONNX Runtime
 # Source: https://github.com/Re-MENTIA/openwakeword-android-kt
 # Maven Central: xyz.rementia:openwakeword:0.1.5
-# Brings in onnxruntime-android:1.18.0 as a transitive dependency
+# Excluded as transitive; we pin onnxruntime-android separately below
 openwakeword            = "0.1.5"
+onnxruntimeAndroid      = "1.22.0"
 phosphoriconCompose     = "1.0.5"
 llamakotlin             = "0.1.5"
 
@@ -102,8 +103,8 @@ phosphoricons-regular           = { group = "io.github.dev778g-me", name = "phos
 phosphoricons-filled            = { group = "io.github.dev778g-me", name = "phosphoricons-filled", version.ref = "phosphoriconCompose" }
 
 # Wake Word — openWakeWord via ONNX Runtime
-# Brings in onnxruntime-android:1.18.0 as a transitive dependency (no explicit entry needed)
-openwakeword                    = { group = "xyz.rementia", name = "openwakeword", version.ref = "openwakeword" }
+openwakeword            = { group = "xyz.rementia", name = "openwakeword", version.ref = "openwakeword" }
+onnxruntime-android     = { group = "com.microsoft.onnxruntime", name = "onnxruntime-android", version.ref = "onnxruntimeAndroid" }
 
 # Local LLM — llama.cpp via JNI
 llama-kotlin-android            = { group = "org.codeshipping", name = "llama-kotlin-android", version.ref = "llamakotlin" }

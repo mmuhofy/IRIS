@@ -176,8 +176,10 @@ dependencies {
     // Wake Word — openWakeWord via ONNX Runtime
     // Requires 3 ONNX assets in app/src/main/assets/:
     //   hey_jarvis.onnx, melspectrogram.onnx, embedding_model.onnx
-    // onnxruntime-android:1.18.0 comes in as a transitive dependency
-    implementation(libs.openwakeword)
+    implementation(libs.openwakeword) {
+        exclude(group = "com.microsoft.onnxruntime", module = "onnxruntime-android")
+    }
+    implementation(libs.onnxruntime.android)
 
     // Local LLM — llama.cpp via JNI (GGUF models)
     implementation(libs.llama.kotlin.android)
