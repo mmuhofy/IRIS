@@ -258,6 +258,7 @@ static elf_ctx *load_elf(const char *soname, const char *libpath) {
 // ── Process relocations for all loaded ELFs ────────────────────────────────────
 
 static int process_relocations(const char *libpath) {
+    (void)libpath;
     elf_ctx *main_elf = loaded_elfs; // first loaded = main
     if (!main_elf) return -1;
 
@@ -383,6 +384,7 @@ Java_com_iris_assistant_data_shell_ElfLoader_nativeExecute(
     jobjectArray jArgs,
     jobjectArray jEnvp)
 {
+    (void)clazz;
     const char *elf_path = (*env)->GetStringUTFChars(env, jElfPath, NULL);
     const char *lib_path = (*env)->GetStringUTFChars(env, jLibPath, NULL);
 
@@ -519,6 +521,7 @@ JNIEXPORT jint JNICALL
 Java_com_iris_assistant_data_shell_ElfLoader_nativeWaitForPid(
     JNIEnv *env, jclass clazz, jint pid)
 {
+    (void)env; (void)clazz;
     int status;
     pid_t result = waitpid((pid_t)pid, &status, WNOHANG);
     if (result == (pid_t)pid) {
@@ -533,5 +536,6 @@ JNIEXPORT void JNICALL
 Java_com_iris_assistant_data_shell_ElfLoader_nativeKill(
     JNIEnv *env, jclass clazz, jint pid, jint signal)
 {
+    (void)env; (void)clazz;
     kill((pid_t)pid, signal);
 }
