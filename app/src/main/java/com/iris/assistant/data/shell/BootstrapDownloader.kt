@@ -457,7 +457,7 @@ class BootstrapDownloader @Inject constructor(
         dir.walkTopDown().forEach { file ->
             if (!file.isFile || file.length() > 100L) return@forEach
             val content = file.readText().trim()
-            if (content.isEmpty() || content.contains('\n') || content.contains('\0')) return@forEach
+            if (content.isEmpty() || content.contains('\n') || content.contains('\u0000')) return@forEach
             val target = File(file.parentFile, content)
             if (target.exists() && target.isFile && target != file) {
                 file.delete()
