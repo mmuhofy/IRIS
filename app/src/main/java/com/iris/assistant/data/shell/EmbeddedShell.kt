@@ -93,7 +93,11 @@ class EmbeddedShell @Inject constructor(
             )
         }
         if (!shellBin.canExecute()) {
-            shellBin.setExecutable(true)
+            if (!shellBin.setExecutable(true)) {
+                throw IllegalStateException(
+                    "Failed to set executable permission on: ${shellBin.absolutePath}"
+                )
+            }
         }
 
         val command = arrayOf(shellBin.absolutePath, "--login")

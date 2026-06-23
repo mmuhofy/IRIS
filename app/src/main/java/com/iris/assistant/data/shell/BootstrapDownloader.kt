@@ -214,11 +214,13 @@ class BootstrapDownloader @Inject constructor(
         // preserve Unix permissions, so we chmod the bin/ and sbin/ dirs.
         fixPermissions(prefixDir)
 
-        // ── Step 9: replace bash with patched version from assets ─────────
-        // The bundled bash_patched has DT_RUNPATH removed and DT_NEEDED
-        // pointing to non-versioned SONAMEs. It finds libraries in the
-        // native library dir (jniLibs/*.so → apk_data_file → SELinux approved).
-        replaceBashFromAssets()
+        // ── Step 9: patch bash ELF symbols in-place ──────────────────────
+        // Modify DT_NEEDED (libreadline.so.8 → libreadline.so) and nullify
+        // DT_RUNPATH via byte-level ELF editing. This preserves the file's
+        // inode and execute permissions (unlike replacing the file).
+        // Bundled jniLibs/*.so (non-versioned SONAMEs) are in the native
+        // library dir (apk_data_file → SELinux approved).
+        patchBashElf()
 
         // ── Step 10: install proot via apt ───────────────────────────────
         // proot is not bundled in the bootstrap zip — it must be pulled via
@@ -424,29 +426,50 @@ class BootstrapDownloader @Inject constructor(
     }
 
     /**
-     * Replaces the bootstrap's bash binary with our patched version from APK assets.
-     * The patched bash has DT_RUNPATH removed and DT_NEEDED pointing to
-     * non-versioned SONAMEs that match the .so files bundled in jniLibs/.
-     * This allows bash to load libraries from the native library dir
-     * (SELinux type apk_data_file, linker-approved) instead of the app data dir
-     * (type app_data_file, SELinux-blocked).
+     * Patches the bootstrap's bash ELF binary in-place to:
+     * 1. Change DT_NEEDED "libreadline.so.8" → "libreadline.so"
+     * 2. Nullify the DT_RUNPATH string (empty path → linker ignores it)
+     *
+     * Uses direct byte-level editing to preserve the file's inode and
+     * execute permissions. The .so files bundled in jniLibs/ have matching
+     * non-versioned SONAMEs and are extracted to the native library dir
+     * (SELinux type apk_data_file, linker-approved).
      */
-    private fun replaceBashFromAssets() {
+    private fun patchBashElf() {
         val shellBin = File(prefixDir, "bin/bash")
         if (!shellBin.exists()) {
-            Log.w(TAG, "Bootstrap bin/bash not found, cannot replace with patched version")
+            Log.w(TAG, "bash not found, skipping ELF patch")
             return
         }
         try {
-            context.assets.open("bash_patched").use { input ->
-                shellBin.outputStream().use { output ->
-                    input.copyTo(output)
-                }
+            val bytes = shellBin.readBytes()
+
+            // ── Patch 1: DT_NEEDED "libreadline.so.8" → "libreadline.so" ──
+            val neededStr = "libreadline.so.8".toByteArray()
+            val neededIdx = bytes.indexOf(neededStr)
+            if (neededIdx < 0) {
+                Log.w(TAG, "String 'libreadline.so.8' not found in bash binary")
+            } else {
+                // Zero out the version suffix: positions 14 ('.') and 15 ('8')
+                bytes[neededIdx + 14] = 0
+                bytes[neededIdx + 15] = 0
+                Log.d(TAG, "Patched DT_NEEDED: libreadline.so.8 -> libreadline.so")
             }
-            shellBin.setExecutable(true, false)
-            Log.d(TAG, "Replaced bash with patched version from assets")
+
+            // ── Patch 2: Nullify DT_RUNPATH string ────────────────────────
+            val runpathStr = "/data/data/com.termux/files/usr/lib".toByteArray()
+            val runpathIdx = bytes.indexOf(runpathStr)
+            if (runpathIdx < 0) {
+                Log.w(TAG, "DT_RUNPATH string not found in bash binary")
+            } else {
+                bytes[runpathIdx] = 0
+                Log.d(TAG, "Nullified DT_RUNPATH string")
+            }
+
+            shellBin.writeBytes(bytes)
+            Log.d(TAG, "Bash ELF patched in-place successfully")
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to replace bash from assets: ${e.message}")
+            Log.e(TAG, "Failed to patch bash ELF: ${e.message}")
         }
     }
 
