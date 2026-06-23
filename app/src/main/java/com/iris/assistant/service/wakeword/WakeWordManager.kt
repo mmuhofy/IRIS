@@ -38,6 +38,10 @@ class WakeWordManager @Inject constructor(
     val detections: SharedFlow<Unit> = _detections.asSharedFlow()
 
     fun startListening() {
+        if (!Constants.WAKE_WORD_ENABLED) {
+            Log.w(TAG, "wake word disabled via Constants.WAKE_WORD_ENABLED")
+            return
+        }
         if (engine != null && detectionJob?.isActive == true) {
             Log.w(TAG, "startListening: already running")
             return

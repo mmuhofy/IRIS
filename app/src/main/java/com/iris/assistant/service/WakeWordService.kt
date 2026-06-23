@@ -46,7 +46,13 @@ class WakeWordService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         Log.d(TAG, "onStartCommand: action=${intent?.action}")
         when (intent?.action) {
-            ACTION_START -> startDetection()
+            ACTION_START -> {
+                if (!Constants.WAKE_WORD_ENABLED) {
+                    Log.w(TAG, "wake word disabled via Constants.WAKE_WORD_ENABLED")
+                    return START_NOT_STICKY
+                }
+                startDetection()
+            }
             ACTION_STOP  -> stopSelf()
             else         -> Log.w(TAG, "unknown action")
         }
