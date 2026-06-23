@@ -21,7 +21,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.DrawerDefaults
 import androidx.compose.material3.DrawerState
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.HorizontalDivider
@@ -29,7 +28,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
-import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberDrawerState
@@ -45,13 +43,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.iris.assistant.domain.model.Conversation
@@ -133,67 +129,17 @@ fun IrisNavGraph(
     startDestination: String = NavRoute.OnboardingWelcome.route,
 ) {
     val onboardingViewModel: OnboardingViewModel = hiltViewModel()
-    val drawerViewModel: DrawerViewModel = hiltViewModel()
-    val conversations by drawerViewModel.conversations.collectAsStateWithLifecycle()
 
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
-    val navBackStack by navController.currentBackStackEntryAsState()
-    val currentRoute = navBackStack?.destination?.route
-
-    val showDrawer = currentRoute?.startsWith("onboarding") == false
 
     Box(modifier = Modifier.fillMaxSize()) {
-        if (showDrawer) {
-            ModalNavigationDrawer(
-                drawerState     = drawerState,
-                gesturesEnabled = showDrawer,
-                scrimColor      = DrawerDefaults.scrimColor,
-                drawerContent   = {
-                    IrisDrawerSheet(
-                        drawerState          = drawerState,
-                        conversations        = conversations,
-                        currentRoute         = currentRoute,
-                        onHomeClick          = {
-                            scope.launch { drawerState.close() }
-                            navController.navigate(NavRoute.Home.route) {
-                                popUpTo(NavRoute.Home.route) { inclusive = false }
-                                launchSingleTop = true
-                            }
-                        },
-                        onNewChatClick       = {
-                            scope.launch { drawerState.close() }
-                            navController.navigate(NavRoute.Chat.NEW) {
-                                launchSingleTop = false
-                            }
-                        },
-                        onConversationClick  = { conv ->
-                            scope.launch { drawerState.close() }
-                            navController.navigate(NavRoute.Chat.withId(conv.id)) {
-                                launchSingleTop = false
-                            }
-                        },
-                        onDeleteConversation = { conv ->
-                            drawerViewModel.deleteConversation(conv.id)
-                        },
-                    )
-                },
-            ) {
-                NavContent(
-                    navController       = navController,
-                    startDestination    = startDestination,
-                    onboardingViewModel = onboardingViewModel,
-                    drawerState         = drawerState,
-                )
-            }
-        } else {
-            NavContent(
-                navController       = navController,
-                startDestination    = startDestination,
-                onboardingViewModel = onboardingViewModel,
-                drawerState         = drawerState,
-            )
-        }
+        NavContent(
+            navController       = navController,
+            startDestination    = startDestination,
+            onboardingViewModel = onboardingViewModel,
+            drawerState         = drawerState,
+        )
     }
 }
 
