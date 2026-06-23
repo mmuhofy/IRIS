@@ -6,6 +6,8 @@ import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.navigation.NavBackStackEntry
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -99,16 +101,16 @@ import javax.inject.Inject
 
 object NavTransitions {
     val enterTransition: AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition = {
-        fadeIn(tween(200))
+        fadeIn(tween(250)) + slideInHorizontally(animationSpec = tween(400)) { it / 2 }
     }
     val exitTransition: AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition = {
-        fadeOut(tween(150))
+        fadeOut(tween(200)) + slideOutHorizontally(animationSpec = tween(400)) { -it / 2 }
     }
     val popEnterTransition: AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition = {
-        fadeIn(tween(200))
+        fadeIn(tween(250)) + slideInHorizontally(animationSpec = tween(400)) { -it / 2 }
     }
     val popExitTransition: AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition = {
-        fadeOut(tween(150))
+        fadeOut(tween(200)) + slideOutHorizontally(animationSpec = tween(400)) { it / 2 }
     }
 }
 
