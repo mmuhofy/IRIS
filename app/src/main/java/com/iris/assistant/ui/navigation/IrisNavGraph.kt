@@ -100,47 +100,51 @@ object NavTransitions {
     val enterTransition: AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition = {
         fadeIn(tween(250)) + slideIntoContainer(
             towards = AnimatedContentTransitionScope.SlideDirection.Start,
-            initialOffset = { -it / 2 }
+            animationSpec = tween(700)
         )
     }
     val exitTransition: AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition = {
         fadeOut(tween(200)) + slideOutOfContainer(
             towards = AnimatedContentTransitionScope.SlideDirection.Start,
-            targetOffset = { it / 2 }
+            animationSpec = tween(700)
         )
     }
     val popEnterTransition: AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition = {
         fadeIn(tween(250)) + slideIntoContainer(
             towards = AnimatedContentTransitionScope.SlideDirection.End,
-            initialOffset = { it / 2 }
+            animationSpec = tween(700)
         )
     }
     val popExitTransition: AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition = {
         fadeOut(tween(200)) + slideOutOfContainer(
             towards = AnimatedContentTransitionScope.SlideDirection.End,
-            targetOffset = { -it / 2 }
+            animationSpec = tween(700)
         )
     }
 }
 
 private val chatEnter: AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition = {
     fadeIn(tween(250)) + slideIntoContainer(
-        towards = AnimatedContentTransitionScope.SlideDirection.Start
+        towards = AnimatedContentTransitionScope.SlideDirection.Start,
+        animationSpec = tween(700)
     )
 }
 private val chatExit: AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition = {
     fadeOut(tween(200)) + slideOutOfContainer(
-        towards = AnimatedContentTransitionScope.SlideDirection.Start
+        towards = AnimatedContentTransitionScope.SlideDirection.Start,
+        animationSpec = tween(700)
     )
 }
 private val chatPopEnter: AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition = {
     fadeIn(tween(250)) + slideIntoContainer(
-        towards = AnimatedContentTransitionScope.SlideDirection.End
+        towards = AnimatedContentTransitionScope.SlideDirection.End,
+        animationSpec = tween(700)
     )
 }
 private val chatPopExit: AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition = {
     fadeOut(tween(200)) + slideOutOfContainer(
-        towards = AnimatedContentTransitionScope.SlideDirection.End
+        towards = AnimatedContentTransitionScope.SlideDirection.End,
+        animationSpec = tween(700)
     )
 }
 
