@@ -1,7 +1,10 @@
 package com.iris.assistant.ui
 
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -43,7 +46,6 @@ class AppViewModel @Inject constructor(
             _isReady.value = true
         }
     }
-
 }
 
 @Composable
@@ -65,9 +67,14 @@ fun IrisApp(
         colorSchemeOption = preferences.colorScheme,
         fontFamily        = preferences.fontFamily
     ) {
-        IrisNavGraph(
-            navController    = navController,
-            startDestination = startDestination
-        )
+        // Surface provides a proper rendering layer for NavHost transitions.
+        // Without Surface, scale/fade animations are invisible because there
+        // is no compositing layer beneath the NavHost screens.
+        Surface(modifier = Modifier.fillMaxSize()) {
+            IrisNavGraph(
+                navController    = navController,
+                startDestination = startDestination
+            )
+        }
     }
 }
