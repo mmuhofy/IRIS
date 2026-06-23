@@ -517,3 +517,12 @@ private fun PowerModeWarningDialog(
         confirmButton = {
             TextButton(onClick = onConfirm) {
                 Text("Enable", color = MaterialTheme.colorScheme.primary)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        },
+    )
+}
