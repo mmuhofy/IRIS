@@ -449,20 +449,30 @@ class BootstrapDownloader @Inject constructor(
      * libreadline.so.8.0). Without real files at the versioned name, the
      * system linker cannot resolve DT_NEEDED entries like "libreadline.so.8".
      *
-     * Detection heuristic: a file < 100 bytes whose content is a relative
-     * path matching a real file in the same directory is a stored symlink.
+     * Detection: scans all files < 100 bytes, reads raw bytes, strips
+     * non-printable chars (null bytes, newlines), and checks if the result
+     * is a relative path to an existing file in the same directory.
      */
     private fun fixSymlinks(dir: File) {
         dir.walkTopDown().forEach { file ->
             if (!file.isFile || file.length() > 100L) return@forEach
-            val content = file.readText().trim()
-            if (content.isEmpty() || content.contains('\n') || content.contains('\u0000')) return@forEach
+            val content = file.readBytes()
+                .filterNot { it == 0x0.toByte() || it == 0x0a.toByte() || it == 0x0d.toByte() }
+                .toByteArray()
+                .decodeToString()
+                .trim()
+            if (content.isEmpty() || content.length > 64) return@forEach
             val target = File(file.parentFile, content)
             if (target.exists() && target.isFile && target != file) {
-                Log.d(TAG, "Replacing symlink-text ${file.name} -> $content")
+                Log.d(TAG, "Symlink-text ${file.name} -> $content (${content.length} chars)")
+                if (target.length() < 100L) {
+                    Log.w(TAG, "Target $content is also < 100 bytes, likely also a symlink — skipping ${file.name}")
+                    return@forEach
+                }
                 file.delete()
                 try {
                     target.copyTo(file, overwrite = false)
+                    Log.d(TAG, "Copied $content -> ${file.name}")
                 } catch (e: Exception) {
                     Log.w(TAG, "Failed to copy $content -> ${file.name}: ${e.message}")
                 }

@@ -3,6 +3,7 @@ package com.iris.assistant.data.shell
 import android.content.Context
 import android.util.Log
 import dagger.hilt.android.qualifiers.ApplicationContext
+import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
@@ -15,7 +16,6 @@ import kotlinx.coroutines.withTimeoutOrNull
 import java.io.BufferedReader
 import java.io.BufferedWriter
 import java.io.File
-import java.io.IOException
 import java.io.InputStreamReader
 import java.io.OutputStreamWriter
 import javax.inject.Inject
@@ -63,7 +63,7 @@ class EmbeddedShell @Inject constructor(
 
     // ── Process state ─────────────────────────────────────────────────────────
 
-    @Volatile private var process: Process? = null
+    @Volatile private var process: ElfProcess? = null
     @Volatile private var stdinWriter: BufferedWriter? = null
 
     val isRunning: Boolean get() = process?.isAlive == true
@@ -91,40 +91,26 @@ class EmbeddedShell @Inject constructor(
                 "Termux bootstrap not installed. Shell binary not found: ${shellBin.absolutePath}"
             )
         }
-        if (!shellBin.canExecute()) {
-            if (!shellBin.setExecutable(true)) {
-                throw IllegalStateException(
-                    "Failed to set executable permission on: ${shellBin.absolutePath}"
-                )
-            }
-        }
+        val libPath = "$prefixPath/lib"
 
-        val linker = if (File("/system/bin/linker64").exists()) {
-            "/system/bin/linker64"
-        } else {
-            "/system/bin/linker"
-        }
-        val command = arrayOf(linker, shellBin.absolutePath, "--login")
-
-        val pb = ProcessBuilder(*command)
-            .redirectErrorStream(false)
-            .apply {
-                environment().apply {
-                    put("HOME",          homePath)
-                    put("PREFIX",        prefixPath)
-                    put("PATH",          "$prefixPath/bin:$prefixPath/sbin:/system/bin:/system/xbin")
-                    put("TMPDIR",        "$prefixPath/tmp")
-                    put("TERM",          "xterm-256color")
-                    put("LANG",          "en_US.UTF-8")
-                    put("LD_LIBRARY_PATH", "$prefixPath/lib")
-                    put("TERMUX_PREFIX", prefixPath)
-                }
-                directory(File(homePath))
-            }
+        val env = arrayOf(
+            "HOME=$homePath",
+            "PREFIX=$prefixPath",
+            "PATH=$prefixPath/bin:$prefixPath/sbin:/system/bin:/system/xbin",
+            "TMPDIR=$prefixPath/tmp",
+            "TERM=xterm-256color",
+            "LANG=en_US.UTF-8",
+            "TERMUX_PREFIX=$prefixPath",
+        )
 
         val proc = try {
-            pb.start()
-        } catch (e: IOException) {
+            ElfLoader.execute(
+                elfPath = shellBin.absolutePath,
+                libPath = libPath,
+                args    = arrayOf("--login"),
+                env     = env,
+            )
+        } catch (e: Exception) {
             Log.e(TAG, "Failed to start shell process: ${e.message}")
             throw e
         }
@@ -234,7 +220,7 @@ class EmbeddedShell @Inject constructor(
         val proc = process ?: return@withContext
         stdinWriter?.runCatching { close() }
         proc.destroy()
-        val exited = proc.waitFor(2, java.util.concurrent.TimeUnit.SECONDS)
+        val exited = proc.waitFor(2, TimeUnit.SECONDS)
         if (!exited) proc.destroyForcibly()
         process     = null
         stdinWriter = null
