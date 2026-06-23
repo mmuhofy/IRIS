@@ -39,6 +39,7 @@ object ElfLoader {
         if (!libDir.isDirectory) throw IllegalStateException("Lib dir not found: $libPath")
 
         val result = nativeExecute(elfPath, libPath, args, env)
+            ?: throw IllegalStateException("Child process exited immediately (ELF loading or init failed — check logcat ElfLoader tag)")
         val pid      = result[0]
         val stdinFd  = result[1]
         val stdoutFd = result[2]
@@ -69,7 +70,17 @@ class ElfProcess internal constructor(
     @Volatile private var exited = false
     @Volatile private var exitCode: Int = -1
 
-    val isAlive: Boolean get() = !exited
+    val isAlive: Boolean get() {
+        if (exited) return false
+        val result = ElfLoader.nativeWaitForPid(pid)
+        if (result >= 0) {
+            exitCode = result
+            exited = true
+            closeStreams()
+            return false
+        }
+        return true
+    }
 
     fun waitFor(timeout: Long, unit: TimeUnit): Boolean {
         if (exited) return true
