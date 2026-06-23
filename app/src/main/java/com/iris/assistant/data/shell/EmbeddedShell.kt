@@ -15,6 +15,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 import java.io.BufferedReader
 import java.io.BufferedWriter
 import java.io.File
+import java.io.IOException
 import java.io.InputStreamReader
 import java.io.OutputStreamWriter
 import javax.inject.Inject
@@ -81,6 +82,9 @@ class EmbeddedShell @Inject constructor(
 
         val termuxDir = File(context.filesDir, "termux")
         val shellBin  = File(termuxDir, SHELL_BIN)
+        val prefixDir = bootstrapDownloader.prefixDir
+        val prefixPath = prefixDir.absolutePath
+        val homePath   = bootstrapDownloader.homeDir.absolutePath
 
         if (!shellBin.exists()) {
             throw IllegalStateException(
@@ -91,11 +95,27 @@ class EmbeddedShell @Inject constructor(
             shellBin.setExecutable(true)
         }
 
-        val prefixPath = bootstrapDownloader.prefixDir.absolutePath
-        val homePath   = bootstrapDownloader.homeDir.absolutePath
+        // Find the Termux dynamic linker in $PREFIX/lib.
+        // On Android Termux this is ld-android.so; on Termux userland it's ld-linux-*.so.*.
+        // Using the custom linker is required on Android 12+ where SELinux blocks the
+        // system linker from loading libraries from app-private data directories via
+        // LD_LIBRARY_PATH.
+        val termuxLinker = prefixDir.walkTopDown()
+            .find { f -> f.isFile && f.canExecute() &&
+                (f.name == "ld-android.so" || f.name.startsWith("ld-linux-")) }
+            ?.absolutePath
 
-        val pb = ProcessBuilder(shellBin.absolutePath, "--login")
-            .redirectErrorStream(false) // keep stderr separate so we can tag lines
+        val command = if (termuxLinker != null) {
+            Log.d(TAG, "Using Termux linker: $termuxLinker")
+            arrayOf(termuxLinker, shellBin.absolutePath, "--login")
+        } else {
+            Log.w(TAG, "No Termux linker found, falling back to direct exec. " +
+                "This may fail on Android 12+ due to SELinux restrictions.")
+            arrayOf(shellBin.absolutePath, "--login")
+        }
+
+        val pb = ProcessBuilder(*command)
+            .redirectErrorStream(false)
             .apply {
                 environment().apply {
                     put("HOME",          homePath)
@@ -105,13 +125,17 @@ class EmbeddedShell @Inject constructor(
                     put("TERM",          "xterm-256color")
                     put("LANG",          "en_US.UTF-8")
                     put("LD_LIBRARY_PATH", "$prefixPath/lib")
-                    // Tell bash where it lives so scripts using $PREFIX work
                     put("TERMUX_PREFIX", prefixPath)
                 }
                 directory(File(homePath))
             }
 
-        val proc = pb.start()
+        val proc = try {
+            pb.start()
+        } catch (e: IOException) {
+            Log.e(TAG, "Failed to start shell process: ${e.message}")
+            throw e
+        }
         process     = proc
         stdinWriter = BufferedWriter(OutputStreamWriter(proc.outputStream))
 
