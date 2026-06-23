@@ -505,15 +505,28 @@ Java_com_iris_assistant_data_shell_ElfLoader_nativeExecute(
     close(stdout_pipe[1]);
     close(stderr_pipe[1]);
 
+    // Release JNI strings now (child has its own copies via strdup)
+    (*env)->ReleaseStringUTFChars(env, jElfPath, elf_path);
+    (*env)->ReleaseStringUTFChars(env, jLibPath, lib_path);
+
+    // Brief wait to detect immediate child death (e.g. ELF load failure)
+    usleep(200000); // 200ms
+    int child_status;
+    pid_t wret = waitpid(pid, &child_status, WNOHANG);
+    if (wret == pid) {
+        LOGE("Child exited immediately — fd leaks or crash");
+        close(stdin_pipe[1]);
+        close(stdout_pipe[0]);
+        close(stderr_pipe[0]);
+        return NULL;
+    }
+
     // Return: {pid, stdin_fd, stdout_fd, stderr_fd}
     jintArray result = (*env)->NewIntArray(env, 4);
     if (result) {
         jint vals[4] = { (jint)pid, stdin_pipe[1], stdout_pipe[0], stderr_pipe[0] };
         (*env)->SetIntArrayRegion(env, result, 0, 4, vals);
     }
-
-    (*env)->ReleaseStringUTFChars(env, jElfPath, elf_path);
-    (*env)->ReleaseStringUTFChars(env, jLibPath, lib_path);
 
     return result;
 }
