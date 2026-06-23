@@ -473,20 +473,20 @@ Java_com_iris_assistant_data_shell_ElfLoader_nativeExecute(
 
         elf_ctx *main_elf = load_elf_at(elf_path, soname, lib_path);
         if (!main_elf) {
+            dprintf(STDERR_FILENO, "ELFLOADER: failed to load %s\n", soname);
             LOGE("Failed to load %s", soname);
             _exit(1);
         }
 
         if (process_relocations(lib_path) < 0) {
+            dprintf(STDERR_FILENO, "ELFLOADER: relocation processing failed for %s\n", soname);
             LOGE("Relocation processing failed");
             _exit(1);
         }
 
         call_init_functions();
 
-        // Set up stack and call entry point
-        // Build argv on stack: [prog_name, arg1, arg2, ..., NULL]
-        // envp is already set via putenv() above
+        dprintf(STDERR_FILENO, "ELFLOADER: starting %s\n", soname);
 
         LOGI("Calling entry point @ %p for %s",
              (void *)((uint8_t *)main_elf->base + main_elf->ehdr->e_entry),
@@ -496,6 +496,7 @@ Java_com_iris_assistant_data_shell_ElfLoader_nativeExecute(
         typedef int (*entry_func_t)(int, char **, char **);
         entry_func_t entry = (entry_func_t)((uint8_t *)main_elf->base + main_elf->ehdr->e_entry);
         int exit_code = entry(argc + 1, argv, envp);
+        dprintf(STDERR_FILENO, "ELFLOADER: %s exited with code %d\n", soname, exit_code);
         _exit(exit_code);
     }
 
