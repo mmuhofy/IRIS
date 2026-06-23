@@ -214,7 +214,13 @@ class BootstrapDownloader @Inject constructor(
         // preserve Unix permissions, so we chmod the bin/ and sbin/ dirs.
         fixPermissions(prefixDir)
 
-        // ── Step 9: install proot via apt ────────────────────────────────
+        // ── Step 9: replace bash with patched version from assets ─────────
+        // The bundled bash_patched has DT_RUNPATH removed and DT_NEEDED
+        // pointing to non-versioned SONAMEs. It finds libraries in the
+        // native library dir (jniLibs/*.so → apk_data_file → SELinux approved).
+        replaceBashFromAssets()
+
+        // ── Step 10: install proot via apt ───────────────────────────────
         // proot is not bundled in the bootstrap zip — it must be pulled via
         // the Termux package manager. We run apt in a one-shot subprocess
         // (not via EmbeddedShell, which isn't started yet) to avoid a
@@ -230,7 +236,7 @@ class BootstrapDownloader @Inject constructor(
             Log.w(TAG, "proot install failed (non-fatal): ${ex.message}")
         }
 
-        // ── Step 10: write version marker ────────────────────────────────
+        // ── Step 11: write version marker ────────────────────────────────
         versionFile.writeText(release.tagName)
 
         Log.d(TAG, "Bootstrap installed at ${prefixDir.absolutePath} (${release.tagName})")
@@ -418,6 +424,33 @@ class BootstrapDownloader @Inject constructor(
     }
 
     /**
+     * Replaces the bootstrap's bash binary with our patched version from APK assets.
+     * The patched bash has DT_RUNPATH removed and DT_NEEDED pointing to
+     * non-versioned SONAMEs that match the .so files bundled in jniLibs/.
+     * This allows bash to load libraries from the native library dir
+     * (SELinux type apk_data_file, linker-approved) instead of the app data dir
+     * (type app_data_file, SELinux-blocked).
+     */
+    private fun replaceBashFromAssets() {
+        val shellBin = File(prefixDir, "bin/bash")
+        if (!shellBin.exists()) {
+            Log.w(TAG, "Bootstrap bin/bash not found, cannot replace with patched version")
+            return
+        }
+        try {
+            context.assets.open("bash_patched").use { input ->
+                shellBin.outputStream().use { output ->
+                    input.copyTo(output)
+                }
+            }
+            shellBin.setExecutable(true, false)
+            Log.d(TAG, "Replaced bash with patched version from assets")
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to replace bash from assets: ${e.message}")
+        }
+    }
+
+    /**
      * Recursively marks all files inside [prefixDir]/bin and [prefixDir]/sbin
      * as executable. ZipInputStream strips Unix permission bits, so this step
      * is required after extraction.
@@ -471,7 +504,7 @@ class BootstrapDownloader @Inject constructor(
                     put("TMPDIR",           "$prefix/tmp")
                     put("TERM",             "dumb")
                     put("LANG",             "en_US.UTF-8")
-                    put("LD_LIBRARY_PATH",  "$prefix/lib")
+                    put("LD_LIBRARY_PATH",  context.applicationInfo.nativeLibraryDir)
                     put("TERMUX_PREFIX",    prefix)
                     // Suppress interactive prompts
                     put("DEBIAN_FRONTEND",  "noninteractive")

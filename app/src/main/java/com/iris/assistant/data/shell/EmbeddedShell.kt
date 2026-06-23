@@ -85,6 +85,7 @@ class EmbeddedShell @Inject constructor(
         val prefixDir = bootstrapDownloader.prefixDir
         val prefixPath = prefixDir.absolutePath
         val homePath   = bootstrapDownloader.homeDir.absolutePath
+        val nativeLibDir = context.applicationInfo.nativeLibraryDir
 
         if (!shellBin.exists()) {
             throw IllegalStateException(
@@ -95,24 +96,7 @@ class EmbeddedShell @Inject constructor(
             shellBin.setExecutable(true)
         }
 
-        // Find the Termux dynamic linker in $PREFIX/lib.
-        // On Android Termux this is ld-android.so; on Termux userland it's ld-linux-*.so.*.
-        // Using the custom linker is required on Android 12+ where SELinux blocks the
-        // system linker from loading libraries from app-private data directories via
-        // LD_LIBRARY_PATH.
-        val termuxLinker = prefixDir.walkTopDown()
-            .find { f -> f.isFile && f.canExecute() &&
-                (f.name == "ld-android.so" || f.name.startsWith("ld-linux-")) }
-            ?.absolutePath
-
-        val command = if (termuxLinker != null) {
-            Log.d(TAG, "Using Termux linker: $termuxLinker")
-            arrayOf(termuxLinker, shellBin.absolutePath, "--login")
-        } else {
-            Log.w(TAG, "No Termux linker found, falling back to direct exec. " +
-                "This may fail on Android 12+ due to SELinux restrictions.")
-            arrayOf(shellBin.absolutePath, "--login")
-        }
+        val command = arrayOf(shellBin.absolutePath, "--login")
 
         val pb = ProcessBuilder(*command)
             .redirectErrorStream(false)
@@ -124,7 +108,7 @@ class EmbeddedShell @Inject constructor(
                     put("TMPDIR",        "$prefixPath/tmp")
                     put("TERM",          "xterm-256color")
                     put("LANG",          "en_US.UTF-8")
-                    put("LD_LIBRARY_PATH", "$prefixPath/lib")
+                    put("LD_LIBRARY_PATH", nativeLibDir)
                     put("TERMUX_PREFIX", prefixPath)
                 }
                 directory(File(homePath))
