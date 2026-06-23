@@ -339,13 +339,25 @@ private fun NavContent(
         }
 
         // --- Main ---
-        composable(route = NavRoute.Home.route) {
+        composable(
+            route              = NavRoute.Home.route,
+            enterTransition    = { mainEnter() },
+            exitTransition     = { mainExit() },
+            popEnterTransition = { mainPopEnter() },
+            popExitTransition  = { mainPopExit() },
+        ) {
             HomeScreen(
                 onOpenSettings = { navController.navigate(NavRoute.Settings.route) },
                 onOpenDrawer   = openDrawer,
             )
         }
-        composable(route = NavRoute.Settings.route) {
+        composable(
+            route              = NavRoute.Settings.route,
+            enterTransition    = { mainEnter() },
+            exitTransition     = { mainExit() },
+            popEnterTransition = { mainPopEnter() },
+            popExitTransition  = { mainPopExit() },
+        ) {
             SettingsScreen(
                 onBack           = { navController.popBackStack() },
                 onOpenVoice      = { navController.navigate(NavRoute.VoiceSettings.route) },
@@ -358,41 +370,101 @@ private fun NavContent(
                 onOpenPowerMode  = { navController.navigate(NavRoute.SettingsPowerMode.route) },
             )
         }
-        composable(route = NavRoute.SettingsModel.route) {
+        composable(
+            route              = NavRoute.SettingsModel.route,
+            enterTransition    = { mainEnter() },
+            exitTransition     = { mainExit() },
+            popEnterTransition = { mainPopEnter() },
+            popExitTransition  = { mainPopExit() },
+        ) {
             ModelSettingsScreen(
                 onBack            = { navController.popBackStack() },
                 onOpenLocalModels = { navController.navigate(NavRoute.LocalModels.route) },
             )
         }
-        composable(route = NavRoute.SettingsAppearance.route) {
+        composable(
+            route              = NavRoute.SettingsAppearance.route,
+            enterTransition    = { mainEnter() },
+            exitTransition     = { mainExit() },
+            popEnterTransition = { mainPopEnter() },
+            popExitTransition  = { mainPopExit() },
+        ) {
             AppearanceSettingsScreen(onBack = { navController.popBackStack() })
         }
-        composable(route = NavRoute.SettingsBackground.route) {
+        composable(
+            route              = NavRoute.SettingsBackground.route,
+            enterTransition    = { mainEnter() },
+            exitTransition     = { mainExit() },
+            popEnterTransition = { mainPopEnter() },
+            popExitTransition  = { mainPopExit() },
+        ) {
             BackgroundSettingsScreen(onBack = { navController.popBackStack() })
         }
-        composable(route = NavRoute.SettingsAutonomy.route) {
+        composable(
+            route              = NavRoute.SettingsAutonomy.route,
+            enterTransition    = { mainEnter() },
+            exitTransition     = { mainExit() },
+            popEnterTransition = { mainPopEnter() },
+            popExitTransition  = { mainPopExit() },
+        ) {
             AutonomySettingsScreen(onBack = { navController.popBackStack() })
         }
-        composable(route = NavRoute.SettingsSystem.route) {
+        composable(
+            route              = NavRoute.SettingsSystem.route,
+            enterTransition    = { mainEnter() },
+            exitTransition     = { mainExit() },
+            popEnterTransition = { mainPopEnter() },
+            popExitTransition  = { mainPopExit() },
+        ) {
             SystemSettingsScreen(
                 onBack                  = { navController.popBackStack() },
                 onOpenVoiceSettings     = { navController.navigate(NavRoute.VoiceSettings.route) },
                 onOpenPermissionManager = { navController.navigate(NavRoute.PermissionManager.route) },
             )
         }
-        composable(route = NavRoute.SettingsData.route) {
+        composable(
+            route              = NavRoute.SettingsData.route,
+            enterTransition    = { mainEnter() },
+            exitTransition     = { mainExit() },
+            popEnterTransition = { mainPopEnter() },
+            popExitTransition  = { mainPopExit() },
+        ) {
             DataSettingsScreen(onBack = { navController.popBackStack() })
         }
-        composable(route = NavRoute.LocalModels.route) {
+        composable(
+            route              = NavRoute.LocalModels.route,
+            enterTransition    = { mainEnter() },
+            exitTransition     = { mainExit() },
+            popEnterTransition = { mainPopEnter() },
+            popExitTransition  = { mainPopExit() },
+        ) {
             LocalModelScreen(onBack = { navController.popBackStack() })
         }
-        composable(route = NavRoute.PermissionManager.route) {
+        composable(
+            route              = NavRoute.PermissionManager.route,
+            enterTransition    = { mainEnter() },
+            exitTransition     = { mainExit() },
+            popEnterTransition = { mainPopEnter() },
+            popExitTransition  = { mainPopExit() },
+        ) {
             PermissionScreen(onBack = { navController.popBackStack() })
         }
-        composable(route = NavRoute.VoiceSettings.route) {
+        composable(
+            route              = NavRoute.VoiceSettings.route,
+            enterTransition    = { mainEnter() },
+            exitTransition     = { mainExit() },
+            popEnterTransition = { mainPopEnter() },
+            popExitTransition  = { mainPopExit() },
+        ) {
             VoiceSettingsScreen(onBack = { navController.popBackStack() })
         }
-        composable(route = NavRoute.SettingsPowerMode.route) {
+        composable(
+            route              = NavRoute.SettingsPowerMode.route,
+            enterTransition    = { mainEnter() },
+            exitTransition     = { mainExit() },
+            popEnterTransition = { mainPopEnter() },
+            popExitTransition  = { mainPopExit() },
+        ) {
             PowerModeScreen(onBack = { navController.popBackStack() })
         }
 
