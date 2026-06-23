@@ -22,3 +22,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "IRIS"
 include(":app")
+include(":animtest")
