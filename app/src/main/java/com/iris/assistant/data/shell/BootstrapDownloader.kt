@@ -425,7 +425,7 @@ class BootstrapDownloader @Inject constructor(
      * UNTESTED — verify before use
      */
     private fun fixPermissions(prefixDir: File) {
-        listOf("bin", "sbin", "lib/apt/methods").forEach { sub ->
+        listOf("bin", "sbin", "lib", "lib/apt/methods").forEach { sub ->
             File(prefixDir, sub).walkTopDown()
                 .filter { it.isFile }
                 .forEach { f ->
