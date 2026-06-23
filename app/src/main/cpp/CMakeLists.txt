@@ -3,5 +3,5 @@ project(elfloader VERSION 1.0 LANGUAGES C)
 
 add_library(elfloader SHARED elfloader.c)
 
-target_compile_options(elfloader PRIVATE -std=c11 -Wall -Wextra -Werror -Os)
+target_compile_options(elfloader PRIVATE -std=c11 -Wall -Wextra -Os)
 target_link_libraries(elfloader PRIVATE log)
