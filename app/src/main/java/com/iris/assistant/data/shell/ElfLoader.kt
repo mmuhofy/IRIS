@@ -23,9 +23,9 @@ object ElfLoader {
         env: Array<String>,
     ): IntArray
 
-    private external fun nativeWaitForPid(pid: Int): Int
+    internal external fun nativeWaitForPid(pid: Int): Int
 
-    private external fun nativeKill(pid: Int, signal: Int)
+    internal external fun nativeKill(pid: Int, signal: Int)
 
     fun execute(
         elfPath: String,
