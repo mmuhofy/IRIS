@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.iris.assistant.data.local.datastore.PreferencesRepository
 import com.iris.assistant.data.shell.BootstrapDownloader
+import com.iris.assistant.data.shell.BootstrapInstaller
 import com.iris.assistant.data.shell.EmbeddedShell
 import com.iris.assistant.data.shell.ShellLine
 import com.iris.assistant.domain.model.BootstrapState
