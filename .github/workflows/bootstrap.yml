@@ -56,7 +56,6 @@ jobs:
           NDK_VER=$(grep -oP 'TERMUX_NDK_VERSION_NUM:="\K[^"]+' "${{ github.workspace }}/termux-packages/scripts/properties.sh")
           NDK_REV=$(grep -oP 'TERMUX_NDK_REVISION:="\K[^"]*' "${{ github.workspace }}/termux-packages/scripts/properties.sh")
           NDK_FULL="r${NDK_VER}${NDK_REV}"
-          NDK_FULL="r${NDK_VER}${NDK_REV}"
           echo "NDK version: $NDK_FULL"
           if [ ! -d "$HOME/lib/android-ndk-$NDK_FULL" ]; then
             echo "Downloading NDK $NDK_FULL..."

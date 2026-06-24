@@ -116,10 +116,10 @@ BUILD_SKIPPED=0
 for pkg in "${PACKAGES[@]}"; do
     echo ""
     echo "=== Building $pkg ==="
-    START_DEB_COUNT=$(ls "$TERMUX_PACKAGES_DIR/output/"*_"$ARCH".deb 2>/dev/null | wc -l)
+    START_DEB_COUNT=$(ls "$TERMUX_PACKAGES_DIR/output/"*_"$ARCH".deb 2>/dev/null | wc -l || echo 0)
 
     if ./build-package.sh -a "$ARCH" "$pkg"; then
-        END_DEB_COUNT=$(ls "$TERMUX_PACKAGES_DIR/output/"*_"$ARCH".deb 2>/dev/null | wc -l)
+        END_DEB_COUNT=$(ls "$TERMUX_PACKAGES_DIR/output/"*_"$ARCH".deb 2>/dev/null | wc -l || echo 0)
         if [ "$END_DEB_COUNT" -gt "$START_DEB_COUNT" ]; then
             echo "  ✓ $pkg built"
         else
