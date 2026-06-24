@@ -91,9 +91,10 @@ class EmbeddedShell @Inject constructor(
 
         // Inject the Termux command wrapper — `t ls -la` runs a Termux binary
         // via linker64 so shared library resolution happens correctly.
+        // Note: regular string (not raw) so `\$` produces a literal `$` in output.
         val writer = stdinWriter!!
         writer.write(
-            """t() { "$linker" "$prefixPath/bin/\$1" "\${@:2}"; }""" + "\n"
+            "t() { \"$linker\" \"$prefixPath/bin/\\\$1\" \"\\\${@:2}\"; }\n"
         )
         writer.write("__irix_ready__\n")
         writer.flush()

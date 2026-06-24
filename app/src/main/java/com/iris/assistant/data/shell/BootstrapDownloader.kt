@@ -599,7 +599,7 @@ class BootstrapDownloader @Inject constructor(
 
         for (i in 0 until phnum) {
             val phOff = phoff + i * phentsize
-            if (phOff < 0 || phOff.toInt() + 56 > data.size) return
+            if (phOff < 0L || phOff.toInt() + 56 > data.size) return
             val pType = ByteBuffer.wrap(data, phOff.toInt(), 4).order(ByteOrder.LITTLE_ENDIAN).int
             val pFlags = ByteBuffer.wrap(data, phOff.toInt() + 4, 4).order(ByteOrder.LITTLE_ENDIAN).int
             val pOffset = ByteBuffer.wrap(data, phOff.toInt() + 8, 8).order(ByteOrder.LITTLE_ENDIAN).long
@@ -618,7 +618,7 @@ class BootstrapDownloader @Inject constructor(
         // Locate PT_DYNAMIC and parse its entries
         for (i in 0 until phnum) {
             val phOff = phoff + i * phentsize
-            if (phOff < 0 || phOff.toInt() + 56 > data.size) return
+            if (phOff < 0L || phOff.toInt() + 56 > data.size) return
             val pType = ByteBuffer.wrap(data, phOff.toInt(), 4).order(ByteOrder.LITTLE_ENDIAN).int
             if (pType != 2) continue // PT_DYNAMIC
 
@@ -630,7 +630,7 @@ class BootstrapDownloader @Inject constructor(
                 ?: return
             val dynFileOff = load.pOffset + (pVaddr - load.pVaddr)
 
-            if (dynFileOff.toInt() + 8 > data.size || dynFileOff + pFilesz > data.size) return
+            if (dynFileOff.toInt() + 8 > data.size || dynFileOff + pFilesz > data.size.toLong()) return
 
             var dynOff = dynFileOff
             while (dynOff < dynFileOff + pFilesz) {
@@ -710,7 +710,7 @@ class BootstrapDownloader @Inject constructor(
 
         for (i in 0 until phnum) {
             val phOff = phoff + i * phentsize
-            if (phOff < 0 || phOff.toInt() + 56 > data.size) return null
+            if (phOff < 0L || phOff.toInt() + 56 > data.size) return null
             val pType  = ByteBuffer.wrap(data, phOff.toInt(), 4).order(ByteOrder.LITTLE_ENDIAN).int
             val pFlags = ByteBuffer.wrap(data, phOff.toInt() + 4, 4).order(ByteOrder.LITTLE_ENDIAN).int
             val pOffset = ByteBuffer.wrap(data, phOff.toInt() + 8, 8).order(ByteOrder.LITTLE_ENDIAN).long
@@ -725,7 +725,7 @@ class BootstrapDownloader @Inject constructor(
 
             val dynLoad = loads.firstOrNull { pVaddrDyn in it.pVaddr until (it.pVaddr + it.pMemsz) } ?: return null
             val dynOff = dynLoad.pOffset + (pVaddrDyn - dynLoad.pVaddr)
-            if (dynOff < 0 || dynOff + pFilesz > data.size) return null
+            if (dynOff < 0L || dynOff + pFilesz > data.size.toLong()) return null
 
             var off = dynOff
             while (off < dynOff + pFilesz) {
@@ -734,7 +734,7 @@ class BootstrapDownloader @Inject constructor(
                 val dVal = ByteBuffer.wrap(data, idx + 8, 8).order(ByteOrder.LITTLE_ENDIAN).long
                 when (dTag) {
                     5L  -> strtab = dVal
-                    15L -> if (runpathStrOffset < 0) runpathStrOffset = dVal
+                    15L -> if (runpathStrOffset < 0L) runpathStrOffset = dVal
                     29L -> runpathStrOffset = dVal // DT_RUNPATH wins over DT_RPATH
                 }
                 if (dTag == 0L) break
@@ -742,11 +742,11 @@ class BootstrapDownloader @Inject constructor(
             }
         }
 
-        if (runpathStrOffset < 0 || strtab == 0) return null
+        if (runpathStrOffset < 0L || strtab == 0L) return null
 
         val strLoad = loads.firstOrNull { strtab in it.pVaddr until (it.pVaddr + it.pMemsz) } ?: return null
         val strOff = strLoad.pOffset + (strtab - strLoad.pVaddr) + runpathStrOffset
-        if (strOff < 0 || strOff.toInt() >= data.size) return null
+        if (strOff < 0L || strOff.toInt() >= data.size) return null
 
         var end = strOff.toInt()
         while (end < data.size && data[end] != 0.toByte()) end++
@@ -786,7 +786,7 @@ class BootstrapDownloader @Inject constructor(
 
         for (i in 0 until phnum) {
             val phOff = phoff + i * phentsize
-            if (phOff < 0 || phOff.toInt() + 56 > data.size) return
+            if (phOff < 0L || phOff.toInt() + 56 > data.size) return
             val pType = ByteBuffer.wrap(data, phOff.toInt(), 4).order(ByteOrder.LITTLE_ENDIAN).int
             if (pType != 4) continue // PT_NOTE
 
@@ -813,7 +813,7 @@ class BootstrapDownloader @Inject constructor(
             val descPadded = ((nDescsz + 3) and 0x7FFFFFFC).toLong()
             val noteSize = 12L + namePadded + descPadded
 
-            if (idx + noteSize > data.size) break
+            if (idx.toLong() + noteSize > data.size.toLong()) break
             notesEnd += noteSize
             if (notesEnd >= noteOff + noteFilesz) break
         }
