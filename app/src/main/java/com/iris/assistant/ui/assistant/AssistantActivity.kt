@@ -1,9 +1,13 @@
 package com.iris.assistant.ui.assistant
 
+import android.content.Context
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
+import android.view.View
+import android.view.ViewTreeObserver
 import android.view.WindowManager
+import android.view.inputmethod.InputMethodManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.animation.AnimatedContent
@@ -38,6 +42,7 @@ import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
@@ -46,13 +51,12 @@ import androidx.compose.ui.unit.sp
 import com.iris.assistant.service.voice.VoiceInteractionEntryPoint
 import com.iris.assistant.ui.theme.ColorTextSecondary
 import com.iris.assistant.ui.theme.IrisTheme
-import com.iris.assistant.ui.theme.IrisThemeTransparent
 import com.phosphor.icons.PhIcons
 import com.phosphor.icons.filled.MicrophoneFill
 import com.phosphor.icons.filled.PaperPlaneRightFill
 import com.phosphor.icons.regular.X
 import dagger.hilt.android.EntryPointAccessors
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.delay  // used in AssistantScreen (isDone delay)
 
 private const val TAG = "AssistantActivity"
 
@@ -623,11 +627,42 @@ private fun PillReply(text: String) {
 private fun PillInput(text: String, onTextChanged: (String) -> Unit, onSend: () -> Unit) {
     val primary = IrisTheme.colors.primary
     val fr      = remember { FocusRequester() }
+    val view    = LocalView.current
 
-    // Request focus after window is ready — fixes translucent activity IME bug
+    // Reliable IME show for translucent windows.
+    //
+    // Root cause: InputMethodManager.showSoftInput() only works AFTER
+    // onWindowFocusChanged fires AND after the next UI loop post. In a
+    // translucent activity, window focus arrives late — a fixed delay() is
+    // a race condition. The correct approach (per Square Engineering):
+    //   1. requestFocus() immediately.
+    //   2. If window already has focus → post showSoftInput on next UI loop.
+    //   3. If not → wait for ViewTreeObserver.onWindowFocusChanged, then post.
     LaunchedEffect(Unit) {
-        delay(150)
-        runCatching { fr.requestFocus() }
+        view.post {
+            fr.requestFocus()
+            fun showImm() {
+                view.post {
+                    val imm = view.context.getSystemService(Context.INPUT_METHOD_SERVICE)
+                            as InputMethodManager
+                    imm.showSoftInput(view, InputMethodManager.SHOW_IMPLICIT)
+                }
+            }
+            if (view.hasWindowFocus()) {
+                showImm()
+            } else {
+                view.viewTreeObserver.addOnWindowFocusChangeListener(
+                    object : ViewTreeObserver.OnWindowFocusChangeListener {
+                        override fun onWindowFocusChanged(hasFocus: Boolean) {
+                            if (hasFocus) {
+                                showImm()
+                                view.viewTreeObserver.removeOnWindowFocusChangeListener(this)
+                            }
+                        }
+                    }
+                )
+            }
+        }
     }
 
     BasicTextField(
