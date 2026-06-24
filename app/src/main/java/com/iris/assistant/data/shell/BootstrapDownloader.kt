@@ -2,6 +2,7 @@ package com.iris.assistant.data.shell
 
 import android.content.Context
 import android.os.Build
+import android.system.Os
 import android.util.Log
 import com.iris.assistant.domain.model.BootstrapState
 import com.iris.assistant.util.Constants
@@ -223,17 +224,36 @@ class BootstrapDownloader @Inject constructor(
         // like libreadline.so.8 → libreadline.so.8.0.
         fixSymlinks(prefixDir)
 
-        // ── Step 10: patch DT_RUNPATH in key binaries ────────────────────
-        // The system linker requires DT_RUNPATH or DT_RPATH to locate shared
-        // libraries for PIE binaries. Termux's prebuilt binaries have
-        // hardcoded paths (e.g. /data/data/com.termux/files/usr/lib) which
-        // are invalid when extracted to our app's data dir. We rewrite them
-        // to $ORIGIN/../lib so that the linker resolves libraries relative to
-        // the binary's own location.
-        File(prefixDir, "bin/bash").let { if (it.exists()) patchElfRunpath(it) }
-        File(prefixDir, "bin/apt-get").let { if (it.exists()) patchElfRunpath(it) }
+        // ── Step 10: create short symlink to lib directory ──────────────
+        // The system linker (linker64) resolves $ORIGIN based on its OWN
+        // executable path (/system/bin), not the loaded binary's path.
+        // So $ORIGIN/../lib in DT_RUNPATH resolves to /system/lib64 —
+        // useless. We need an absolute DT_RUNPATH.
+        //
+        // The original Termux path (34 bytes) in the ELF string table
+        // limits our replacement to ≤34 chars. /data/data/<pkg>/u/lib
+        // (33 chars) fits. We create a symlink at that short path
+        // pointing to the real lib directory.
+        val shortLibDir = File("/data/data/${context.packageName}/u/lib")
+        shortLibDir.parentFile?.mkdirs()
+        try {
+            // Remove old symlink first (if any)
+            Os.remove(shortLibDir.absolutePath)
+        } catch (_: android.system.ErrnoException) { }
+        try {
+            Os.symlink(File(prefixDir, "lib").absolutePath, shortLibDir.absolutePath)
+            Log.d(TAG, "Created short lib symlink: ${shortLibDir.absolutePath} -> ${File(prefixDir, "lib").absolutePath}")
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to create short lib symlink: ${e.message}")
+        }
 
-        // ── Step 11: install proot via apt ───────────────────────────────
+        // ── Step 11: patch DT_RUNPATH in key binaries ───────────────────
+        // Replace the hardcoded Termux runpath with our absolute short lib
+        // path so the system linker can find shared libraries.
+        File(prefixDir, "bin/bash").let { if (it.exists()) patchElfRunpath(it, shortLibDir.absolutePath) }
+        File(prefixDir, "bin/apt-get").let { if (it.exists()) patchElfRunpath(it, shortLibDir.absolutePath) }
+
+        // ── Step 12: install proot via apt ───────────────────────────────
         // proot is not bundled in the bootstrap zip — it must be pulled via
         // the Termux package manager. We run apt in a one-shot subprocess
         // (not via EmbeddedShell, which isn't started yet) to avoid a
@@ -249,7 +269,7 @@ class BootstrapDownloader @Inject constructor(
             Log.w(TAG, "proot install failed (non-fatal): ${ex.message}")
         }
 
-        // ── Step 10: write version marker ───────────────────────────────
+        // ── Step 13: write version marker ───────────────────────────────
         versionFile.writeText(release.tagName)
 
         Log.d(TAG, "Bootstrap installed at ${prefixDir.absolutePath} (${release.tagName})")
@@ -515,15 +535,15 @@ class BootstrapDownloader @Inject constructor(
 
     /**
      * Patches the DT_RUNPATH (or DT_RPATH) of a 64-bit ELF binary to point
-     * to $ORIGIN/../lib. This is required because Termux's prebuilt binaries
+     * to [libAbsPath]. This is required because Termux's prebuilt binaries
      * have hardcoded RPATHs like /data/data/com.termux/files/usr/lib, which
      * are invalid when the bootstrap is extracted to our app's data directory.
      *
-     * The replacement string ($ORIGIN/../lib, 14 bytes) is always shorter
-     * than the original Termux path (≥34 bytes), so we overwrite in-place
-     * and null-pad the remainder. No ELF section resizing needed.
+     * The new path MUST be ≤ the old path length (otherwise we'd need to
+     * resize the .dynstr section). The caller should ensure this constraint
+     * holds (see step 10 where a short symlink path is created).
      */
-    private fun patchElfRunpath(elfFile: File) {
+    private fun patchElfRunpath(elfFile: File, libAbsPath: String) {
         if (!elfFile.isFile) return
         val data = elfFile.readBytes()
         if (data.size < 64) return
@@ -616,21 +636,20 @@ class BootstrapDownloader @Inject constructor(
         }
         val oldLen = if (endPos >= 0) endPos - runpathFilePos.toInt() else data.size - runpathFilePos.toInt()
 
-        val newRunpath = "\$ORIGIN/../lib"
-        if (newRunpath.length > oldLen) {
-            Log.w(TAG, "Cannot patch ${elfFile.name}: new RUNPATH (${newRunpath.length}) longer than old ($oldLen)")
+        if (libAbsPath.length > oldLen) {
+            Log.w(TAG, "Cannot patch ${elfFile.name}: new RUNPATH (${libAbsPath.length}) longer than old ($oldLen)")
             return
         }
 
         val oldPath = data.copyOfRange(runpathFilePos.toInt(), runpathFilePos.toInt() + oldLen).decodeToString()
-        val newBytes = newRunpath.encodeToByteArray()
+        val newBytes = libAbsPath.encodeToByteArray()
         newBytes.copyInto(data, runpathFilePos.toInt())
         // Null-pad remaining bytes
         data.fill(0, runpathFilePos.toInt() + newBytes.size, runpathFilePos.toInt() + oldLen)
         if (endPos >= 0) data[runpathFilePos.toInt() + newBytes.size] = 0
 
         elfFile.writeBytes(data)
-        Log.i(TAG, "Patched DT_RUNPATH in ${elfFile.name}: '$oldPath' -> '$newRunpath'")
+        Log.i(TAG, "Patched DT_RUNPATH in ${elfFile.name}: '$oldPath' -> '$libAbsPath'")
     }
 
     /**
