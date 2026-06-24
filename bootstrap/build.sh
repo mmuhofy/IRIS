@@ -66,11 +66,18 @@ else
     cd "$TERMUX_PACKAGES_DIR"
 fi
 
-# ── Step 2: Clean previous builds ─────────────────────────────────────────
+# ── Step 2: Set up build root ─────────────────────────────────────────────
+# build-package.sh writes arch marker to /data/ and installs to /data/data/ 
+if [ ! -d /data ]; then
+    echo "[*] Creating /data build root..."
+    mkdir -p /data 2>/dev/null || sudo mkdir -p /data
+fi
+
+# ── Step 3: Clean previous builds ─────────────────────────────────────────
 echo "[*] Cleaning..."
 ./clean.sh 2>/dev/null || echo "  (clean.sh skipped)"
 
-# ── Step 3: Package list ──────────────────────────────────────────────────
+# ── Step 4: Package list ──────────────────────────────────────────────────
 PACKAGES=(
     libandroid-support
     ncurses
@@ -108,7 +115,7 @@ PACKAGES=(
     unzip
 )
 
-# ── Step 4: Build all packages ────────────────────────────────────────────
+# ── Step 5: Build all packages ────────────────────────────────────────────
 echo "[*] Building ${#PACKAGES[@]} packages..."
 BUILD_FAILED=()
 BUILD_SKIPPED=0
@@ -139,7 +146,7 @@ if [ ${#BUILD_FAILED[@]} -gt 0 ]; then
     for f in "${BUILD_FAILED[@]}"; do echo "  - $f"; done
 fi
 
-# ── Step 5: Create rootfs ─────────────────────────────────────────────────
+# ── Step 6: Create rootfs ─────────────────────────────────────────────────
 echo ""
 echo "[*] Creating rootfs..."
 rm -rf "$BOOTSTRAP_TMPDIR"
@@ -152,7 +159,7 @@ mkdir -p "$PREFIX/var/lib/dpkg/updates"
 touch "$PREFIX/var/lib/dpkg/available"
 touch "$PREFIX/var/lib/dpkg/status"
 
-# ── Step 6: Extract .deb files ────────────────────────────────────────────
+# ── Step 7: Extract .deb files ────────────────────────────────────────────
 DEBS_DIR="$TERMUX_PACKAGES_DIR/output"
 echo "[*] Extracting .deb files from $DEBS_DIR..."
 
@@ -196,7 +203,7 @@ for deb in "$DEBS_DIR"/*_"$ARCH".deb; do
 done
 echo "  Extracted $DEB_COUNT deb packages"
 
-# ── Step 7: Symlinks ──────────────────────────────────────────────────────
+# ── Step 8: Symlinks ──────────────────────────────────────────────────────
 echo "[*] Creating symlinks..."
 SYMLINKS_FILE="$TERMUX_PACKAGES_DIR/scripts/bootstrap/symlinks.txt"
 if [ -f "$SYMLINKS_FILE" ]; then
@@ -213,7 +220,7 @@ if [ -f "$SYMLINKS_FILE" ]; then
     done < "$SYMLINKS_FILE"
 fi
 
-# ── Step 8: Verify essential binaries ─────────────────────────────────────
+# ── Step 9: Verify essential binaries ─────────────────────────────────────
 echo ""
 echo "[*] Verifying essential binaries..."
 ESSENTIALS=("bin/bash" "bin/ls" "bin/cat" "bin/mv" "bin/cp" "bin/rm" "bin/mkdir")
@@ -243,7 +250,7 @@ if [ ${#MISSING[@]} -gt 0 ]; then
     exit 1
 fi
 
-# ── Step 9: Create bootstrap zip ──────────────────────────────────────────
+# ── Step 10: Create bootstrap zip ─────────────────────────────────────────
 echo ""
 echo "[*] Creating bootstrap zip..."
 mkdir -p "$OUTPUT_DIR"
