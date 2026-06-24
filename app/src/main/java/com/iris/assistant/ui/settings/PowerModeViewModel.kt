@@ -30,9 +30,9 @@ data class PowerModeUiState(
 
 @HiltViewModel
 class PowerModeViewModel @Inject constructor(
-    private val prefsRepo          : PreferencesRepository,
-    private val bootstrapDownloader: BootstrapDownloader,
-    private val embeddedShell      : EmbeddedShell,
+    private val prefsRepo         : PreferencesRepository,
+    private val bootstrapInstaller: BootstrapInstaller,
+    private val embeddedShell     : EmbeddedShell,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(PowerModeUiState())
@@ -51,12 +51,12 @@ class PowerModeViewModel @Inject constructor(
             }
         }
         // If bootstrap already installed, reflect that immediately
-        if (bootstrapDownloader.isInstalled()) {
+        if (bootstrapInstaller.isInstalled()) {
             _uiState.update {
                 it.copy(
                     bootstrapState = BootstrapState.Installed(
-                        prefixPath = bootstrapDownloader.prefixDir.absolutePath,
-                        version    = bootstrapDownloader.installedVersion() ?: "",
+                        prefixPath = bootstrapInstaller.prefixDir.absolutePath,
+                        version    = bootstrapInstaller.installedVersion() ?: "",
                     )
                 )
             }
@@ -121,7 +121,7 @@ class PowerModeViewModel @Inject constructor(
 
     fun installBootstrap() {
         viewModelScope.launch {
-            bootstrapDownloader.install().collect { state ->
+            bootstrapInstaller.install().collect { state ->
                 _uiState.update { it.copy(bootstrapState = state) }
             }
         }
@@ -130,7 +130,7 @@ class PowerModeViewModel @Inject constructor(
     fun uninstallBootstrap() {
         viewModelScope.launch {
             if (embeddedShell.isRunning) embeddedShell.stop()
-            bootstrapDownloader.uninstall()
+            bootstrapInstaller.uninstall()
             _uiState.update { it.copy(bootstrapState = BootstrapState.Idle) }
         }
     }

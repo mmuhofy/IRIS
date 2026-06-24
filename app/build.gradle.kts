@@ -9,7 +9,6 @@ plugins {
     alias(libs.plugins.ksp)
 }
 
-// Load API keys from local.properties (local dev) or environment (CI)
 val localProps = Properties().apply {
     val f = rootProject.file("local.properties")
     if (f.exists()) load(f.inputStream())
@@ -44,10 +43,29 @@ android {
         buildConfigField("String", "GEMINI_API_KEY",   apiKey("GEMINI_API_KEY"))
         buildConfigField("String", "GROQ_API_KEY",     apiKey("GROQ_API_KEY"))
         buildConfigField("String", "WEATHER_API_KEY",  apiKey("WEATHER_API_KEY"))
-        buildConfigField("String", "TAVILY_API_KEY",         apiKey("TAVILY_API_KEY"))
-        buildConfigField("String", "NEWS_API_KEY",           apiKey("NEWS_API_KEY"))
-        buildConfigField("String", "GROQ_LLM_API_KEY",       apiKey("GROQ_LLM_API_KEY"))
-        buildConfigField("String", "HF_API_KEY",             apiKey("HF_API_KEY"))
+        buildConfigField("String", "TAVILY_API_KEY",   apiKey("TAVILY_API_KEY"))
+        buildConfigField("String", "NEWS_API_KEY",     apiKey("NEWS_API_KEY"))
+        buildConfigField("String", "GROQ_LLM_API_KEY", apiKey("GROQ_LLM_API_KEY"))
+        buildConfigField("String", "HF_API_KEY",       apiKey("HF_API_KEY"))
+
+        // NDK — build libiris-bootstrap.so from termux-bootstrap-zip.S + termux-bootstrap.c
+        // The bootstrap-*.zip files must be placed in app/src/main/cpp/ before building.
+        externalNativeBuild {
+            ndkBuild {
+                // Pass nothing — Android.mk picks up all sources automatically
+            }
+        }
+
+        ndk {
+            // Match splits.abi below — arm64-v8a only for now
+            abiFilters += "arm64-v8a"
+        }
+    }
+
+    externalNativeBuild {
+        ndkBuild {
+            path = file("src/main/cpp/Android.mk")
+        }
     }
 
     signingConfigs {
@@ -81,8 +99,8 @@ android {
             }
         }
         debug {
-            isMinifyEnabled   = false
-            signingConfig     = signingConfigs["debug"]
+            isMinifyEnabled     = false
+            signingConfig       = signingConfigs["debug"]
             applicationIdSuffix = ".debug"
             versionNameSuffix   = "-debug"
         }
@@ -167,9 +185,10 @@ dependencies {
     // Serialization
     implementation(libs.kotlinx.serialization.json)
 
+    // Icons — Phosphor Icons for Compose
+    // (already included above via phosphoricons.*)
+
     // Wake Word — openWakeWord via ONNX Runtime
-    // Requires 3 ONNX assets in app/src/main/assets/:
-    //   hey_jarvis.onnx, melspectrogram.onnx, embedding_model.onnx
     implementation(libs.openwakeword) {
         exclude(group = "com.microsoft.onnxruntime", module = "onnxruntime-android")
     }
