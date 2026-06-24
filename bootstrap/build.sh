@@ -70,7 +70,11 @@ fi
 # build-package.sh writes arch marker to /data/ and installs to /data/data/ 
 if [ ! -d /data ]; then
     echo "[*] Creating /data build root..."
-    mkdir -p /data 2>/dev/null || sudo mkdir -p /data
+    sudo mkdir -p /data
+fi
+# Ensure the runner user owns /data for writing arch marker and packages
+if [ "$(stat --format=%u /data)" != "$(id -u)" ]; then
+    sudo chown "$(id -u):$(id -g)" /data
 fi
 
 # ── Step 3: Clean previous builds ─────────────────────────────────────────
