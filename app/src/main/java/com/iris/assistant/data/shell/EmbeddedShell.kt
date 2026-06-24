@@ -25,12 +25,12 @@ import javax.inject.Singleton
 /**
  * Persistent shell session backed by Android's system shell (/system/bin/sh).
  *
- * Termux bootstrap binaries (in $PREFIX/bin) cannot be executed directly
+ * IRIS bootstrap binaries (in $PREFIX/bin) cannot be executed directly
  * because Android SELinux blocks `execute` on app_data_file. Instead we
  * proxy them through `/system/bin/linker64` (or `/system/bin/linker` on
  * 32-bit), which IS executable by appdomain and can read the ELF as a data
  * file. A thin `t` shell function is injected at startup so callers can
- * write `t ls -la` to run any Termux binary with proper library resolution.
+ * write `t ls -la` to run any bootstrap binary with proper library resolution.
  *
  * Lifecycle:
  *   start() → [running] = true → commands flow in via [send] → stop() cleans up
@@ -123,8 +123,8 @@ class EmbeddedShell @Inject constructor(
     }
 
     /**
-     * Runs a Termux bootstrap binary directly via linker64 and returns the
-     * output. Use this from Kotlin code when you need a Termux tool without
+     * Runs a bootstrap binary directly via linker64 and returns the
+     * output. Use this from Kotlin code when you need a tool without
      * going through the persistent shell session.
      */
     suspend fun runTermux(

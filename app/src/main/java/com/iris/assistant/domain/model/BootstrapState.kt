@@ -1,7 +1,7 @@
 package com.iris.assistant.domain.model
 
 /**
- * Represents the lifecycle of the Termux bootstrap installation.
+ * Represents the lifecycle of the IRIS bootstrap installation.
  *
  * State machine:
  *   Idle ──► Checking ──► Downloading ──► Extracting ──► Installed
@@ -46,8 +46,8 @@ sealed interface BootstrapState {
     /**
      * Bootstrap is fully installed and ready.
      *
-     * @param prefixPath absolute path to the Termux prefix (`$filesDir/termux/usr`)
-     * @param version    release tag that was installed (e.g. "bootstrap-2025.12.14-r1+apt-android-7")
+     * @param prefixPath absolute path to the Termux prefix (`$filesDir/usr`)
+     * @param version    release tag that was installed (e.g. "bootstrap-20260624-r1")
      */
     data class Installed(
         val prefixPath: String,

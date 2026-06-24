@@ -26,25 +26,22 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Downloads, verifies, and extracts the Termux bootstrap zip into the app's
- * private files directory.
+ * Downloads, verifies, and extracts the IRIS custom bootstrap zip into the
+ * app's private files directory.
  *
  * Layout after installation:
  *   filesDir/
- *     termux/
- *       usr/          ← TERMUX_PREFIX  (extracted bootstrap contents)
- *       home/         ← TERMUX_HOME    (created empty, used as $HOME)
+ *     usr/          ← TERMUX_PREFIX  (extracted bootstrap contents)
+ *     home/         ← TERMUX_HOME    (created empty, used as $HOME)
  *     bootstrap/
  *       bootstrap-{ABI}.zip   ← temporary download; deleted after extraction
  *       INSTALLED_VERSION     ← plain-text version tag of installed bootstrap
  *
- * The bootstrap zip is sourced from termux/termux-packages GitHub Releases.
+ * The bootstrap zip is sourced from mmuhofy/IRIS GitHub Releases.
  * Asset naming: bootstrap-aarch64.zip / bootstrap-arm.zip / bootstrap-x86_64.zip / bootstrap-i686.zip
  *
- * The SHA-256 checksums are published as a separate asset named CHECKSUMS.sha256
+ * SHA-256 checksums are published as a separate asset named CHECKSUMS.sha256
  * in the same release. We fetch and parse that file to verify the download.
- *
- * UNTESTED — verify before use
  */
 @Singleton
 class BootstrapDownloader @Inject constructor(
@@ -54,12 +51,9 @@ class BootstrapDownloader @Inject constructor(
     companion object {
         private const val TAG = "BootstrapDownloader"
 
-        // GitHub API — latest release of termux-packages bootstrap
+        // GitHub API — latest release of IRIS custom bootstrap
         private const val GITHUB_RELEASES_API =
-            "https://api.github.com/repos/termux/termux-packages/releases"
-
-        // How many releases to fetch when looking for a bootstrap release
-        private const val RELEASE_FETCH_COUNT = 5
+            "https://api.github.com/repos/mmuhofy/IRIS/releases"
 
         // Download buffer size
         private const val BUFFER_SIZE = 8 * 1024 // 8 KB
@@ -83,11 +77,11 @@ class BootstrapDownloader @Inject constructor(
 
     /** Termux prefix — the extracted bootstrap lands here. */
     val prefixDir: File
-        get() = File(context.filesDir, "termux/usr").also { it.mkdirs() }
+        get() = File(context.filesDir, "usr").also { it.mkdirs() }
 
     /** Termux home directory. */
     val homeDir: File
-        get() = File(context.filesDir, "termux/home").also { it.mkdirs() }
+        get() = File(context.filesDir, "home").also { it.mkdirs() }
 
     // ── Public API ───────────────────────────────────────────────────────────
 
@@ -328,7 +322,7 @@ class BootstrapDownloader @Inject constructor(
      * Maps the device's primary ABI to the corresponding Termux bootstrap asset name.
      * Returns null for unsupported ABIs.
      *
-     * Termux bootstrap asset names (verified against termux/termux-packages releases):
+     * Bootstrap asset names (from the IRIS release):
      *   arm64-v8a  → bootstrap-aarch64.zip
      *   armeabi-v7a → bootstrap-arm.zip
      *   x86_64     → bootstrap-x86_64.zip
@@ -346,12 +340,12 @@ class BootstrapDownloader @Inject constructor(
     }
 
     /**
-     * Fetches the GitHub Releases list and returns the first release whose tag
-     * starts with "bootstrap-". This is how termux/termux-packages names its
-     * bootstrap releases (e.g. "bootstrap-2025.12.14-r1+apt-android-7").
+     * Fetches the latest release from mmuhofy/IRIS. We use the `/releases/latest`
+     * endpoint which returns the most recent non-prerelease, non-draft release.
+     * The release tag follows the pattern "bootstrap-YYYYMMDD-rN".
      */
     private fun fetchLatestBootstrapRelease(): GitHubRelease {
-        val url = "$GITHUB_RELEASES_API?per_page=$RELEASE_FETCH_COUNT"
+        val url = "$GITHUB_RELEASES_API/latest"
         val request = Request.Builder()
             .url(url)
             .header("Accept", "application/vnd.github.v3+json")
@@ -365,9 +359,7 @@ class BootstrapDownloader @Inject constructor(
             val body = response.body?.string()
                 ?: throw IllegalStateException("Empty response from GitHub API")
 
-            val releases = json.decodeFromString<List<GitHubRelease>>(body)
-            return releases.firstOrNull { it.tagName.startsWith("bootstrap-") }
-                ?: throw IllegalStateException("No bootstrap release found in last $RELEASE_FETCH_COUNT releases")
+            return json.decodeFromString<GitHubRelease>(body)
         }
     }
 
@@ -450,6 +442,11 @@ class BootstrapDownloader @Inject constructor(
     /**
      * Extracts a zip file into [destDir].
      *
+     * The bootstrap zip stores entries as absolute paths from the root, e.g.
+     * `data/data/com.iris.assistant/files/usr/bin/bash`. This function strips
+     * the leading prefix that may be present, so the entry `.../usr/bin/bash`
+     * ends up at `[destDir]/bin/bash`.
+     *
      * Security note: path traversal attack prevention — any entry whose
      * canonical path does not start with [destDir]'s canonical path is skipped
      * with a warning. This guards against malformed zips with "../" entries.
@@ -461,7 +458,8 @@ class BootstrapDownloader @Inject constructor(
         ZipInputStream(zipFile.inputStream().buffered()).use { zis ->
             while (true) {
                 val entry = zis.nextEntry ?: break
-                val entryFile = File(destDir, entry.name)
+                val relativePath = stripBootstrapPrefix(entry.name)
+                val entryFile = File(destDir, relativePath)
 
                 // Path traversal guard
                 if (!entryFile.canonicalPath.startsWith(canonicalDest)) {
@@ -488,6 +486,28 @@ class BootstrapDownloader @Inject constructor(
             }
         }
         Log.d(TAG, "Extracted $entryCount entries to ${destDir.absolutePath}")
+    }
+
+    /**
+     * Strips the leading absolute-path prefix from bootstrap zip entries.
+     *
+     * The bootstrap zip contains entries like:
+     *   data/data/com.iris.assistant/files/usr/bin/bash
+     *   deb-extract/packages.list
+     *
+     * We strip everything before `files/usr/` (if present) so the entry
+     * resolves to `bin/bash` inside [prefixDir].
+     *
+     * Entries without the `files/usr/` prefix are returned as-is (they
+     * are usually metadata directories like `deb-extract/`).
+     */
+    private fun stripBootstrapPrefix(path: String): String {
+        val marker = "files/usr/"
+        val idx = path.indexOf(marker)
+        if (idx >= 0) {
+            return path.substring(idx + marker.length)
+        }
+        return path
     }
 
     /**
@@ -569,7 +589,7 @@ class BootstrapDownloader @Inject constructor(
 
     /**
      * Patches the DT_RUNPATH (or DT_RPATH) of a 64-bit ELF binary to point
-     * to [libAbsPath]. This is required because Termux's prebuilt binaries
+     * to [libAbsPath]. This is required because the bootstrap binaries
      * have hardcoded RPATHs like /data/data/com.termux/files/usr/lib, which
      * are invalid when the bootstrap is extracted to our app's data directory.
      *

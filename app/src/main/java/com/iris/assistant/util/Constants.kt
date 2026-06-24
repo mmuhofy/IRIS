@@ -130,18 +130,10 @@ object Constants {
     // Maximum terminal output lines kept in ViewModel state (ring-buffer via takeLast).
     const val TERMINAL_MAX_LINES = 500
 
-    // GitHub Releases API — bootstrap zips are published under termux/termux-packages.
-    const val BOOTSTRAP_GITHUB_API =
-        "https://api.github.com/repos/termux/termux-packages/releases"
-
     // Layout inside filesDir:
-    //   filesDir/termux/usr/   = TERMUX_PREFIX
-    //   filesDir/termux/home/  = TERMUX_HOME
-    //   filesDir/bootstrap/    = temp download dir
-    const val TERMUX_DIR_NAME    = "termux"
-    const val TERMUX_PREFIX_NAME = "usr"
-    const val TERMUX_HOME_NAME   = "home"
-    const val BOOTSTRAP_DIR_NAME = "bootstrap"
+    //   filesDir/usr/        = TERMUX_PREFIX  (extracted bootstrap)
+    //   filesDir/home/       = TERMUX_HOME    (created empty, used as $HOME)
+    //   filesDir/bootstrap/  = temp download dir
 
     // Shell security levels (persisted as String in DataStore).
     const val SHELL_SECURITY_UNRESTRICTED = "UNRESTRICTED"
