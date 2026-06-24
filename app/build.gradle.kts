@@ -50,15 +50,11 @@ android {
 
         // NDK — build libiris-bootstrap.so from termux-bootstrap-zip.S + termux-bootstrap.c
         // The bootstrap-*.zip files must be placed in app/src/main/cpp/ before building.
+        // ABI is restricted to arm64-v8a via splits.abi below — no ndk.abiFilters needed.
         externalNativeBuild {
             ndkBuild {
                 // Pass nothing — Android.mk picks up all sources automatically
             }
-        }
-
-        ndk {
-            // Match splits.abi below — arm64-v8a only for now
-            abiFilters += "arm64-v8a"
         }
     }
 
