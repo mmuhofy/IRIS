@@ -83,9 +83,10 @@ class EmbeddedShell @Inject constructor(
                         put("PREFIX",        prefixPath)
                         put("PATH",          "$prefixPath/bin:$prefixPath/sbin:/system/bin:/system/xbin")
                         put("TMPDIR",        "$prefixPath/tmp")
-                        put("TERM",          "xterm-256color")
-                        put("LANG",          "en_US.UTF-8")
-                        put("TERMUX_PREFIX", prefixPath)
+                        put("TERM",             "xterm-256color")
+                        put("LANG",             "en_US.UTF-8")
+                        put("LD_LIBRARY_PATH",  "$prefixPath/lib")
+                        put("TERMUX_PREFIX",    prefixPath)
                     }
                     directory(File(homePath))
                 }

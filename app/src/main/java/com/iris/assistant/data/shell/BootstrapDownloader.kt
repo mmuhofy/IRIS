@@ -598,7 +598,7 @@ class BootstrapDownloader @Inject constructor(
         }
 
         if (runpathStrOffset < 0L || strtab == 0L) {
-            Log.d(TAG, "No DT_RUNPATH/DT_RPATH in ${elfFile.name} — skipping")
+            Log.w(TAG, "No DT_RUNPATH/DT_RPATH in ${elfFile.name} — fallback to LD_LIBRARY_PATH")
             return
         }
 
