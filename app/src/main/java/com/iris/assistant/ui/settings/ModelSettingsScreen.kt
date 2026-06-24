@@ -1,9 +1,6 @@
 package com.iris.assistant.ui.settings
 
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -20,26 +17,22 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -51,15 +44,13 @@ import com.iris.assistant.ui.theme.IrisTheme
 import com.iris.assistant.util.Constants
 import com.phosphor.icons.PhIcons
 import com.phosphor.icons.regular.ArrowLeft
-import com.phosphor.icons.regular.CaretDown
-import com.phosphor.icons.regular.Check
+import com.phosphor.icons.regular.CheckCircle
 import com.phosphor.icons.regular.Cloud
 import com.phosphor.icons.regular.Cpu
 import com.phosphor.icons.regular.DeviceMobile
 import com.phosphor.icons.regular.Download
 import com.phosphor.icons.regular.Sparkle
 
-// Maps provider key → icon
 private fun providerIcon(provider: String): ImageVector = when (provider) {
     Constants.LLM_PROVIDER_GEMINI -> PhIcons.Regular.Sparkle
     Constants.LLM_PROVIDER_GROQ   -> PhIcons.Regular.Cloud
@@ -106,12 +97,11 @@ fun ModelSettingsScreen(
                 .padding(innerPadding)
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp),
-            contentPadding      = PaddingValues(bottom = 32.dp),
+            contentPadding      = PaddingValues(top = 8.dp, bottom = 32.dp),
         ) {
 
-            // ── Provider cards ────────────────────────────────────────────
+            // ── Provider section ──────────────────────────────────────────
             item {
-                Spacer(Modifier.height(4.dp))
                 ModelSectionLabel("Sağlayıcı")
                 ProviderCards(
                     current  = uiState.llmProvider,
@@ -119,11 +109,12 @@ fun ModelSettingsScreen(
                 )
             }
 
-            // ── Model selector ────────────────────────────────────────────
+            // ── Model section ─────────────────────────────────────────────
             if (uiState.llmProvider != Constants.LLM_PROVIDER_LOCAL) {
                 item {
                     ModelSectionLabel("Model")
-                    ModelSelector(
+                    // Inline model rows — no dropdown needed
+                    InlineModelSelector(
                         current  = uiState.llmModel,
                         provider = uiState.llmProvider,
                         onChange = viewModel::onLlmModelChange,
@@ -132,32 +123,67 @@ fun ModelSettingsScreen(
             } else {
                 item {
                     ModelSectionLabel("Yerel Model")
-                    ModelInfoRow(
-                        icon        = PhIcons.Regular.Download,
-                        label       = "Seçili model",
-                        description = uiState.localModelName.ifBlank { "Henüz seçilmedi" },
-                    )
-                    Spacer(Modifier.height(10.dp))
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(18.dp))
-                            .background(IrisTheme.colors.primary.copy(alpha = 0.10f))
-                            .border(
-                                width = 1.dp,
-                                color = IrisTheme.colors.primary.copy(alpha = 0.3f),
-                                shape = RoundedCornerShape(18.dp),
-                            )
-                            .clickable(onClick = onOpenLocalModels)
-                            .padding(horizontal = 16.dp, vertical = 16.dp),
-                        contentAlignment = Alignment.Center,
+                    Column(
+                        modifier            = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        Text(
-                            text       = "Yerel Modelleri Yönet",
-                            style      = MaterialTheme.typography.bodyMedium,
-                            color      = IrisTheme.colors.primary,
-                            fontWeight = FontWeight.SemiBold,
-                        )
+                        // Selected model info row
+                        Row(
+                            modifier          = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(18.dp))
+                                .background(MaterialTheme.colorScheme.surface)
+                                .padding(horizontal = 16.dp, vertical = 14.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Box(
+                                modifier         = Modifier
+                                    .size(36.dp)
+                                    .clip(CircleShape)
+                                    .background(IrisTheme.colors.primary.copy(alpha = 0.12f)),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Icon(
+                                    imageVector        = PhIcons.Regular.Download,
+                                    contentDescription = null,
+                                    tint               = IrisTheme.colors.primary,
+                                    modifier           = Modifier.size(18.dp),
+                                )
+                            }
+                            Spacer(Modifier.width(12.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text  = "Seçili model",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = ColorTextSecondary,
+                                )
+                                Text(
+                                    text       = uiState.localModelName.ifBlank { "Seçilmedi" },
+                                    style      = MaterialTheme.typography.bodyLarge,
+                                    fontWeight = FontWeight.Medium,
+                                    color      = if (uiState.localModelName.isNotBlank())
+                                                     IrisTheme.colors.primary
+                                                 else ColorTextSecondary,
+                                )
+                            }
+                        }
+                        // Navigate to local models
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(18.dp))
+                                .background(IrisTheme.colors.primary.copy(alpha = 0.10f))
+                                .clickable(onClick = onOpenLocalModels)
+                                .padding(horizontal = 16.dp, vertical = 16.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(
+                                text       = "Yerel Modelleri Yönet →",
+                                style      = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color      = IrisTheme.colors.primary,
+                            )
+                        }
                     }
                 }
             }
@@ -165,9 +191,7 @@ fun ModelSettingsScreen(
     }
 }
 
-// ---------------------------------------------------------------------------
-// Section label
-// ---------------------------------------------------------------------------
+// ── Section label ─────────────────────────────────────────────────────────────
 
 @Composable
 private fun ModelSectionLabel(text: String) {
@@ -180,9 +204,7 @@ private fun ModelSectionLabel(text: String) {
     )
 }
 
-// ---------------------------------------------------------------------------
-// Provider cards — full card per provider (same pattern as VoiceSettingsScreen)
-// ---------------------------------------------------------------------------
+// ── Provider cards ────────────────────────────────────────────────────────────
 
 @Composable
 private fun ProviderCards(
@@ -194,31 +216,17 @@ private fun ProviderCards(
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Constants.LLM_PROVIDERS.forEach { provider ->
-            val selected = provider == current
-
-            val bgColor by animateColorAsState(
-                targetValue   = if (selected) IrisTheme.colors.primary
-                                else MaterialTheme.colorScheme.surface,
-                animationSpec = tween(200),
-                label         = "providerBg_$provider",
-            )
-            val borderColor by animateColorAsState(
-                targetValue   = if (selected) IrisTheme.colors.primary
-                                else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
-                animationSpec = tween(200),
-                label         = "providerBorder_$provider",
-            )
+            val selected  = provider == current
+            val bgColor   = if (selected) IrisTheme.colors.primary else MaterialTheme.colorScheme.surface
+            val iconTint  = if (selected) Color.White else IrisTheme.colors.primary
+            val textColor = if (selected) Color.White else ColorTextPrimary
+            val subColor  = if (selected) Color.White.copy(alpha = 0.7f) else ColorTextSecondary
 
             Column(
                 modifier = Modifier
                     .weight(1f)
                     .clip(RoundedCornerShape(18.dp))
                     .background(bgColor)
-                    .border(
-                        width = if (selected) 0.dp else 1.dp,
-                        color = borderColor,
-                        shape = RoundedCornerShape(18.dp),
-                    )
                     .clickable { onChange(provider) }
                     .padding(horizontal = 12.dp, vertical = 16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -229,14 +237,14 @@ private fun ProviderCards(
                         .clip(CircleShape)
                         .background(
                             if (selected) Color.White.copy(alpha = 0.2f)
-                            else IrisTheme.colors.primary.copy(alpha = 0.1f)
+                            else IrisTheme.colors.primary.copy(alpha = 0.10f)
                         ),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
                         imageVector        = providerIcon(provider),
                         contentDescription = null,
-                        tint               = if (selected) Color.White else IrisTheme.colors.primary,
+                        tint               = iconTint,
                         modifier           = Modifier.size(20.dp),
                     )
                 }
@@ -245,14 +253,14 @@ private fun ProviderCards(
                     text       = Constants.providerDisplayName(provider),
                     style      = MaterialTheme.typography.labelMedium,
                     fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
-                    color      = if (selected) Color.White else ColorTextPrimary,
+                    color      = textColor,
                 )
                 Spacer(Modifier.height(2.dp))
                 Text(
                     text     = providerSubtitle(provider),
                     style    = MaterialTheme.typography.labelSmall,
-                    color    = if (selected) Color.White.copy(alpha = 0.7f) else ColorTextSecondary,
-                    maxLines = 2,
+                    color    = subColor,
+                    maxLines = 1,
                 )
             }
         }
@@ -260,26 +268,21 @@ private fun ProviderCards(
 }
 
 private fun providerSubtitle(provider: String): String = when (provider) {
-    Constants.LLM_PROVIDER_GEMINI -> "Flash, Pro, Ultra"
-    Constants.LLM_PROVIDER_GROQ   -> "Llama, Mixtral"
+    Constants.LLM_PROVIDER_GEMINI -> "Flash · Pro · Ultra"
+    Constants.LLM_PROVIDER_GROQ   -> "Llama · Mixtral"
     Constants.LLM_PROVIDER_LOCAL  -> "On-device"
     else                           -> ""
 }
 
-// ---------------------------------------------------------------------------
-// Model dropdown selector
-// ---------------------------------------------------------------------------
+// ── Inline model selector — card with rows, no dropdown ──────────────────────
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ModelSelector(
+private fun InlineModelSelector(
     current : String,
     provider: String,
     onChange: (String) -> Unit,
 ) {
-    var expanded   by remember { mutableStateOf(false) }
-    val models      = Constants.modelsForProvider(provider)
-    val selectedModel = models.find { it.apiName == current }
+    val models = Constants.modelsForProvider(provider)
 
     Column(
         modifier = Modifier
@@ -287,164 +290,71 @@ private fun ModelSelector(
             .clip(RoundedCornerShape(18.dp))
             .background(MaterialTheme.colorScheme.surface),
     ) {
-        Box(modifier = Modifier.fillMaxWidth()) {
+        models.forEachIndexed { index, model ->
+            val selected = model.apiName == current
+
             Row(
                 modifier          = Modifier
                     .fillMaxWidth()
-                    .clickable { expanded = true }
-                    .padding(horizontal = 16.dp, vertical = 18.dp),
+                    .background(
+                        if (selected) IrisTheme.colors.primary.copy(alpha = 0.07f)
+                        else Color.Transparent
+                    )
+                    .clickable { onChange(model.apiName) }
+                    .padding(horizontal = 16.dp, vertical = 14.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
+                // Left accent bar
                 Box(
-                    modifier         = Modifier
-                        .size(36.dp)
-                        .clip(CircleShape)
-                        .background(IrisTheme.colors.primary.copy(alpha = 0.12f)),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        imageVector        = PhIcons.Regular.Cpu,
-                        contentDescription = null,
-                        tint               = IrisTheme.colors.primary,
-                        modifier           = Modifier.size(18.dp),
-                    )
-                }
+                    modifier = Modifier
+                        .width(3.dp)
+                        .height(36.dp)
+                        .clip(RoundedCornerShape(2.dp))
+                        .background(
+                            if (selected) IrisTheme.colors.primary else Color.Transparent
+                        )
+                )
                 Spacer(Modifier.width(12.dp))
+
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text  = "Seçili model",
-                        style = MaterialTheme.typography.bodySmall,
+                        text       = model.displayName,
+                        style      = MaterialTheme.typography.bodyLarge,
+                        fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+                        color      = if (selected) IrisTheme.colors.primary else ColorTextPrimary,
+                    )
+                    // API name in monospace-like style
+                    Text(
+                        text  = model.apiName,
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            fontFamily    = FontFamily.Monospace,
+                            letterSpacing = 0.2.sp,
+                        ),
                         color = ColorTextSecondary,
                     )
-                    Text(
-                        text       = selectedModel?.displayName ?: current,
-                        style      = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.Medium,
-                        color      = ColorTextPrimary,
+                }
+
+                if (selected) {
+                    Icon(
+                        imageVector        = PhIcons.Regular.CheckCircle,
+                        contentDescription = null,
+                        tint               = IrisTheme.colors.primary,
+                        modifier           = Modifier.size(20.dp),
                     )
                 }
-                Icon(
-                    imageVector        = PhIcons.Regular.CaretDown,
-                    contentDescription = null,
-                    tint               = ColorTextSecondary,
-                    modifier           = Modifier.size(16.dp),
+            }
+
+            if (index < models.lastIndex) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 31.dp) // accent bar 3dp + spacer 12dp + 16dp padding
+                        .height(0.5.dp)
+                        .background(
+                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f)
+                        ),
                 )
             }
-
-            DropdownMenu(
-                expanded         = expanded,
-                onDismissRequest = { expanded = false },
-                shape            = RoundedCornerShape(18.dp),
-                modifier         = Modifier
-                    .fillMaxWidth(0.85f)
-                    .background(
-                        color = MaterialTheme.colorScheme.surface,
-                        shape = RoundedCornerShape(18.dp),
-                    ),
-            ) {
-                Column(modifier = Modifier.padding(vertical = 4.dp)) {
-                    models.forEachIndexed { index, model ->
-                        val isSelected = model.apiName == current
-                        Surface(
-                            onClick  = { onChange(model.apiName); expanded = false },
-                            shape    = RoundedCornerShape(12.dp),
-                            color    = Color.Transparent,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 6.dp, vertical = 2.dp),
-                        ) {
-                            Row(
-                                modifier          = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 12.dp, vertical = 14.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text  = model.displayName,
-                                        style = MaterialTheme.typography.bodyLarge,
-                                        color = if (isSelected) IrisTheme.colors.primary
-                                                else ColorTextPrimary,
-                                    )
-                                    Text(
-                                        text  = model.apiName,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = ColorTextSecondary,
-                                    )
-                                }
-                                if (isSelected) {
-                                    Icon(
-                                        imageVector        = PhIcons.Regular.Check,
-                                        contentDescription = null,
-                                        tint               = IrisTheme.colors.primary,
-                                        modifier           = Modifier.size(18.dp),
-                                    )
-                                }
-                            }
-                        }
-                        if (index < models.lastIndex) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 18.dp)
-                                    .height(0.5.dp)
-                                    .background(
-                                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f)
-                                    ),
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-// ---------------------------------------------------------------------------
-// Info row (local model display — read only)
-// ---------------------------------------------------------------------------
-
-@Composable
-private fun ModelInfoRow(
-    icon        : ImageVector,
-    label       : String,
-    description : String,
-) {
-    Row(
-        modifier          = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(18.dp))
-            .background(MaterialTheme.colorScheme.surface)
-            .padding(horizontal = 16.dp, vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Box(
-            modifier         = Modifier
-                .size(36.dp)
-                .clip(CircleShape)
-                .background(IrisTheme.colors.primary.copy(alpha = 0.12f)),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                imageVector        = icon,
-                contentDescription = null,
-                tint               = IrisTheme.colors.primary,
-                modifier           = Modifier.size(18.dp),
-            )
-        }
-        Spacer(Modifier.width(12.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text  = label,
-                style = MaterialTheme.typography.bodySmall,
-                color = ColorTextSecondary,
-            )
-            Text(
-                text       = description,
-                style      = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Medium,
-                color      = IrisTheme.colors.primary,
-            )
         }
     }
 }

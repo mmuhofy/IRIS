@@ -1,9 +1,6 @@
 package com.iris.assistant.ui.settings
 
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -18,7 +15,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -48,7 +44,6 @@ import com.iris.assistant.ui.theme.ColorTextSecondary
 import com.iris.assistant.ui.theme.IrisTheme
 import com.phosphor.icons.PhIcons
 import com.phosphor.icons.regular.ArrowLeft
-import com.phosphor.icons.regular.CheckCircle
 import com.phosphor.icons.regular.Cloud
 import com.phosphor.icons.regular.DeviceMobile
 import com.phosphor.icons.regular.Play
@@ -62,11 +57,8 @@ fun VoiceSettingsScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    // NOTE: containerColor (Scaffold AND TopAppBar) is Color.Transparent, not
-    // MaterialTheme.colorScheme.background. Root cause: an opaque background
-    // here paints over the exiting screen during IrisNavGraph.kt's scale+fade
-    // transition, hiding the animation entirely. The real background color lives
-    // once, in the Box wrapping NavHost in IrisNavGraph.kt. Do NOT revert this.
+    // NOTE: containerColor = Color.Transparent — do NOT change to opaque.
+    // Opaque background breaks nav transition animations in IrisNavGraph.kt.
     Scaffold(
         containerColor = Color.Transparent,
         topBar = {
@@ -96,12 +88,11 @@ fun VoiceSettingsScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
                 .padding(horizontal = 16.dp),
-            contentPadding = PaddingValues(bottom = 32.dp),
+            contentPadding = PaddingValues(top = 8.dp, bottom = 32.dp),
         ) {
 
             // ── Provider section ──────────────────────────────────────────
             item {
-                Spacer(Modifier.height(8.dp))
                 VoiceSectionLabel("TTS Sağlayıcısı")
                 TtsProviderCards(
                     current  = uiState.ttsProvider,
@@ -110,23 +101,20 @@ fun VoiceSettingsScreen(
                 Spacer(Modifier.height(24.dp))
             }
 
-            // ── Voice section ─────────────────────────────────────────────
+            // ── Voice character section — compact rows in a single card ───
             item {
                 VoiceSectionLabel("Ses Karakteri")
-                Spacer(Modifier.height(4.dp))
-            }
-
-            items(TtsVoice.entries) { voice ->
-                VoiceCard(
-                    voice   = voice,
-                    selected = voice == uiState.ttsVoice,
-                    onClick  = { viewModel.onTtsVoiceChange(voice) },
+                VoiceListCard(
+                    voices   = TtsVoice.entries,
+                    selected = uiState.ttsVoice,
+                    onSelect = viewModel::onTtsVoiceChange,
                 )
-                Spacer(Modifier.height(8.dp))
             }
         }
     }
 }
+
+// ── Section label ─────────────────────────────────────────────────────────────
 
 @Composable
 private fun VoiceSectionLabel(text: String) {
@@ -134,10 +122,12 @@ private fun VoiceSectionLabel(text: String) {
         text          = text.uppercase(),
         style         = MaterialTheme.typography.labelSmall,
         color         = IrisTheme.colors.primary,
-        letterSpacing = TextUnit(value = 1.2f, type = TextUnitType.Sp),
+        letterSpacing = TextUnit(1.2f, TextUnitType.Sp),
         modifier      = Modifier.padding(start = 4.dp, bottom = 8.dp),
     )
 }
+
+// ── TTS provider cards ────────────────────────────────────────────────────────
 
 @Composable
 private fun TtsProviderCards(
@@ -150,19 +140,12 @@ private fun TtsProviderCards(
     ) {
         TtsProviderType.entries.forEach { provider ->
             val selected = provider == current
+            val bgColor  = if (selected) IrisTheme.colors.primary
+                           else MaterialTheme.colorScheme.surface
+            val iconTint = if (selected) Color.White else IrisTheme.colors.primary
+            val textColor = if (selected) Color.White else ColorTextPrimary
+            val subColor  = if (selected) Color.White.copy(alpha = 0.7f) else ColorTextSecondary
 
-            val bgColor by animateColorAsState(
-                targetValue   = if (selected) IrisTheme.colors.primary
-                                else MaterialTheme.colorScheme.surface,
-                animationSpec = tween(200),
-                label         = "providerBg",
-            )
-            val borderColor by animateColorAsState(
-                targetValue   = if (selected) IrisTheme.colors.primary
-                                else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
-                animationSpec = tween(200),
-                label         = "providerBorder",
-            )
             val providerIcon = when (provider) {
                 TtsProviderType.GEMINI  -> PhIcons.Regular.Sparkle
                 TtsProviderType.MMS     -> PhIcons.Regular.Cloud
@@ -174,11 +157,6 @@ private fun TtsProviderCards(
                     .weight(1f)
                     .clip(RoundedCornerShape(18.dp))
                     .background(bgColor)
-                    .border(
-                        width = if (selected) 0.dp else 1.dp,
-                        color = borderColor,
-                        shape = RoundedCornerShape(18.dp),
-                    )
                     .clickable { onChange(provider) }
                     .padding(horizontal = 12.dp, vertical = 16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -196,7 +174,7 @@ private fun TtsProviderCards(
                     Icon(
                         imageVector        = providerIcon,
                         contentDescription = null,
-                        tint               = if (selected) Color.White else IrisTheme.colors.primary,
+                        tint               = iconTint,
                         modifier           = Modifier.size(20.dp),
                     )
                 }
@@ -205,13 +183,13 @@ private fun TtsProviderCards(
                     text       = provider.displayName,
                     style      = MaterialTheme.typography.labelMedium,
                     fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
-                    color      = if (selected) Color.White else ColorTextPrimary,
+                    color      = textColor,
                 )
                 Spacer(Modifier.height(2.dp))
                 Text(
                     text     = provider.description,
                     style    = MaterialTheme.typography.labelSmall,
-                    color    = if (selected) Color.White.copy(alpha = 0.7f) else ColorTextSecondary,
+                    color    = subColor,
                     maxLines = 2,
                 )
             }
@@ -219,93 +197,125 @@ private fun TtsProviderCards(
     }
 }
 
+// ── Voice list — all voices in a single card, compact rows ───────────────────
+
 @Composable
-private fun VoiceCard(
+private fun VoiceListCard(
+    voices  : List<TtsVoice>,
+    selected: TtsVoice,
+    onSelect: (TtsVoice) -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(18.dp))
+            .background(MaterialTheme.colorScheme.surface),
+    ) {
+        voices.forEachIndexed { index, voice ->
+            VoiceRow(
+                voice    = voice,
+                selected = voice == selected,
+                onClick  = { onSelect(voice) },
+            )
+            if (index < voices.lastIndex) {
+                // Divider aligned to content (left of avatar = 16dp padding + 40dp avatar = 56dp)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 72.dp)
+                        .height(0.5.dp)
+                        .background(
+                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.30f)
+                        ),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun VoiceRow(
     voice   : TtsVoice,
     selected: Boolean,
     onClick : () -> Unit,
 ) {
-    val bgColor by animateColorAsState(
-        targetValue   = if (selected) IrisTheme.colors.primary.copy(alpha = 0.08f)
-                        else Color.Transparent,
-        animationSpec = tween(200),
-        label         = "voiceBg",
-    )
-    val borderColor by animateColorAsState(
-        targetValue   = if (selected) IrisTheme.colors.primary.copy(alpha = 0.3f)
-                        else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.25f),
-        animationSpec = tween(200),
-        label         = "voiceBorder",
-    )
+    val rowBg   = if (selected) IrisTheme.colors.primary.copy(alpha = 0.07f) else Color.Transparent
+    val nameTxt = if (selected) IrisTheme.colors.primary else ColorTextPrimary
 
     Row(
-        modifier = Modifier
+        modifier          = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(18.dp))
-            .background(bgColor)
-            .border(
-                width = 1.dp,
-                color = borderColor,
-                shape = RoundedCornerShape(18.dp),
-            )
+            .background(rowBg)
             .clickable(onClick = onClick)
-            .padding(16.dp),
+            .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        // Avatar circle
+        // Left accent bar — visible only when selected
+        Box(
+            modifier = Modifier
+                .width(3.dp)
+                .height(38.dp)
+                .clip(RoundedCornerShape(2.dp))
+                .background(
+                    if (selected) IrisTheme.colors.primary else Color.Transparent
+                )
+        )
+        Spacer(Modifier.width(10.dp))
+
+        // Avatar circle with initial
         Box(
             modifier         = Modifier
-                .size(48.dp)
+                .size(40.dp)
                 .clip(CircleShape)
                 .background(
                     if (selected) IrisTheme.colors.primary
-                    else IrisTheme.colors.primary.copy(alpha = 0.1f)
+                    else IrisTheme.colors.primary.copy(alpha = 0.10f)
                 ),
             contentAlignment = Alignment.Center,
         ) {
             Text(
                 text       = voice.displayName.take(1),
-                style      = MaterialTheme.typography.titleMedium,
+                style      = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold,
                 color      = if (selected) Color.White else IrisTheme.colors.primary,
             )
         }
+        Spacer(Modifier.width(12.dp))
 
-        Spacer(Modifier.width(14.dp))
-
+        // Name + personality tag
         Column(modifier = Modifier.weight(1f)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text       = voice.displayName,
-                    style      = MaterialTheme.typography.bodyLarge,
-                    fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
-                    color      = ColorTextPrimary,
-                )
-                if (selected) {
-                    Spacer(Modifier.width(6.dp))
-                    Icon(
-                        imageVector        = PhIcons.Regular.CheckCircle,
-                        contentDescription = null,
-                        tint               = IrisTheme.colors.primary,
-                        modifier           = Modifier.size(18.dp),
-                    )
-                }
-            }
             Text(
-                text  = voice.description,
-                style = MaterialTheme.typography.bodyMedium,
-                color = ColorTextSecondary,
+                text       = voice.displayName,
+                style      = MaterialTheme.typography.bodyLarge,
+                fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
+                color      = nameTxt,
             )
+            // Personality tag pill
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(5.dp))
+                    .background(
+                        if (selected) IrisTheme.colors.primary.copy(alpha = 0.12f)
+                        else MaterialTheme.colorScheme.surfaceVariant
+                    )
+                    .padding(horizontal = 7.dp, vertical = 2.dp),
+            ) {
+                Text(
+                    text  = voice.description,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = if (selected) IrisTheme.colors.primary else ColorTextSecondary,
+                )
+            }
         }
 
         // Play preview button
         Box(
             modifier         = Modifier
-                .size(36.dp)
+                .size(34.dp)
                 .clip(CircleShape)
                 .background(
                     if (selected) IrisTheme.colors.primary.copy(alpha = 0.12f)
-                    else Color.Transparent
+                    else MaterialTheme.colorScheme.surfaceVariant
                 ),
             contentAlignment = Alignment.Center,
         ) {
@@ -313,8 +323,8 @@ private fun VoiceCard(
                 imageVector        = PhIcons.Regular.Play,
                 contentDescription = "Önizle",
                 tint               = if (selected) IrisTheme.colors.primary
-                                     else ColorTextSecondary.copy(alpha = 0.5f),
-                modifier           = Modifier.size(18.dp),
+                                     else ColorTextSecondary,
+                modifier           = Modifier.size(16.dp),
             )
         }
     }
