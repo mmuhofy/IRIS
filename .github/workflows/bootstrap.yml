@@ -16,7 +16,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout IRIS
         uses: actions/checkout@v4
@@ -26,15 +26,64 @@ jobs:
           sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc
           df -h /
 
-      - name: Build bootstrap in Docker
+      - name: Install system dependencies
         run: |
-          docker run --rm \
-            -v ${{ github.workspace }}:/workspace \
-            -e TERMUX_APP_PACKAGE=com.iris.assistant \
-            -e ARCH=${{ github.event.inputs.arch || 'aarch64' }} \
-            termux/package-builder \
-            /workspace/bootstrap/build.sh
-        timeout-minutes: 120
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq \
+            build-essential cmake file pkg-config \
+            autoconf automake libtool m4 \
+            zip unzip gzip bzip2 xz-utils \
+            wget curl ca-certificates \
+            openjdk-17-jdk-headless \
+            python3 python3-pip \
+            ccache ninja-build \
+            gettext xmlto asciidoc docbook-xsl \
+            imagemagick txt2man \
+            libxml2-utils xsltproc \
+            libssl-dev libelf-dev \
+            patchelf \
+            aapt \
+            zlib1g-dev
+
+      - name: Set up Android NDK
+        uses: nttls/setup-ndk@v1
+        with:
+          ndk-version: r27c
+          link-to-sdk: true
+
+      - name: Clone termux-packages
+        run: |
+          git clone --depth=1 -b master \
+            https://github.com/termux/termux-packages.git \
+            "${{ github.workspace }}/termux-packages"
+
+      - name: Patch package name
+        run: |
+          cd "${{ github.workspace }}/termux-packages"
+          sed -i 's/^TERMUX_APP_PACKAGE=.*/TERMUX_APP_PACKAGE="com.iris.assistant"/' scripts/properties.sh
+          echo "TERMUX_APP_PACKAGE=$(grep ^TERMUX_APP_PACKAGE scripts/properties.sh)"
+
+      - name: Apply IRIS patches
+        run: |
+          cd "${{ github.workspace }}/termux-packages"
+          if [ -d "${{ github.workspace }}/bootstrap/patches" ]; then
+            for patchfile in "${{ github.workspace }}/bootstrap/patches"/*.patch; do
+              if [ -f "$patchfile" ]; then
+                echo "  Applying $(basename $patchfile)..."
+                patch -p1 < "$patchfile" || echo "  (patch returned $?)"
+              fi
+            done
+          fi
+
+      - name: Build bootstrap packages
+        run: |
+          bash "${{ github.workspace }}/bootstrap/build.sh"
+        env:
+          ANDROID_NDK_HOME: ${{ env.ANDROID_NDK_HOME }}
+          TERMUX_APP_PACKAGE: com.iris.assistant
+          ARCH: ${{ github.event.inputs.arch || 'aarch64' }}
+          IRIS_ROOT: ${{ github.workspace }}
+        timeout-minutes: 180
 
       - name: Upload bootstrap zip
         uses: actions/upload-artifact@v4
