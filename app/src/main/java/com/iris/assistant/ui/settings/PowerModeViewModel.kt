@@ -103,7 +103,7 @@ class PowerModeViewModel @Inject constructor(
         viewModelScope.launch {
             prefsRepo.setPowerModeEnabled(true)
             // Kick off bootstrap install if not already installed
-            if (!bootstrapDownloader.isInstalled()) {
+            if (!bootstrapInstaller.isInstalled()) {
                 installBootstrap()
             }
         }
