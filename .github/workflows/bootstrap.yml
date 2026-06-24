@@ -45,17 +45,29 @@ jobs:
             aapt \
             zlib1g-dev
 
-      - name: Set up Android NDK
-        uses: nttls/setup-ndk@v1
-        with:
-          ndk-version: r27c
-          link-to-sdk: true
-
       - name: Clone termux-packages
         run: |
           git clone --depth=1 -b master \
             https://github.com/termux/termux-packages.git \
             "${{ github.workspace }}/termux-packages"
+
+      - name: Set up Android NDK
+        run: |
+          NDK_VER=$(grep "^TERMUX_NDK_VERSION_NUM=" "${{ github.workspace }}/termux-packages/scripts/properties.sh" | cut -d'"' -f2)
+          NDK_REV=$(grep "^TERMUX_NDK_REVISION=" "${{ github.workspace }}/termux-packages/scripts/properties.sh" | cut -d'"' -f2)
+          NDK_FULL="r${NDK_VER}${NDK_REV}"
+          echo "NDK version: $NDK_FULL"
+          if [ ! -d "$HOME/lib/android-ndk-$NDK_FULL" ]; then
+            echo "Downloading NDK $NDK_FULL..."
+            mkdir -p "$HOME/lib"
+            curl -sL "https://dl.google.com/android/repository/android-ndk-${NDK_FULL}-linux.zip" \
+              -o /tmp/ndk.zip
+            unzip -q /tmp/ndk.zip -d "$HOME/lib/"
+            mv "$HOME/lib/android-ndk-${NDK_FULL}" "$HOME/lib/android-ndk-$NDK_FULL"
+            rm -f /tmp/ndk.zip
+          fi
+          echo "ANDROID_NDK_HOME=$HOME/lib/android-ndk-$NDK_FULL" >> "$GITHUB_ENV"
+          echo "NDK installed at $HOME/lib/android-ndk-$NDK_FULL"
 
       - name: Patch package name
         run: |
@@ -79,7 +91,6 @@ jobs:
         run: |
           bash "${{ github.workspace }}/bootstrap/build.sh"
         env:
-          ANDROID_NDK_HOME: ${{ env.ANDROID_NDK_HOME }}
           TERMUX_APP_PACKAGE: com.iris.assistant
           ARCH: ${{ github.event.inputs.arch || 'aarch64' }}
           IRIS_ROOT: ${{ github.workspace }}
