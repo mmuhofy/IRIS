@@ -1,5 +1,7 @@
 package com.iris.assistant.ui.settings
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -33,12 +35,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.iris.assistant.ui.theme.AppFont
 import com.iris.assistant.ui.theme.ColorSchemeOption
+import com.iris.assistant.ui.theme.ColorTextPrimary
 import com.iris.assistant.ui.theme.ColorTextSecondary
 import com.iris.assistant.ui.theme.IrisTheme
 import com.phosphor.icons.PhIcons
@@ -48,6 +53,7 @@ import com.phosphor.icons.regular.CheckCircle
 // ---------------------------------------------------------------------------
 // Per-theme display metadata
 // ---------------------------------------------------------------------------
+
 private data class ThemeMeta(
     val option      : ColorSchemeOption,
     val label       : String,
@@ -66,14 +72,18 @@ private val ALL_THEMES = listOf(
     ThemeMeta(ColorSchemeOption.MONOLITH,   "Monolith",   "Premium minimal"),
 )
 
+// Builtin fonts for selection (Custom excluded — no UI for that in MVP)
+private val FONT_OPTIONS: List<AppFont> = AppFont.builtin
+
 // ---------------------------------------------------------------------------
 // Screen
 // ---------------------------------------------------------------------------
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppearanceSettingsScreen(
-    onBack: () -> Unit,
-    viewModel: AppearanceSettingsViewModel = hiltViewModel(),
+    onBack    : () -> Unit,
+    viewModel : AppearanceSettingsViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
@@ -107,17 +117,13 @@ fun AppearanceSettingsScreen(
                 .padding(innerPadding)
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
-            contentPadding      = PaddingValues(bottom = 24.dp),
+            contentPadding      = PaddingValues(bottom = 32.dp),
         ) {
+
+            // ── Color scheme section ──────────────────────────────────────
             item {
                 Spacer(Modifier.height(4.dp))
-                Text(
-                    text          = "RENK TEMASI",
-                    style         = MaterialTheme.typography.labelSmall,
-                    color         = IrisTheme.colors.primary,
-                    letterSpacing = 1.2.sp,
-                    modifier      = Modifier.padding(start = 4.dp, bottom = 4.dp),
-                )
+                AppearanceSectionLabel("Renk Teması")
             }
 
             items(
@@ -132,30 +138,68 @@ fun AppearanceSettingsScreen(
                     onClick  = { viewModel.onColorSchemeChange(meta.option) },
                 )
             }
+
+            // ── Font section ──────────────────────────────────────────────
+            item {
+                Spacer(Modifier.height(12.dp))
+                AppearanceSectionLabel("Yazı Tipi")
+            }
+
+            items(
+                count = FONT_OPTIONS.size,
+                key   = { FONT_OPTIONS[it].key },
+            ) { index ->
+                val font     = FONT_OPTIONS[index]
+                val selected = uiState.fontFamily.key == font.key
+                FontCard(
+                    font     = font,
+                    selected = selected,
+                    onClick  = { viewModel.onFontChange(font) },
+                )
+            }
         }
     }
 }
 
 // ---------------------------------------------------------------------------
+// Section label
+// ---------------------------------------------------------------------------
+
+@Composable
+private fun AppearanceSectionLabel(text: String) {
+    Text(
+        text          = text.uppercase(),
+        style         = MaterialTheme.typography.labelSmall,
+        color         = IrisTheme.colors.primary,
+        letterSpacing = 1.2.sp,
+        modifier      = Modifier.padding(start = 4.dp, bottom = 4.dp),
+    )
+}
+
+// ---------------------------------------------------------------------------
 // Theme card
 // ---------------------------------------------------------------------------
+
 @Composable
 private fun ThemeCard(
     meta    : ThemeMeta,
     selected: Boolean,
     onClick : () -> Unit,
 ) {
-    val colors = meta.option.toIrisColorScheme()
-
-    val borderColor = if (selected) colors.primary else Color.White.copy(alpha = 0.07f)
+    val colors      = meta.option.toIrisColorScheme()
+    val borderColor by animateColorAsState(
+        targetValue   = if (selected) colors.primary else Color.White.copy(alpha = 0.07f),
+        animationSpec = tween(200),
+        label         = "themeBorder",
+    )
     val borderWidth = if (selected) 1.5.dp else 1.dp
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(18.dp))
             .background(MaterialTheme.colorScheme.surface)
-            .border(borderWidth, borderColor, RoundedCornerShape(16.dp))
+            .border(borderWidth, borderColor, RoundedCornerShape(18.dp))
             .clickable { onClick() }
             .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -174,13 +218,12 @@ private fun ThemeCard(
 
         Spacer(Modifier.width(14.dp))
 
-        // Labels
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text       = meta.label,
                 style      = MaterialTheme.typography.bodyLarge,
                 fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
-                color      = if (selected) colors.primary else MaterialTheme.colorScheme.onSurface,
+                color      = if (selected) colors.primary else ColorTextPrimary,
             )
             Spacer(Modifier.height(2.dp))
             Text(
@@ -190,13 +233,95 @@ private fun ThemeCard(
             )
         }
 
-        // Selected checkmark
         if (selected) {
             Spacer(Modifier.width(8.dp))
             Icon(
                 imageVector        = PhIcons.Regular.CheckCircle,
                 contentDescription = null,
                 tint               = colors.primary,
+                modifier           = Modifier.size(22.dp),
+            )
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Font card — renders "Aa" preview in the font being selected
+// ---------------------------------------------------------------------------
+
+@Composable
+private fun FontCard(
+    font    : AppFont,
+    selected: Boolean,
+    onClick : () -> Unit,
+) {
+    val borderColor by animateColorAsState(
+        targetValue   = if (selected) IrisTheme.colors.primary else Color.White.copy(alpha = 0.07f),
+        animationSpec = tween(200),
+        label         = "fontBorder",
+    )
+    val borderWidth = if (selected) 1.5.dp else 1.dp
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(18.dp))
+            .background(MaterialTheme.colorScheme.surface)
+            .border(borderWidth, borderColor, RoundedCornerShape(18.dp))
+            .clickable { onClick() }
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        // Font preview circle — renders "Aa" in the target font
+        Box(
+            modifier         = Modifier
+                .size(44.dp)
+                .clip(CircleShape)
+                .background(
+                    if (selected) IrisTheme.colors.primary.copy(alpha = 0.15f)
+                    else MaterialTheme.colorScheme.surfaceVariant
+                ),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                text  = "Aa",
+                style = TextStyle(
+                    fontFamily = font.fontFamily,
+                    fontSize   = 16.sp,
+                    fontWeight = FontWeight.Medium,
+                ),
+                color = if (selected) IrisTheme.colors.primary else ColorTextPrimary,
+            )
+        }
+
+        Spacer(Modifier.width(14.dp))
+
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text       = font.displayName,
+                style      = TextStyle(
+                    fontFamily = font.fontFamily,
+                    fontSize   = 16.sp,
+                    fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+                ),
+                color      = if (selected) IrisTheme.colors.primary else ColorTextPrimary,
+            )
+            Text(
+                text  = "Merhaba, ben IRIS!",
+                style = TextStyle(
+                    fontFamily = font.fontFamily,
+                    fontSize   = 12.sp,
+                ),
+                color = ColorTextSecondary,
+            )
+        }
+
+        if (selected) {
+            Spacer(Modifier.width(8.dp))
+            Icon(
+                imageVector        = PhIcons.Regular.CheckCircle,
+                contentDescription = null,
+                tint               = IrisTheme.colors.primary,
                 modifier           = Modifier.size(22.dp),
             )
         }

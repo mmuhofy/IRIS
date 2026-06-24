@@ -6,16 +6,15 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -25,14 +24,23 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.RadioButtonDefaults
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -44,6 +52,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -52,12 +61,18 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.iris.assistant.data.shell.ShellLine
 import com.iris.assistant.domain.model.BootstrapState
 import com.iris.assistant.ui.components.IrisCard
+import com.iris.assistant.ui.theme.ColorTextPrimary
+import com.iris.assistant.ui.theme.ColorTextSecondary
+import com.iris.assistant.ui.theme.IrisTheme
 import com.iris.assistant.util.Constants
+import com.phosphor.icons.PhIcons
+import com.phosphor.icons.regular.ArrowLeft
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PowerModeScreen(
-    onBack: () -> Unit,
-    viewModel: PowerModeViewModel = hiltViewModel(),
+    onBack    : () -> Unit,
+    viewModel : PowerModeViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
@@ -69,79 +84,88 @@ fun PowerModeScreen(
         )
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .statusBarsPadding()
-            .navigationBarsPadding()
-            .imePadding()
-    ) {
-        // ── Top bar ───────────────────────────────────────────────────────
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            TextButton(onClick = onBack) {
-                Text("Back", color = MaterialTheme.colorScheme.primary)
-            }
-            Spacer(Modifier.weight(1f))
-            Text(
-                text  = "Power Mode",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onBackground,
+    // NOTE: containerColor = Color.Transparent to preserve nav transition animations.
+    // imePadding() is applied on the LazyColumn to handle keyboard for the terminal input.
+    Scaffold(
+        containerColor = Color.Transparent,
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        text       = "Power Mode",
+                        style      = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                },
+                navigationIcon = {
+                    IconButton(
+                        onClick  = onBack,
+                        modifier = Modifier.size(48.dp),
+                    ) {
+                        Icon(
+                            PhIcons.Regular.ArrowLeft,
+                            contentDescription = "Geri",
+                            tint               = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier           = Modifier.size(24.dp),
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
             )
-            Spacer(Modifier.weight(1f))
-            Spacer(Modifier.width(56.dp)) // balance back button
-        }
-
+        },
+    ) { innerPadding ->
         LazyColumn(
-            modifier            = Modifier.weight(1f),
-            contentPadding      = androidx.compose.foundation.layout.PaddingValues(
-                horizontal = 20.dp, vertical = 8.dp
-            ),
+            modifier            = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .imePadding(),       // handles keyboard visibility for terminal input
+            contentPadding      = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
+
             // ── Enable toggle ─────────────────────────────────────────────
             item {
                 IrisCard {
                     Row(
-                        modifier            = Modifier
+                        modifier              = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 20.dp, vertical = 16.dp),
-                        verticalAlignment   = Alignment.CenterVertically,
+                            .padding(horizontal = 16.dp, vertical = 16.dp),
+                        verticalAlignment     = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween,
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text  = "Power Mode",
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onSurface,
+                                text       = "Power Mode",
+                                style      = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.SemiBold,
+                                color      = ColorTextPrimary,
                             )
                             Text(
-                                text  = "Embedded Linux shell — run scripts, servers, terminal commands",
+                                text  = "Gömülü Linux shell — script, sunucu, terminal komutları",
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                color = ColorTextSecondary,
                             )
                         }
                         Spacer(Modifier.width(12.dp))
                         Switch(
                             checked         = state.powerModeEnabled,
                             onCheckedChange = viewModel::onPowerModeToggle,
+                            colors          = SwitchDefaults.colors(
+                                checkedThumbColor = MaterialTheme.colorScheme.background,
+                                checkedTrackColor = IrisTheme.colors.secondary,
+                            ),
                         )
                     }
                 }
             }
 
-            // ── Bootstrap status (only when Power Mode is on) ─────────────
+            // ── Bootstrap status ──────────────────────────────────────────
             if (state.powerModeEnabled) {
                 item {
                     BootstrapStatusCard(
-                        bootstrapState  = state.bootstrapState,
-                        onInstall       = viewModel::installBootstrap,
-                        onUninstall     = viewModel::uninstallBootstrap,
+                        bootstrapState = state.bootstrapState,
+                        onInstall      = viewModel::installBootstrap,
+                        onUninstall    = viewModel::uninstallBootstrap,
                     )
                 }
 
@@ -168,6 +192,9 @@ fun PowerModeScreen(
                     }
                 }
             }
+
+            // Bottom padding
+            item { Spacer(Modifier.height(24.dp)) }
         }
     }
 }
@@ -182,60 +209,72 @@ private fun BootstrapStatusCard(
 ) {
     IrisCard {
         Column(
-            modifier = Modifier
+            modifier            = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 16.dp),
+                .padding(horizontal = 16.dp, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Text(
-                text  = "Bootstrap Environment",
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurface,
+                text       = "Bootstrap Environment",
+                style      = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.SemiBold,
+                color      = ColorTextPrimary,
             )
             AnimatedContent(targetState = bootstrapState, label = "bootstrap-state") { bState ->
                 when (bState) {
                     is BootstrapState.Idle -> {
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             Text(
-                                text  = "Not installed (~80 MB)",
+                                text  = "Kurulu değil (~80 MB)",
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                color = ColorTextSecondary,
                             )
-                            TextButton(onClick = onInstall) {
-                                Text("Download & Install")
+                            OutlinedButton(onClick = onInstall) {
+                                Text(
+                                    text  = "İndir & Kur",
+                                    color = IrisTheme.colors.secondary,
+                                )
                             }
                         }
                     }
                     is BootstrapState.Checking -> {
                         Row(
-                            verticalAlignment   = Alignment.CenterVertically,
+                            verticalAlignment     = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
-                            CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
+                            CircularProgressIndicator(
+                                modifier    = Modifier.size(16.dp),
+                                strokeWidth = 2.dp,
+                                color       = IrisTheme.colors.secondary,
+                            )
                             Text(
-                                text  = "Checking latest release…",
+                                text  = "Son sürüm kontrol ediliyor…",
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                color = ColorTextSecondary,
                             )
                         }
                     }
                     is BootstrapState.Downloading -> {
                         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                             val label = bState.fraction
-                                ?.let { "Downloading… ${(it * 100).toInt()}%" }
-                                ?: "Downloading…"
+                                ?.let { "İndiriliyor… ${(it * 100).toInt()}%" }
+                                ?: "İndiriliyor…"
                             Text(
                                 text  = label,
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                color = ColorTextSecondary,
                             )
                             if (bState.fraction != null) {
                                 LinearProgressIndicator(
                                     progress = { bState.fraction!! },
                                     modifier = Modifier.fillMaxWidth(),
+                                    color    = IrisTheme.colors.secondary,
                                 )
                             } else {
-                                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                                LinearProgressIndicator(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    color    = IrisTheme.colors.secondary,
+                                )
                             }
                         }
                     }
@@ -244,11 +283,15 @@ private fun BootstrapStatusCard(
                             verticalAlignment     = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
-                            CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
+                            CircularProgressIndicator(
+                                modifier    = Modifier.size(16.dp),
+                                strokeWidth = 2.dp,
+                                color       = IrisTheme.colors.secondary,
+                            )
                             Text(
-                                text  = "Extracting…",
+                                text  = "Çıkartılıyor…",
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                color = ColorTextSecondary,
                             )
                         }
                     }
@@ -257,24 +300,28 @@ private fun BootstrapStatusCard(
                             verticalAlignment     = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
-                            CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
+                            CircularProgressIndicator(
+                                modifier    = Modifier.size(16.dp),
+                                strokeWidth = 2.dp,
+                                color       = IrisTheme.colors.secondary,
+                            )
                             Text(
-                                text  = "Installing ${bState.packageName}…",
+                                text  = "${bState.packageName} kuruluyor…",
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                color = ColorTextSecondary,
                             )
                         }
                     }
                     is BootstrapState.Installed -> {
                         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                             Text(
-                                text  = "Installed — ${bState.version}",
+                                text  = "Kurulu — ${bState.version}",
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.primary,
+                                color = IrisTheme.colors.secondary,
                             )
                             TextButton(onClick = onUninstall) {
                                 Text(
-                                    text  = "Uninstall",
+                                    text  = "Kaldır",
                                     color = MaterialTheme.colorScheme.error,
                                 )
                             }
@@ -283,13 +330,13 @@ private fun BootstrapStatusCard(
                     is BootstrapState.Error -> {
                         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                             Text(
-                                text  = "Error: ${bState.message}",
+                                text  = "Hata: ${bState.message}",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.error,
                             )
                             if (bState.retryable) {
                                 TextButton(onClick = onInstall) {
-                                    Text("Retry")
+                                    Text("Tekrar Dene", color = IrisTheme.colors.primary)
                                 }
                             }
                         }
@@ -304,26 +351,27 @@ private fun BootstrapStatusCard(
 
 @Composable
 private fun ShellSecurityCard(
-    current  : String,
-    onChange : (String) -> Unit,
+    current : String,
+    onChange: (String) -> Unit,
 ) {
     val options = listOf(
-        Triple(Constants.SHELL_SECURITY_UNRESTRICTED, "Unrestricted", "AI runs any command immediately"),
-        Triple(Constants.SHELL_SECURITY_CONFIRM_EACH, "Confirm Each",  "Preview + 1 s countdown before every command"),
-        Triple(Constants.SHELL_SECURITY_RESTRICTED,   "Restricted",    "Regex blacklist for destructive patterns"),
+        Triple(Constants.SHELL_SECURITY_UNRESTRICTED, "Kısıtsız",       "AI her komutu anında çalıştırır"),
+        Triple(Constants.SHELL_SECURITY_CONFIRM_EACH, "Her Komut Onayı", "Her komut için 1 sn önizleme gösterir"),
+        Triple(Constants.SHELL_SECURITY_RESTRICTED,   "Kısıtlı",        "Tehlikeli pattern'ler kara listeyle engellenir"),
     )
 
     IrisCard {
         Column(
-            modifier = Modifier
+            modifier            = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 16.dp),
+                .padding(horizontal = 16.dp, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             Text(
-                text  = "Shell Security",
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurface,
+                text       = "Shell Güvenliği",
+                style      = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.SemiBold,
+                color      = ColorTextPrimary,
             )
             Spacer(Modifier.height(4.dp))
             options.forEach { (key, label, description) ->
@@ -334,18 +382,23 @@ private fun ShellSecurityCard(
                     RadioButton(
                         selected = current == key,
                         onClick  = { onChange(key) },
+                        colors   = RadioButtonDefaults.colors(
+                            selectedColor   = IrisTheme.colors.secondary,
+                            unselectedColor = ColorTextSecondary,
+                        ),
                     )
                     Spacer(Modifier.width(8.dp))
                     Column {
                         Text(
-                            text  = label,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface,
+                            text       = label,
+                            style      = MaterialTheme.typography.bodyMedium,
+                            fontWeight = if (current == key) FontWeight.SemiBold else FontWeight.Normal,
+                            color      = if (current == key) ColorTextPrimary else ColorTextSecondary,
                         )
                         Text(
                             text  = description,
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = ColorTextSecondary,
                         )
                     }
                 }
@@ -366,46 +419,50 @@ private fun TerminalCard(
     onSend       : (String) -> Unit,
     onClear      : () -> Unit,
 ) {
-    var input by remember { mutableStateOf("") }
-    val listState = rememberLazyListState()
+    var input     by remember { mutableStateOf("") }
+    val listState  = rememberLazyListState()
 
-    // Auto-scroll to bottom on new output
     LaunchedEffect(lines.size) {
         if (lines.isNotEmpty()) listState.animateScrollToItem(lines.size - 1)
     }
 
     IrisCard {
         Column(
-            modifier = Modifier
+            modifier            = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 16.dp),
+                .padding(horizontal = 16.dp, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            // Header row
+            // Header
             Row(
                 modifier              = Modifier.fillMaxWidth(),
                 verticalAlignment     = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
                 Text(
-                    text  = "Terminal",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurface,
+                    text       = "Terminal",
+                    style      = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    color      = ColorTextPrimary,
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     TextButton(onClick = onClear) {
-                        Text("Clear", style = MaterialTheme.typography.labelSmall)
+                        Text(
+                            text  = "Temizle",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = ColorTextSecondary,
+                        )
                     }
                     if (!shellRunning) {
                         TextButton(onClick = onStart) {
-                            Text("Start", color = MaterialTheme.colorScheme.primary)
+                            Text("Başlat", color = IrisTheme.colors.secondary)
                         }
                     } else {
                         TextButton(onClick = onInterrupt) {
-                            Text("Ctrl-C", color = MaterialTheme.colorScheme.secondary)
+                            Text("Ctrl-C", color = IrisTheme.colors.primary)
                         }
                         TextButton(onClick = onStop) {
-                            Text("Stop", color = MaterialTheme.colorScheme.error)
+                            Text("Durdur", color = MaterialTheme.colorScheme.error)
                         }
                     }
                 }
@@ -420,7 +477,7 @@ private fun TerminalCard(
                     .background(Color(0xFF0D0D0D)),
             ) {
                 LazyColumn(
-                    state   = listState,
+                    state    = listState,
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(horizontal = 12.dp, vertical = 8.dp),
@@ -440,11 +497,10 @@ private fun TerminalCard(
                         )
                     }
                 }
-                // "Shell not running" overlay
                 if (!shellRunning && lines.isEmpty()) {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Text(
-                            text  = "Press Start to open a shell session",
+                            text  = "Başlat'a basarak bir shell oturumu aç",
                             style = MaterialTheme.typography.bodySmall,
                             color = Color(0xFF52525B),
                         )
@@ -455,15 +511,15 @@ private fun TerminalCard(
             // Input row
             AnimatedVisibility(visible = shellRunning) {
                 Row(
-                    modifier          = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
+                    modifier              = Modifier.fillMaxWidth(),
+                    verticalAlignment     = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     TextField(
                         value         = input,
                         onValueChange = { input = it },
                         modifier      = Modifier.weight(1f),
-                        placeholder   = { Text("Enter command…", fontSize = 13.sp) },
+                        placeholder   = { Text("Komut gir…", fontSize = 13.sp) },
                         singleLine    = true,
                         textStyle     = MaterialTheme.typography.bodySmall.copy(
                             fontFamily = FontFamily.Monospace,
@@ -477,7 +533,7 @@ private fun TerminalCard(
                         colors = TextFieldDefaults.colors(
                             focusedContainerColor   = Color(0xFF18181B),
                             unfocusedContainerColor = Color(0xFF18181B),
-                            focusedIndicatorColor   = MaterialTheme.colorScheme.primary,
+                            focusedIndicatorColor   = IrisTheme.colors.secondary,
                             unfocusedIndicatorColor = Color.Transparent,
                         ),
                         shape = RoundedCornerShape(12.dp),
@@ -489,7 +545,7 @@ private fun TerminalCard(
                         },
                         enabled = input.isNotBlank(),
                     ) {
-                        Text("Send")
+                        Text("Gönder", color = IrisTheme.colors.secondary)
                     }
                 }
             }
@@ -506,22 +562,27 @@ private fun PowerModeWarningDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Enable Power Mode?") },
-        text  = {
+        containerColor   = MaterialTheme.colorScheme.surface,
+        shape            = RoundedCornerShape(20.dp),
+        title = {
+            Text("Power Mode'u etkinleştir?", fontWeight = FontWeight.SemiBold)
+        },
+        text = {
             Text(
-                "Power Mode gives IRIS access to a full Linux shell environment. " +
-                "In Unrestricted mode, the AI can execute any command without confirmation. " +
-                "Only enable this if you understand and accept the risks."
+                "Power Mode, IRIS'e tam bir Linux shell ortamına erişim sağlar. " +
+                "Kısıtsız modda AI, onay beklemeden herhangi bir komutu çalıştırabilir. " +
+                "Yalnızca riskleri anlıyor ve kabul ediyorsan etkinleştir.",
+                color = ColorTextSecondary,
             )
         },
         confirmButton = {
             TextButton(onClick = onConfirm) {
-                Text("Enable", color = MaterialTheme.colorScheme.primary)
+                Text("Etkinleştir", color = IrisTheme.colors.secondary)
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text("İptal", color = IrisTheme.colors.primary)
             }
         },
     )

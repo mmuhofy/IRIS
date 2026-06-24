@@ -2,7 +2,6 @@ package com.iris.assistant.ui.settings
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -29,10 +28,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.iris.assistant.ui.theme.ColorTextPrimary
 import com.iris.assistant.ui.theme.ColorTextSecondary
 import com.iris.assistant.ui.theme.IrisTheme
@@ -44,6 +45,7 @@ import com.phosphor.icons.regular.Gear
 import com.phosphor.icons.regular.Headphones
 import com.phosphor.icons.regular.Palette
 import com.phosphor.icons.regular.Shield
+import com.phosphor.icons.regular.Sparkle
 import com.phosphor.icons.regular.Terminal
 import com.phosphor.icons.regular.Trash
 import com.phosphor.icons.regular.Waveform
@@ -59,7 +61,7 @@ fun SettingsScreen(
     onOpenSystem     : () -> Unit = {},
     onOpenVoice      : () -> Unit = {},
     onOpenData       : () -> Unit = {},
-    onOpenPowerMode  : () -> Unit = {},   // Phase 4
+    onOpenPowerMode  : () -> Unit = {},
 ) {
     Scaffold(
         containerColor = Color.Transparent,
@@ -80,8 +82,8 @@ fun SettingsScreen(
                         Icon(
                             PhIcons.Regular.ArrowLeft,
                             contentDescription = "Geri",
-                            tint     = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(24.dp),
+                            tint               = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier           = Modifier.size(24.dp),
                         )
                     }
                 },
@@ -90,19 +92,27 @@ fun SettingsScreen(
         },
     ) { innerPadding ->
         LazyColumn(
-            modifier            = Modifier
+            modifier       = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
                 .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(2.dp),
-            contentPadding      = PaddingValues(top = 8.dp, bottom = 24.dp),
+            contentPadding = PaddingValues(top = 4.dp, bottom = 32.dp),
         ) {
+
+            // ── Hero header ───────────────────────────────────────────────
             item {
+                IrisSettingsHeader()
+                Spacer(Modifier.height(28.dp))
+            }
+
+            // ── Group 1: Asistan ──────────────────────────────────────────
+            item {
+                SettingsSectionLabel("Asistan")
                 SettingsCategoryCard {
                     SettingsRow(
                         icon        = PhIcons.Regular.Waveform,
                         label       = "Ses",
-                        description = "Ses karakteri, sağlayıcı seçimi",
+                        description = "Ses karakteri ve sağlayıcı",
                         onClick     = onOpenVoice,
                     )
                     SettingsDivider()
@@ -112,14 +122,28 @@ fun SettingsScreen(
                         description = "AI sağlayıcı ve model seçimi",
                         onClick     = onOpenModel,
                     )
-                    SettingsDivider()
+                }
+                Spacer(Modifier.height(20.dp))
+            }
+
+            // ── Group 2: Görünüm ──────────────────────────────────────────
+            item {
+                SettingsSectionLabel("Görünüm")
+                SettingsCategoryCard {
                     SettingsRow(
                         icon        = PhIcons.Regular.Palette,
                         label       = "Görünüm",
-                        description = "Renk teması",
+                        description = "Renk teması ve yazı tipi",
                         onClick     = onOpenAppearance,
                     )
-                    SettingsDivider()
+                }
+                Spacer(Modifier.height(20.dp))
+            }
+
+            // ── Group 3: Kontrol ──────────────────────────────────────────
+            item {
+                SettingsSectionLabel("Kontrol")
+                SettingsCategoryCard {
                     SettingsRow(
                         icon        = PhIcons.Regular.Headphones,
                         label       = "Arka Plan",
@@ -137,23 +161,31 @@ fun SettingsScreen(
                     SettingsRow(
                         icon        = PhIcons.Regular.Gear,
                         label       = "Sistem",
-                        description = "Ses ayarları, izin yöneticisi",
+                        description = "Ses ve izin yönetimi",
                         onClick     = onOpenSystem,
                     )
-                    SettingsDivider()
+                }
+                Spacer(Modifier.height(20.dp))
+            }
+
+            // ── Group 4: Veri & Gelişmiş ──────────────────────────────────
+            item {
+                SettingsSectionLabel("Veri & Gelişmiş")
+                SettingsCategoryCard {
                     SettingsRow(
                         icon        = PhIcons.Regular.Trash,
                         label       = "Veri",
-                        description = "Sohbet geçmişini temizle",
+                        description = "Sohbet geçmişini yönet",
                         onClick     = onOpenData,
                     )
                     SettingsDivider()
-                    // Phase 4 — Power Mode
+                    // Phase 4 — secondary accent signals advanced/power feature
                     SettingsRow(
-                        icon        = PhIcons.Regular.Terminal,
-                        label       = "Power Mode",
-                        description = "Gömülü Linux shell, terminal, script çalıştırma",
-                        onClick     = onOpenPowerMode,
+                        icon         = PhIcons.Regular.Terminal,
+                        label        = "Power Mode",
+                        description  = "Gömülü Linux shell ve terminal",
+                        onClick      = onOpenPowerMode,
+                        useSecondary = true,
                     )
                 }
             }
@@ -161,23 +193,109 @@ fun SettingsScreen(
     }
 }
 
+// ── Hero header ───────────────────────────────────────────────────────────────
+
+@Composable
+private fun IrisSettingsHeader() {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(20.dp))
+            .background(
+                Brush.linearGradient(
+                    colors = listOf(
+                        IrisTheme.colors.primary.copy(alpha = 0.16f),
+                        IrisTheme.colors.gradientEnd.copy(alpha = 0.07f),
+                    )
+                )
+            )
+            .padding(horizontal = 20.dp, vertical = 18.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                modifier         = Modifier
+                    .size(52.dp)
+                    .clip(CircleShape)
+                    .background(
+                        Brush.radialGradient(
+                            colors = listOf(
+                                IrisTheme.colors.primary,
+                                IrisTheme.colors.gradientEnd,
+                            )
+                        )
+                    ),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector        = PhIcons.Regular.Sparkle,
+                    contentDescription = null,
+                    tint               = Color.White,
+                    modifier           = Modifier.size(26.dp),
+                )
+            }
+            Spacer(Modifier.width(16.dp))
+            Column {
+                Text(
+                    text       = "IRIS",
+                    style      = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color      = IrisTheme.colors.primary,
+                )
+                Text(
+                    text  = "Kişisel AI Asistanın",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = ColorTextSecondary,
+                )
+            }
+        }
+    }
+}
+
+// ── Section label ─────────────────────────────────────────────────────────────
+
+@Composable
+private fun SettingsSectionLabel(text: String) {
+    Text(
+        text          = text.uppercase(),
+        style         = MaterialTheme.typography.labelSmall,
+        color         = IrisTheme.colors.primary,
+        letterSpacing = 1.2.sp,
+        modifier      = Modifier.padding(start = 4.dp, bottom = 8.dp),
+    )
+}
+
+// ── Card container ────────────────────────────────────────────────────────────
+
 @Composable
 private fun SettingsCategoryCard(content: @Composable () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(18.dp))
             .background(MaterialTheme.colorScheme.surface),
     ) { content() }
 }
 
+// ── Settings row ──────────────────────────────────────────────────────────────
+//
+// [useSecondary] = true uses IrisTheme.colors.secondary tint (for Power Mode / Phase 4 items).
+// [iconTint]     explicit Color override; if null, resolves from useSecondary or primary.
+
 @Composable
 fun SettingsRow(
-    icon        : ImageVector,
-    label       : String,
-    description : String,
-    onClick     : () -> Unit,
+    icon         : ImageVector,
+    label        : String,
+    description  : String,
+    onClick      : () -> Unit,
+    iconTint     : Color?  = null,
+    useSecondary : Boolean = false,
 ) {
+    val tint = when {
+        iconTint != null -> iconTint
+        useSecondary     -> IrisTheme.colors.secondary
+        else             -> IrisTheme.colors.primary
+    }
+
     Row(
         modifier          = Modifier
             .fillMaxWidth()
@@ -187,16 +305,16 @@ fun SettingsRow(
     ) {
         Box(
             modifier         = Modifier
-                .size(34.dp)
+                .size(36.dp)
                 .clip(CircleShape)
-                .background(IrisTheme.colors.primary.copy(alpha = 0.12f)),
+                .background(tint.copy(alpha = 0.13f)),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 imageVector        = icon,
                 contentDescription = null,
-                tint               = IrisTheme.colors.primary,
-                modifier           = Modifier.size(16.dp),
+                tint               = tint,
+                modifier           = Modifier.size(18.dp),
             )
         }
         Spacer(Modifier.width(12.dp))
@@ -221,12 +339,15 @@ fun SettingsRow(
     }
 }
 
+// ── Divider ───────────────────────────────────────────────────────────────────
+// Start = 16dp left padding + 36dp icon + 12dp spacer = 64dp
+
 @Composable
 fun SettingsDivider() {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(start = 52.dp)
+            .padding(start = 64.dp)
             .height(0.5.dp)
             .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
     )

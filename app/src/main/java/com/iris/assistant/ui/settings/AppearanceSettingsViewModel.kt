@@ -3,6 +3,7 @@ package com.iris.assistant.ui.settings
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.iris.assistant.data.local.datastore.PreferencesRepository
+import com.iris.assistant.ui.theme.AppFont
 import com.iris.assistant.ui.theme.ColorSchemeOption
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
@@ -13,7 +14,8 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 data class AppearanceSettingsUiState(
-    val colorScheme: ColorSchemeOption = ColorSchemeOption.LAVENDER,
+    val colorScheme : ColorSchemeOption = ColorSchemeOption.LAVENDER,
+    val fontFamily  : AppFont           = AppFont.SystemDefault,
 )
 
 @HiltViewModel
@@ -22,7 +24,12 @@ class AppearanceSettingsViewModel @Inject constructor(
 ) : ViewModel() {
 
     val uiState: StateFlow<AppearanceSettingsUiState> = preferencesRepository.preferences
-        .map { prefs -> AppearanceSettingsUiState(colorScheme = prefs.colorScheme) }
+        .map { prefs ->
+            AppearanceSettingsUiState(
+                colorScheme = prefs.colorScheme,
+                fontFamily  = prefs.fontFamily,
+            )
+        }
         .stateIn(
             scope        = viewModelScope,
             started      = SharingStarted.WhileSubscribed(5_000),
@@ -31,5 +38,9 @@ class AppearanceSettingsViewModel @Inject constructor(
 
     fun onColorSchemeChange(scheme: ColorSchemeOption) {
         viewModelScope.launch { preferencesRepository.setColorScheme(scheme) }
+    }
+
+    fun onFontChange(font: AppFont) {
+        viewModelScope.launch { preferencesRepository.setFontFamily(font) }
     }
 }

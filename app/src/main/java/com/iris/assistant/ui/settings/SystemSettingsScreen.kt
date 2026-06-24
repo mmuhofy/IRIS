@@ -30,10 +30,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.TextUnit
-import androidx.compose.ui.unit.TextUnitType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.iris.assistant.ui.theme.ColorTextPrimary
 import com.iris.assistant.ui.theme.ColorTextSecondary
 import com.iris.assistant.ui.theme.IrisTheme
@@ -46,8 +46,8 @@ import com.phosphor.icons.regular.SpeakerHigh
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SystemSettingsScreen(
-    onBack: () -> Unit,
-    onOpenVoiceSettings: () -> Unit = {},
+    onBack                 : () -> Unit,
+    onOpenVoiceSettings    : () -> Unit = {},
     onOpenPermissionManager: () -> Unit = {},
 ) {
     Scaffold(
@@ -56,8 +56,8 @@ fun SystemSettingsScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = "Sistem",
-                        style = MaterialTheme.typography.titleLarge,
+                        text       = "Sistem",
+                        style      = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.SemiBold,
                     )
                 },
@@ -66,59 +66,56 @@ fun SystemSettingsScreen(
                         Icon(
                             PhIcons.Regular.ArrowLeft,
                             contentDescription = "Geri",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            tint               = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent,
-                ),
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
             )
         },
     ) { innerPadding ->
         LazyColumn(
-            modifier = Modifier
+            modifier            = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
                 .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(24.dp),
-            contentPadding = PaddingValues(bottom = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp),
+            contentPadding      = PaddingValues(top = 8.dp, bottom = 32.dp),
         ) {
             item {
-                Spacer(Modifier.height(4.dp))
-
                 Text(
-                    text = "SİSTEM",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = IrisTheme.colors.primary,
-                    letterSpacing = TextUnit(value = 1.2f, type = TextUnitType.Sp),
-                    modifier = Modifier.padding(start = 4.dp, bottom = 8.dp),
+                    text          = "SİSTEM",
+                    style         = MaterialTheme.typography.labelSmall,
+                    color         = IrisTheme.colors.primary,
+                    letterSpacing = 1.2.sp,
+                    modifier      = Modifier.padding(start = 4.dp, bottom = 4.dp),
                 )
 
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(16.dp))
+                        .clip(RoundedCornerShape(18.dp))
                         .background(MaterialTheme.colorScheme.surface),
                 ) {
-                    SystemRow(
-                        icon = PhIcons.Regular.SpeakerHigh,
-                        label = "Ses ayarları",
-                        description = "Ses karakteri, sağlayıcı seçimi",
-                        onClick = onOpenVoiceSettings,
+                    SystemNavRow(
+                        icon        = PhIcons.Regular.SpeakerHigh,
+                        label       = "Ses ayarları",
+                        description = "Ses karakteri ve sağlayıcı",
+                        onClick     = onOpenVoiceSettings,
                     )
+                    // Divider
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(start = 52.dp)
+                            .padding(start = 64.dp)
                             .height(0.5.dp)
                             .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)),
                     )
-                    SystemRow(
-                        icon = PhIcons.Regular.Lock,
-                        label = "İzin yöneticisi",
+                    SystemNavRow(
+                        icon        = PhIcons.Regular.Lock,
+                        label       = "İzin yöneticisi",
                         description = "Tüm uygulama izinlerini görüntüle",
-                        onClick = onOpenPermissionManager,
+                        onClick     = onOpenPermissionManager,
                     )
                 }
             }
@@ -127,49 +124,54 @@ fun SystemSettingsScreen(
 }
 
 @Composable
-private fun SystemRow(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    label: String,
-    description: String? = null,
-    onClick: () -> Unit,
+private fun SystemNavRow(
+    icon        : ImageVector,
+    label       : String,
+    description : String? = null,
+    onClick     : () -> Unit,
 ) {
     Row(
-        modifier = Modifier
+        modifier          = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
-            modifier = Modifier
-                .size(34.dp)
+            modifier         = Modifier
+                .size(36.dp)
                 .clip(CircleShape)
                 .background(IrisTheme.colors.primary.copy(alpha = 0.12f)),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
-                imageVector = icon,
+                imageVector        = icon,
                 contentDescription = null,
-                tint = IrisTheme.colors.primary,
-                modifier = Modifier.size(16.dp),
+                tint               = IrisTheme.colors.primary,
+                modifier           = Modifier.size(18.dp),
             )
         }
         Spacer(Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
-            Text(text = label, style = MaterialTheme.typography.bodyLarge, color = ColorTextPrimary)
+            Text(
+                text       = label,
+                style      = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Medium,
+                color      = ColorTextPrimary,
+            )
             if (description != null) {
                 Text(
-                    text = description,
+                    text  = description,
                     style = MaterialTheme.typography.bodySmall,
                     color = ColorTextSecondary,
                 )
             }
         }
         Icon(
-            imageVector = PhIcons.Regular.CaretRight,
+            imageVector        = PhIcons.Regular.CaretRight,
             contentDescription = null,
-            tint = ColorTextSecondary,
-            modifier = Modifier.size(16.dp),
+            tint               = ColorTextSecondary,
+            modifier           = Modifier.size(16.dp),
         )
     }
 }
