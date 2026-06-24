@@ -104,22 +104,33 @@ PACKAGES=(
 
 # ── Step 6: Build all packages ─────────────
 echo "[*] Building ${#PACKAGES[@]} packages..."
-if ./build-package.sh -a "$ARCH" "${PACKAGES[@]}"; then
-    echo "=== All packages built OK ==="
-    BUILD_FAILED=()
-else
-    echo "=== Some packages FAILED ==="
-    # Retry individually to identify failures
-    BUILD_FAILED=()
-    for pkg in "${PACKAGES[@]}"; do
-        if ! ./build-package.sh -a "$ARCH" "$pkg" 2>/dev/null; then
-            BUILD_FAILED+=("$pkg")
+BUILD_FAILED=()
+BUILD_SKIPPED=0
+
+for pkg in "${PACKAGES[@]}"; do
+    echo ""
+    echo "=== Building $pkg ==="
+    if ./build-package.sh -a "$ARCH" "$pkg"; then
+        # Check if the .deb was produced
+        deb_count_before=$(ls "$TERMUX_PACKAGES_DIR/output/"*_"$ARCH".deb 2>/dev/null | wc -l)
+        deb_count_after=$(ls "$TERMUX_PACKAGES_DIR/output/"*_"$ARCH".deb 2>/dev/null | wc -l)
+        if [ "$deb_count_after" -gt "$deb_count_before" ]; then
+            echo "  ✓ $pkg built"
+        else
+            echo "  ~ $pkg (already built / skipped)"
+            ((BUILD_SKIPPED++))
         fi
-    done
-    if [ ${#BUILD_FAILED[@]} -gt 0 ]; then
-        echo "WARNING: ${#BUILD_FAILED[@]} packages failed:"
-        for f in "${BUILD_FAILED[@]}"; do echo "  - $f"; done
+    else
+        echo "  ✗ $pkg FAILED"
+        BUILD_FAILED+=("$pkg")
     fi
+done
+
+echo ""
+echo "=== Build summary: $(( ${#PACKAGES[@]} - ${#BUILD_FAILED[@]} - BUILD_SKIPPED )) built, $BUILD_SKIPPED skipped, ${#BUILD_FAILED[@]} failed ==="
+if [ ${#BUILD_FAILED[@]} -gt 0 ]; then
+    echo "WARNING: Failed packages:"
+    for f in "${BUILD_FAILED[@]}"; do echo "  - $f"; done
 fi
 
 # ── Step 7: Create rootfs ──────────────────
@@ -140,58 +151,78 @@ DEBS_DIR="$TERMUX_PACKAGES_DIR/output"
 echo "[*] Extracting .deb files from $DEBS_DIR..."
 DEB_COUNT=0
 
+# Discover the deb extraction tool
+if command -v dpkg-deb &>/dev/null; then
+    EXTRACT_CMD="dpkg-deb --extract"
+elif command -v ar &>/dev/null; then
+    EXTRACT_CMD="ar"
+else
+    echo "ERROR: neither dpkg-deb nor ar found, cannot extract .deb files"
+    exit 1
+fi
+
+extract_deb() {
+    local deb="$1" outdir="$2"
+    mkdir -p "$outdir"
+    if [ "$EXTRACT_CMD" = "dpkg-deb --extract" ]; then
+        dpkg-deb --extract "$deb" "$outdir" 2>/dev/null
+    else
+        ar x "$deb" --output="$outdir" 2>/dev/null
+        local data_tar
+        data_tar=$(find "$outdir" -name 'data.tar.*' | head -1)
+        if [ -n "$data_tar" ]; then
+            tar -xf "$data_tar" -C "$outdir" 2>/dev/null
+        fi
+    fi
+}
+
+find_prefix_root() {
+    # Search the extracted tree for files matching known Termux paths
+    local extract_dir="$1"
+    # Check for full prefix path
+    if [ -d "$extract_dir/data/data/$TERMUX_APP_PACKAGE/files/usr" ]; then
+        echo "$extract_dir/data/data/$TERMUX_APP_PACKAGE/files/usr"
+        return 0
+    fi
+    # Check for com.termux prefix (unpatched deb)
+    if [ -d "$extract_dir/data/data/com.termux/files/usr" ]; then
+        echo "$extract_dir/data/data/com.termux/files/usr"
+        return 0
+    fi
+    # Check for just usr/ at root
+    if [ -d "$extract_dir/usr" ]; then
+        echo "$extract_dir/usr"
+        return 0
+    fi
+    # Check for just bin/ at root
+    if [ -d "$extract_dir/bin" ]; then
+        echo "$extract_dir"
+        return 0
+    fi
+    return 1
+}
+
 for deb in "$DEBS_DIR"/*_"$ARCH".deb; do
     if [ ! -f "$deb" ]; then continue; fi
     pkg_name=$(basename "$deb" | sed "s/_${ARCH}.*//")
-    echo "  Extracting $pkg_name..."
+    echo -n "  $pkg_name... "
     
-    # Extract data.tar.* from the deb
-    mkdir -p "$BOOTSTRAP_TMPDIR/deb-extract"
-    dpkg-deb --extract "$deb" "$BOOTSTRAP_TMPDIR/deb-extract" || {
-        ar x "$deb" --output="$BOOTSTRAP_TMPDIR/deb-extract"
-        data_tar=$(find "$BOOTSTRAP_TMPDIR/deb-extract" -name 'data.tar.*' | head -1)
-        if [ -n "$data_tar" ]; then
-            tar -xf "$data_tar" -C "$BOOTSTRAP_TMPDIR/deb-extract" 2>/dev/null
-        fi
-    }
+    extract_deb "$deb" "$BOOTSTRAP_TMPDIR/deb-extract"
+    prefix_root=$(find_prefix_root "$BOOTSTRAP_TMPDIR/deb-extract")
     
-    # Copy files into rootfs
-    rsync -a "$BOOTSTRAP_TMPDIR/deb-extract/data/data/$TERMUX_APP_PACKAGE/files/usr/" "$PREFIX/" 2>/dev/null || \
-    cp -r "$BOOTSTRAP_TMPDIR/deb-extract/data/data/$TERMUX_APP_PACKAGE/files/usr/"* "$PREFIX/" 2>/dev/null || \
-    echo "  WARNING: Could not find expected prefix in $pkg_name"
-    
-    # Copy to / too if files start at root
-    if [ -d "$BOOTSTRAP_TMPDIR/deb-extract/data/data/$TERMUX_APP_PACKAGE" ]; then
-        cp -r "$BOOTSTRAP_TMPDIR/deb-extract/data/data/$TERMUX_APP_PACKAGE/files/usr/"* "$PREFIX/" 2>/dev/null || true
-    fi
-    if [ -d "$BOOTSTRAP_TMPDIR/deb-extract/data/data/$TERMUX_APP_PACKAGE/files/usr" ]; then
-        cp -r "$BOOTSTRAP_TMPDIR/deb-extract/data/data/$TERMUX_APP_PACKAGE/files/usr/"* "$PREFIX/" 2>/dev/null || true
+    if [ -n "$prefix_root" ]; then
+        cp -r "$prefix_root/"* "$PREFIX/" 2>/dev/null && echo "OK" || echo "cp failed"
+    else
+        echo "SKIP (unexpected structure)"
+        ls -la "$BOOTSTRAP_TMPDIR/deb-extract/" 2>/dev/null | head -5
     fi
     
     rm -rf "$BOOTSTRAP_TMPDIR/deb-extract"/*
     ((DEB_COUNT++))
 done
 
+echo ""
 echo "  Extracted $DEB_COUNT deb packages"
-
-# Also copy files that may be at root (some packages)
-for deb in "$DEBS_DIR"/*_"$ARCH".deb; do
-    if [ ! -f "$deb" ]; then continue; fi
-    mkdir -p "$BOOTSTRAP_TMPDIR/deb-extract"
-    dpkg-deb --extract "$deb" "$BOOTSTRAP_TMPDIR/deb-extract" 2>/dev/null || {
-        ar x "$deb" --output="$BOOTSTRAP_TMPDIR/deb-extract"
-        data_tar=$(find "$BOOTSTRAP_TMPDIR/deb-extract" -name 'data.tar.*' | head -1)
-        [ -n "$data_tar" ] && tar -xf "$data_tar" -C "$BOOTSTRAP_TMPDIR/deb-extract" 2>/dev/null
-    }
-    # Copy any files outside the prefix
-    for d in "$BOOTSTRAP_TMPDIR/deb-extract"/*/; do
-        base=$(basename "$d")
-        if [ "$base" != "data" ]; then
-            cp -r "$d" "$PREFIX/../" 2>/dev/null || true
-        fi
-    done
-    rm -rf "$BOOTSTRAP_TMPDIR/deb-extract"/*
-done
 
 # ── Step 9: Set up symlinks (from SYMLINKS.txt) ──
 echo "[*] Creating symlinks..."
@@ -235,6 +266,17 @@ for e in "${ESSENTIALS[@]}"; do
         MISSING+=("$e")
     fi
 done
+
+# Debug: show what's actually in the tree
+echo ""
+echo "[*] PREFIX contents (bin/*):"
+ls "$PREFIX/bin/" 2>/dev/null | head -20 || echo "  (empty or missing)"
+echo ""
+echo "[*] PREFIX contents (lib/*):"
+ls "$PREFIX/lib/" 2>/dev/null | head -10 || echo "  (empty or missing)"
+echo ""
+echo "[*] Tree depth 3:"
+find "$PREFIX" -maxdepth 3 -type f -o -type l 2>/dev/null | head -30 || echo "  (empty)"
 
 if [ ${#MISSING[@]} -gt 0 ]; then
     echo ""
