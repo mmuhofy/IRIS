@@ -508,7 +508,7 @@ class BootstrapDownloader @Inject constructor(
         if (data.size < 64) return
 
         // ELF magic
-        if (data[0] != 0x7f || data[1] != 'E'.code.toByte() ||
+        if (data[0] != 0x7f.toByte() || data[1] != 'E'.code.toByte() ||
             data[2] != 'L'.code.toByte() || data[3] != 'F'.code.toByte()) return
 
         // Only handle 64-bit ELF (arm64-v8a)
@@ -557,7 +557,10 @@ class BootstrapDownloader @Inject constructor(
         val stringPos = (strtab + runpathStrOffset).toInt()
         if (stringPos + 1 >= data.size) return
 
-        val endPos = data.indexOf(0.toByte(), stringPos)
+        var endPos = -1
+        for (j in stringPos until data.size) {
+            if (data[j] == 0.toByte()) { endPos = j; break }
+        }
         val oldLen = if (endPos >= 0) endPos - stringPos else data.size - stringPos
 
         val newRunpath = "\$ORIGIN/../lib"
