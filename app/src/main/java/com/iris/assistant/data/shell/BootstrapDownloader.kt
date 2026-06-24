@@ -524,7 +524,7 @@ class BootstrapDownloader @Inject constructor(
 
         for (i in 0 until phnum) {
             val phOff = phoff + i * phentsize
-            if (phOff.toInt() + 56 > data.size) return
+            if (phOff < 0 || phOff.toInt() + 56 > data.size) return
             val pType = ByteBuffer.wrap(data, phOff.toInt(), 4).order(ByteOrder.LITTLE_ENDIAN).int
             val pFlags = ByteBuffer.wrap(data, phOff.toInt() + 4, 4).order(ByteOrder.LITTLE_ENDIAN).int
             val pOffset = ByteBuffer.wrap(data, phOff.toInt() + 8, 8).order(ByteOrder.LITTLE_ENDIAN).long
@@ -543,7 +543,7 @@ class BootstrapDownloader @Inject constructor(
         // Locate PT_DYNAMIC and parse its entries
         for (i in 0 until phnum) {
             val phOff = phoff + i * phentsize
-            if (phOff.toInt() + 56 > data.size) return
+            if (phOff < 0 || phOff.toInt() + 56 > data.size) return
             val pType = ByteBuffer.wrap(data, phOff.toInt(), 4).order(ByteOrder.LITTLE_ENDIAN).int
             if (pType != 2) continue // PT_DYNAMIC
 
