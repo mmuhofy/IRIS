@@ -253,7 +253,16 @@ class BootstrapDownloader @Inject constructor(
         File(prefixDir, "bin/bash").let { if (it.exists()) patchElfRunpath(it, shortLibDir.absolutePath) }
         File(prefixDir, "bin/apt-get").let { if (it.exists()) patchElfRunpath(it, shortLibDir.absolutePath) }
 
-        // ── Step 12: install proot via apt ───────────────────────────────
+        // ── Step 12: add ANDROID_LD_LIBRARY_PATH note to key binaries ────
+        // Without this ELF note, the dynamic linker ignores our
+        // LD_LIBRARY_PATH env var. Adding it forces the linker to honour
+        // LD_LIBRARY_PATH, giving the shell a working library search path
+        // even if DT_RUNPATH patching is insufficient (e.g. when running
+        // through /system/bin/linker64 which may not observe DT_RUNPATH).
+        File(prefixDir, "bin/bash").let { if (it.exists()) addAndroidNote(it) }
+        File(prefixDir, "bin/apt-get").let { if (it.exists()) addAndroidNote(it) }
+
+        // ── Step 13: install proot via apt ───────────────────────────────
         // proot is not bundled in the bootstrap zip — it must be pulled via
         // the Termux package manager. We run apt in a one-shot subprocess
         // (not via EmbeddedShell, which isn't started yet) to avoid a
@@ -269,7 +278,7 @@ class BootstrapDownloader @Inject constructor(
             Log.w(TAG, "proot install failed (non-fatal): ${ex.message}")
         }
 
-        // ── Step 13: write version marker ───────────────────────────────
+        // ── Step 14: write version marker ───────────────────────────────
         versionFile.writeText(release.tagName)
 
         Log.d(TAG, "Bootstrap installed at ${prefixDir.absolutePath} (${release.tagName})")
@@ -650,6 +659,93 @@ class BootstrapDownloader @Inject constructor(
 
         elfFile.writeBytes(data)
         Log.i(TAG, "Patched DT_RUNPATH in ${elfFile.name}: '$oldPath' -> '$libAbsPath'")
+    }
+
+    /**
+     * Adds an ANDROID_LD_LIBRARY_PATH ELF note (NT_ANDROID_LD_LIBRARY_PATH,
+     * type 0x40000000, name "L") to the given 64-bit ELF binary. This note
+     * signals to the Android dynamic linker that LD_LIBRARY_PATH from the
+     * process environment should be honoured when resolving DT_NEEDED
+     * entries, even for non-system PIE executables.
+     *
+     * The note requires 16 bytes: 12-byte Elf64_Nhdr + 4-byte padded name
+     * "L\0". We append it after the last existing note in the PT_NOTE
+     * segment. If the segment does not exist or the space is insufficient we
+     * log a warning and skip — the binary may still work via DT_RUNPATH or
+     * direct exec.
+     */
+    private fun addAndroidNote(elfFile: File) {
+        if (!elfFile.isFile) return
+        val data = elfFile.readBytes()
+        if (data.size < 64) return
+
+        if (data[0] != 0x7f.toByte() || data[1] != 'E'.code.toByte() ||
+            data[2] != 'L'.code.toByte() || data[3] != 'F'.code.toByte()) return
+        if (data[4] != 2.toByte()) return // 64-bit only
+
+        val phoff = ByteBuffer.wrap(data, 32, 8).order(ByteOrder.LITTLE_ENDIAN).long
+        val phentsize = ByteBuffer.wrap(data, 54, 2).order(ByteOrder.LITTLE_ENDIAN).short.toInt() and 0xFFFF
+        val phnum = ByteBuffer.wrap(data, 56, 2).order(ByteOrder.LITTLE_ENDIAN).short.toInt() and 0xFFFF
+        if (phnum == 0 || phentsize == 0) return
+
+        // Step 1: find PT_NOTE segment
+        var noteOff = -1L
+        var noteFilesz = 0L
+
+        for (i in 0 until phnum) {
+            val phOff = phoff + i * phentsize
+            if (phOff < 0 || phOff.toInt() + 56 > data.size) return
+            val pType = ByteBuffer.wrap(data, phOff.toInt(), 4).order(ByteOrder.LITTLE_ENDIAN).int
+            if (pType != 4) continue // PT_NOTE
+
+            noteOff = ByteBuffer.wrap(data, phOff.toInt() + 8, 8).order(ByteOrder.LITTLE_ENDIAN).long
+            noteFilesz = ByteBuffer.wrap(data, phOff.toInt() + 32, 8).order(ByteOrder.LITTLE_ENDIAN).long
+            break
+        }
+
+        if (noteOff < 0L) {
+            Log.w(TAG, "No PT_NOTE in ${elfFile.name} — cannot add ANDROID note")
+            return
+        }
+
+        // Step 2: walk existing notes to find the end
+        var notesEnd = noteOff
+        while (notesEnd < noteOff + noteFilesz) {
+            val idx = notesEnd.toInt()
+            if (idx + 12 > data.size) break
+            val nNamesz = ByteBuffer.wrap(data, idx, 4).order(ByteOrder.LITTLE_ENDIAN).int
+            val nDescsz = ByteBuffer.wrap(data, idx + 4, 4).order(ByteOrder.LITTLE_ENDIAN).int
+            if (nNamesz <= 0 || nNamesz > 256 || nDescsz < 0 || nDescsz > 65536) break
+
+            val namePadded = ((nNamesz + 3) and 0x7FFFFFFC).toLong()
+            val descPadded = ((nDescsz + 3) and 0x7FFFFFFC).toLong()
+            val noteSize = 12L + namePadded + descPadded
+
+            if (idx + noteSize > data.size) break
+            notesEnd += noteSize
+            if (notesEnd >= noteOff + noteFilesz) break
+        }
+
+        // Step 3: check for room (16 bytes: 12 header + 4 padded name "L\0")
+        if (notesEnd + 16 > noteOff + noteFilesz) {
+            Log.w(TAG, "Not enough space in PT_NOTE segment of ${elfFile.name} " +
+                       "(${noteOff + noteFilesz - notesEnd} bytes free, need 16)")
+            return
+        }
+
+        // Step 4: write NT_ANDROID_LD_LIBRARY_PATH note
+        val pos = notesEnd.toInt()
+        val bb = ByteBuffer.wrap(data, pos, data.size - pos).order(ByteOrder.LITTLE_ENDIAN)
+        bb.putInt(2)          // n_namesz = 2 ("L\0")
+        bb.putInt(0)          // n_descsz = 0
+        bb.putInt(0x40000000) // n_type = NT_ANDROID_LD_LIBRARY_PATH
+        data[pos + 12] = 'L'.code.toByte()
+        data[pos + 13] = 0   // null terminator
+        data[pos + 14] = 0   // padding
+        data[pos + 15] = 0   // padding
+
+        elfFile.writeBytes(data)
+        Log.i(TAG, "Added ANDROID_LD_LIBRARY_PATH note to ${elfFile.name}")
     }
 
     /**

@@ -15,6 +15,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 import java.io.BufferedReader
 import java.io.BufferedWriter
 import java.io.File
+import java.io.IOException
 import java.io.InputStreamReader
 import java.io.OutputStreamWriter
 import java.util.concurrent.TimeUnit
@@ -74,26 +75,44 @@ class EmbeddedShell @Inject constructor(
             "/system/bin/linker"
         }
 
+        // Try direct exec first (works on devices where SELinux allows
+        // appdomain → app_data_file:file execute). Fall back to linker64
+        // if SELinux blocks it (EACCES).
+        fun ProcessBuilder.configure(): ProcessBuilder = apply {
+            environment().apply {
+                put("HOME",             homePath)
+                put("PREFIX",           prefixPath)
+                put("PATH",             "$prefixPath/bin:$prefixPath/sbin:/system/bin:/system/xbin")
+                put("TMPDIR",           "$prefixPath/tmp")
+                put("TERM",             "xterm-256color")
+                put("LANG",             "en_US.UTF-8")
+                put("LD_LIBRARY_PATH",  "$prefixPath/lib")
+                put("TERMUX_PREFIX",    prefixPath)
+            }
+            directory(File(homePath))
+        }
+
         val proc = try {
-            ProcessBuilder(linker, shellBin.absolutePath, "--login")
+            ProcessBuilder(shellBin.absolutePath, "--login")
                 .redirectErrorStream(false)
-                .apply {
-                    environment().apply {
-                        put("HOME",          homePath)
-                        put("PREFIX",        prefixPath)
-                        put("PATH",          "$prefixPath/bin:$prefixPath/sbin:/system/bin:/system/xbin")
-                        put("TMPDIR",        "$prefixPath/tmp")
-                        put("TERM",             "xterm-256color")
-                        put("LANG",             "en_US.UTF-8")
-                        put("LD_LIBRARY_PATH",  "$prefixPath/lib")
-                        put("TERMUX_PREFIX",    prefixPath)
-                    }
-                    directory(File(homePath))
-                }
+                .configure()
                 .start()
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to start shell: ${e.message}")
-            throw e
+        } catch (e: IOException) {
+            if (e.message?.contains("error=13") == true) {
+                Log.w(TAG, "Direct exec blocked by SELinux (error=13), trying linker64 fallback")
+                try {
+                    ProcessBuilder(linker, shellBin.absolutePath, "--login")
+                        .redirectErrorStream(false)
+                        .configure()
+                        .start()
+                } catch (e2: IOException) {
+                    Log.e(TAG, "linker64 also failed: ${e2.message}")
+                    throw e2
+                }
+            } else {
+                Log.e(TAG, "Direct exec failed: ${e.message}")
+                throw e
+            }
         }
 
         process     = proc
