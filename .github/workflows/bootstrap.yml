@@ -23,7 +23,7 @@ jobs:
 
       - name: Free disk space
         run: |
-          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc
+          sudo rm -rf /usr/share/dotnet /opt/ghc
           df -h /
 
       - name: Install system dependencies
@@ -51,6 +51,25 @@ jobs:
             https://github.com/termux/termux-packages.git \
             "${{ github.workspace }}/termux-packages"
 
+      - name: Set up Android SDK
+        run: |
+          SDK_DIR="/usr/local/lib/android/sdk"
+          if [ -d "$SDK_DIR" ]; then
+            echo "ANDROID_HOME=$SDK_DIR" >> "$GITHUB_ENV"
+            echo "ANDROID_SDK_ROOT=$SDK_DIR" >> "$GITHUB_ENV"
+            # Install platform 33 for termux-am (compileSdkVersion 33)
+            SDKMANAGER=""
+            for sp in "$SDK_DIR/cmdline-tools/latest/bin/sdkmanager" \
+                       "$SDK_DIR/tools/bin/sdkmanager"; do
+              if [ -f "$sp" ]; then SDKMANAGER="$sp"; break; fi
+            done
+            if [ -n "$SDKMANAGER" ]; then
+              yes | "$SDKMANAGER" "platforms;android-33" 2>/dev/null || true
+            fi
+          else
+            echo "WARNING: Android SDK not found at $SDK_DIR"
+          fi
+
       - name: Set up Android NDK
         run: |
           NDK_VER=$(grep -oP 'TERMUX_NDK_VERSION_NUM:="\K[^"]+' "${{ github.workspace }}/termux-packages/scripts/properties.sh")
@@ -63,7 +82,6 @@ jobs:
             curl -sL "https://dl.google.com/android/repository/android-ndk-${NDK_FULL}-linux.zip" \
               -o /tmp/ndk.zip
             unzip -q /tmp/ndk.zip -d "$HOME/lib/"
-            # The zip may extract as android-ndk-r29 or android-ndk-r29-linux
             EXTRACTED=$(ls -d "$HOME/lib"/android-ndk-* 2>/dev/null | head -1)
             if [ -n "$EXTRACTED" ] && [ "$EXTRACTED" != "$HOME/lib/android-ndk-$NDK_FULL" ]; then
               mv "$EXTRACTED" "$HOME/lib/android-ndk-$NDK_FULL"
