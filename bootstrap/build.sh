@@ -19,9 +19,9 @@ TERMUX_APP_PACKAGE="${TERMUX_APP_PACKAGE:-com.iris.assistant}"
 ARCH="${ARCH:-aarch64}"
 TERMUX_PACKAGES_BRANCH="${TERMUX_PACKAGES_BRANCH:-master}"
 
-WORKDIR="/home/builder"
+WORKDIR="/workspace"
 TERMUX_PACKAGES_DIR="$WORKDIR/termux-packages"
-OUTPUT_DIR="/workspace/output"
+OUTPUT_DIR="$WORKDIR/output"
 BOOTSTRAP_TMPDIR="$WORKDIR/bootstrap-tmp"
 
 echo "========================================"
