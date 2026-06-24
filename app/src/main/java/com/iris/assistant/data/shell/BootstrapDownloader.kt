@@ -518,6 +518,24 @@ class BootstrapDownloader @Inject constructor(
         val phentsize = ByteBuffer.wrap(data, 54, 2).order(ByteOrder.LITTLE_ENDIAN).short.toInt() and 0xFFFF
         val phnum = ByteBuffer.wrap(data, 56, 2).order(ByteOrder.LITTLE_ENDIAN).short.toInt() and 0xFFFF
 
+        // Collect PT_LOAD segments to convert vaddr → file offset
+        data class LoadSeg(val pOffset: Long, val pVaddr: Long, val pMemsz: Long)
+        val loads = mutableListOf<LoadSeg>()
+
+        for (i in 0 until phnum) {
+            val phOff = phoff + i * phentsize
+            if (phOff.toInt() + 56 > data.size) return
+            val pType = ByteBuffer.wrap(data, phOff.toInt(), 4).order(ByteOrder.LITTLE_ENDIAN).int
+            val pFlags = ByteBuffer.wrap(data, phOff.toInt() + 4, 4).order(ByteOrder.LITTLE_ENDIAN).int
+            val pOffset = ByteBuffer.wrap(data, phOff.toInt() + 8, 8).order(ByteOrder.LITTLE_ENDIAN).long
+            val pVaddr = ByteBuffer.wrap(data, phOff.toInt() + 16, 8).order(ByteOrder.LITTLE_ENDIAN).long
+            val pMemsz = ByteBuffer.wrap(data, phOff.toInt() + 40, 8).order(ByteOrder.LITTLE_ENDIAN).long
+            if (pType == 1 && (pFlags and 1) != 0) { // PT_LOAD, PF_X
+                loads.add(LoadSeg(pOffset, pVaddr, pMemsz))
+            }
+        }
+        if (loads.isEmpty()) return
+
         var strtab = 0L
         var strsz = 0L
         var runpathStrOffset = -1L
@@ -525,16 +543,25 @@ class BootstrapDownloader @Inject constructor(
         // Locate PT_DYNAMIC and parse its entries
         for (i in 0 until phnum) {
             val phOff = phoff + i * phentsize
+            if (phOff.toInt() + 56 > data.size) return
             val pType = ByteBuffer.wrap(data, phOff.toInt(), 4).order(ByteOrder.LITTLE_ENDIAN).int
             if (pType != 2) continue // PT_DYNAMIC
 
             val pVaddr = ByteBuffer.wrap(data, phOff.toInt() + 16, 8).order(ByteOrder.LITTLE_ENDIAN).long
             val pFilesz = ByteBuffer.wrap(data, phOff.toInt() + 32, 8).order(ByteOrder.LITTLE_ENDIAN).long
 
-            var dynOff = pVaddr
-            while (dynOff < pVaddr + pFilesz) {
-                val dTag = ByteBuffer.wrap(data, dynOff.toInt(), 8).order(ByteOrder.LITTLE_ENDIAN).long
-                val dVal = ByteBuffer.wrap(data, dynOff.toInt() + 8, 8).order(ByteOrder.LITTLE_ENDIAN).long
+            // Convert vaddr to file offset using the first executable PT_LOAD
+            val load = loads.firstOrNull { pVaddr in it.pVaddr until (it.pVaddr + it.pMemsz) }
+                ?: return
+            val dynFileOff = load.pOffset + (pVaddr - load.pVaddr)
+
+            if (dynFileOff.toInt() + 8 > data.size || dynFileOff + pFilesz > data.size) return
+
+            var dynOff = dynFileOff
+            while (dynOff < dynFileOff + pFilesz) {
+                val idx = dynOff.toInt()
+                val dTag = ByteBuffer.wrap(data, idx, 8).order(ByteOrder.LITTLE_ENDIAN).long
+                val dVal = ByteBuffer.wrap(data, idx + 8, 8).order(ByteOrder.LITTLE_ENDIAN).long
 
                 when (dTag) {
                     5L  -> strtab = dVal           // DT_STRTAB
@@ -554,14 +581,19 @@ class BootstrapDownloader @Inject constructor(
             return
         }
 
-        val stringPos = (strtab + runpathStrOffset).toInt()
-        if (stringPos + 1 >= data.size) return
+        // strtab is also a vaddr — convert to file offset
+        val strLoad = loads.firstOrNull { strtab in it.pVaddr until (it.pVaddr + it.pMemsz) }
+            ?: return
+        val strFileOff = strLoad.pOffset + (strtab - strLoad.pVaddr)
+        val runpathFilePos = strFileOff + runpathStrOffset
+
+        if (runpathFilePos.toInt() + 1 >= data.size) return
 
         var endPos = -1
-        for (j in stringPos until data.size) {
+        for (j in runpathFilePos.toInt() until data.size) {
             if (data[j] == 0.toByte()) { endPos = j; break }
         }
-        val oldLen = if (endPos >= 0) endPos - stringPos else data.size - stringPos
+        val oldLen = if (endPos >= 0) endPos - runpathFilePos.toInt() else data.size - runpathFilePos.toInt()
 
         val newRunpath = "\$ORIGIN/../lib"
         if (newRunpath.length > oldLen) {
@@ -569,12 +601,12 @@ class BootstrapDownloader @Inject constructor(
             return
         }
 
-        val oldPath = data.copyOfRange(stringPos, stringPos + oldLen).decodeToString()
+        val oldPath = data.copyOfRange(runpathFilePos.toInt(), runpathFilePos.toInt() + oldLen).decodeToString()
         val newBytes = newRunpath.encodeToByteArray()
-        newBytes.copyInto(data, stringPos)
+        newBytes.copyInto(data, runpathFilePos.toInt())
         // Null-pad remaining bytes
-        data.fill(0, stringPos + newBytes.size, stringPos + oldLen)
-        if (endPos >= 0) data[stringPos + newBytes.size] = 0
+        data.fill(0, runpathFilePos.toInt() + newBytes.size, runpathFilePos.toInt() + oldLen)
+        if (endPos >= 0) data[runpathFilePos.toInt() + newBytes.size] = 0
 
         elfFile.writeBytes(data)
         Log.i(TAG, "Patched DT_RUNPATH in ${elfFile.name}: '$oldPath' -> '$newRunpath'")
