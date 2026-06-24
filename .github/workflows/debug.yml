@@ -45,6 +45,23 @@ jobs:
           echo "GROQ_LLM_API_KEY=${{ secrets.GROQ_LLM_API_KEY }}" >> local.properties
           echo "HF_API_KEY=${{ secrets.HF_API_KEY }}"              >> local.properties
 
+      - name: Download bootstrap zip
+        run: |
+          curl -fsSL \
+            "https://github.com/mmuhofy/IRIS/releases/download/bootstrap-20260624-r1/CHECKSUMS.sha256" \
+            -o /tmp/CHECKSUMS.sha256
+          curl -fsSL \
+            "https://github.com/mmuhofy/IRIS/releases/download/bootstrap-20260624-r1/bootstrap-aarch64.zip" \
+            -o app/src/main/cpp/bootstrap-aarch64.zip
+          # Verify SHA-256
+          EXPECTED=$(grep "bootstrap-aarch64.zip" /tmp/CHECKSUMS.sha256 | awk '{print $1}')
+          ACTUAL=$(sha256sum app/src/main/cpp/bootstrap-aarch64.zip | awk '{print $1}')
+          if [ "$EXPECTED" != "$ACTUAL" ]; then
+            echo "SHA-256 mismatch! expected=$EXPECTED actual=$ACTUAL"
+            exit 1
+          fi
+          echo "Bootstrap zip verified: $ACTUAL"
+
       - name: Grant Gradle wrapper permission
         run: chmod +x gradlew
 
