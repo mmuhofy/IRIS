@@ -1,0 +1,56 @@
+name: Build Custom Bootstrap
+
+on:
+  workflow_dispatch:
+    inputs:
+      arch:
+        description: 'Target architecture'
+        required: true
+        default: 'aarch64'
+        type: choice
+        options:
+          - aarch64
+          - arm
+          - x86_64
+          - i686
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout IRIS
+        uses: actions/checkout@v4
+
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc
+          df -h /
+
+      - name: Build bootstrap in Docker
+        run: |
+          docker run --rm \
+            -v ${{ github.workspace }}:/workspace \
+            -e TERMUX_APP_PACKAGE=com.iris.assistant \
+            -e ARCH=${{ github.event.inputs.arch || 'aarch64' }} \
+            termux/package-builder \
+            /workspace/bootstrap/build.sh
+        timeout-minutes: 120
+
+      - name: Upload bootstrap zip
+        uses: actions/upload-artifact@v4
+        with:
+          name: bootstrap-${{ github.event.inputs.arch || 'aarch64' }}
+          path: ./output/bootstrap-*.zip
+          if-no-files-found: error
+
+      - name: Create Release
+        if: github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: bootstrap-$(date +'%Y%m%d')-r1
+          name: "IRIS Bootstrap (${{ github.event.inputs.arch || 'aarch64' }})"
+          files: ./output/bootstrap-*.zip
+          body: |
+            Custom Termux bootstrap for IRIS.
+            Package: com.iris.assistant
+            Prefix: /data/data/com.iris.assistant/files/usr
