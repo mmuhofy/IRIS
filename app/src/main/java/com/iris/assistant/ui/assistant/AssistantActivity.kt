@@ -8,6 +8,7 @@ import android.view.View
 import android.view.ViewTreeObserver
 import android.view.WindowManager
 import android.view.inputmethod.InputMethodManager
+import androidx.activity.addCallback
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.animation.AnimatedContent
@@ -148,15 +149,19 @@ private fun AssistantScreen(viewModel: AssistantViewModel, onClose: () -> Unit) 
             .fillMaxSize()
             .background(Color.Transparent)
     ) {
-        // Tap-outside dismiss — invisible touch layer, no color
+        // Tap-outside dismiss — covers full screen BEHIND the pill.
+        // The pill sits above this in Z-order so pill touches are not intercepted.
+        // We use pointerInput instead of clickable to avoid consuming events
+        // that should reach the pill.
         if (sweepPhase == SweepPhase.DONE && !state.isDone) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .clickable(
                         indication        = null,
-                        interactionSource = remember { MutableInteractionSource() }
-                    ) { viewModel.stop(); onClose() }
+                        interactionSource = remember { MutableInteractionSource() },
+                        onClick           = { viewModel.stop(); onClose() }
+                    )
             )
         }
 
@@ -421,12 +426,8 @@ private fun AssistantPill(
         modifier        = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp)
-            // Tapping idle area → switch to INPUT
-            .clickable(
-                enabled           = !state.isListening && !state.isThinking,
-                indication        = null,
-                interactionSource = remember { MutableInteractionSource() }
-            ) { onPillTap() }
+        // NOTE: no clickable here — pill surface touch must NOT propagate
+        // to the dismiss layer behind it. Input tap is handled inside content.
     ) {
         // Gradient top-border line
         Box(
@@ -455,7 +456,15 @@ private fun AssistantPill(
 
             Spacer(Modifier.width(10.dp))
 
-            Box(modifier = Modifier.weight(1f)) {
+            Box(modifier = Modifier
+                .weight(1f)
+                .clickable(
+                    enabled           = !state.isListening && !state.isThinking,
+                    indication        = null,
+                    interactionSource = remember { MutableInteractionSource() },
+                    onClick           = onPillTap
+                )
+            ) {
                 AnimatedContent(
                     targetState   = pillContent(state, inputFocused),
                     transitionSpec = { fadeIn(tween(200)) togetherWith fadeOut(tween(150)) },
