@@ -58,10 +58,9 @@ android {
         }
     }
 
-    externalNativeBuild {
-        ndkBuild {
-            path = file("src/main/cpp/Android.mk")
-        }
+    buildFeatures {
+        compose     = true
+        buildConfig = true
     }
 
     signingConfigs {
