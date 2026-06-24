@@ -253,7 +253,21 @@ class BootstrapDownloader @Inject constructor(
         File(prefixDir, "bin/bash").let { if (it.exists()) patchElfRunpath(it, shortLibDir.absolutePath) }
         File(prefixDir, "bin/apt-get").let { if (it.exists()) patchElfRunpath(it, shortLibDir.absolutePath) }
 
-        // ── Step 12: add ANDROID_LD_LIBRARY_PATH note to key binaries ────
+        // ── Step 12: verify DT_RUNPATH patch ─────────────────────────────
+        File(prefixDir, "bin/bash").let { f ->
+            if (f.exists()) {
+                val actual = readElfRunpath(f)
+                if (actual == shortLibDir.absolutePath) {
+                    Log.i(TAG, "✓ DT_RUNPATH verified in bash: $actual")
+                } else if (actual != null) {
+                    Log.e(TAG, "✗ DT_RUNPATH mismatch in bash: expected '${shortLibDir.absolutePath}', got '$actual'")
+                } else {
+                    Log.e(TAG, "✗ No DT_RUNPATH found in bash after patch attempt")
+                }
+            }
+        }
+
+        // ── Step 13: add ANDROID_LD_LIBRARY_PATH note to key binaries ────
         // Without this ELF note, the dynamic linker ignores our
         // LD_LIBRARY_PATH env var. Adding it forces the linker to honour
         // LD_LIBRARY_PATH, giving the shell a working library search path
@@ -261,6 +275,17 @@ class BootstrapDownloader @Inject constructor(
         // through /system/bin/linker64 which may not observe DT_RUNPATH).
         File(prefixDir, "bin/bash").let { if (it.exists()) addAndroidNote(it) }
         File(prefixDir, "bin/apt-get").let { if (it.exists()) addAndroidNote(it) }
+
+        // ── Step 14: verify libraries exist ──────────────────────────────
+        val libDir = File(prefixDir, "lib")
+        listOf("libreadline.so.8", "libncursesw.so.6", "libandroid-support.so").forEach { name ->
+            val libFile = File(libDir, name)
+            if (libFile.exists()) {
+                Log.i(TAG, "✓ '$name' exists ($libFile, ${libFile.length()} bytes)")
+            } else {
+                Log.w(TAG, "✗ '$name' NOT FOUND at $libFile")
+            }
+        }
 
         // ── Step 13: install proot via apt ───────────────────────────────
         // proot is not bundled in the bootstrap zip — it must be pulled via
@@ -659,6 +684,73 @@ class BootstrapDownloader @Inject constructor(
 
         elfFile.writeBytes(data)
         Log.i(TAG, "Patched DT_RUNPATH in ${elfFile.name}: '$oldPath' -> '$libAbsPath'")
+    }
+
+    /**
+     * Reads the current DT_RUNPATH/DT_RPATH string from a 64-bit ELF binary.
+     * Returns null if the binary has no DT_RUNPATH/DT_RPATH, or if it's not
+     * a valid 64-bit ELF.
+     */
+    private fun readElfRunpath(elfFile: File): String? {
+        if (!elfFile.isFile) return null
+        val data = elfFile.readBytes()
+        if (data.size < 64) return null
+        if (data[0] != 0x7f.toByte() || data[1] != 'E'.code.toByte() ||
+            data[2] != 'L'.code.toByte() || data[3] != 'F'.code.toByte()) return null
+        if (data[4] != 2.toByte()) return null
+
+        val phoff = ByteBuffer.wrap(data, 32, 8).order(ByteOrder.LITTLE_ENDIAN).long
+        val phentsize = ByteBuffer.wrap(data, 54, 2).order(ByteOrder.LITTLE_ENDIAN).short.toInt() and 0xFFFF
+        val phnum = ByteBuffer.wrap(data, 56, 2).order(ByteOrder.LITTLE_ENDIAN).short.toInt() and 0xFFFF
+
+        data class Seg(val pOffset: Long, val pVaddr: Long, val pMemsz: Long)
+        val loads = mutableListOf<Seg>()
+        var strtab = 0L
+        var runpathStrOffset = -1L
+
+        for (i in 0 until phnum) {
+            val phOff = phoff + i * phentsize
+            if (phOff < 0 || phOff.toInt() + 56 > data.size) return null
+            val pType  = ByteBuffer.wrap(data, phOff.toInt(), 4).order(ByteOrder.LITTLE_ENDIAN).int
+            val pFlags = ByteBuffer.wrap(data, phOff.toInt() + 4, 4).order(ByteOrder.LITTLE_ENDIAN).int
+            val pOffset = ByteBuffer.wrap(data, phOff.toInt() + 8, 8).order(ByteOrder.LITTLE_ENDIAN).long
+            val pVaddr  = ByteBuffer.wrap(data, phOff.toInt() + 16, 8).order(ByteOrder.LITTLE_ENDIAN).long
+            val pMemsz  = ByteBuffer.wrap(data, phOff.toInt() + 40, 8).order(ByteOrder.LITTLE_ENDIAN).long
+
+            if (pType == 1) loads.add(Seg(pOffset, pVaddr, pMemsz))
+            if (pType != 2) continue
+
+            val pVaddrDyn = ByteBuffer.wrap(data, phOff.toInt() + 16, 8).order(ByteOrder.LITTLE_ENDIAN).long
+            val pFilesz   = ByteBuffer.wrap(data, phOff.toInt() + 32, 8).order(ByteOrder.LITTLE_ENDIAN).long
+
+            val dynLoad = loads.firstOrNull { pVaddrDyn in it.pVaddr until (it.pVaddr + it.pMemsz) } ?: return null
+            val dynOff = dynLoad.pOffset + (pVaddrDyn - dynLoad.pVaddr)
+            if (dynOff < 0 || dynOff + pFilesz > data.size) return null
+
+            var off = dynOff
+            while (off < dynOff + pFilesz) {
+                val idx = off.toInt()
+                val dTag = ByteBuffer.wrap(data, idx, 8).order(ByteOrder.LITTLE_ENDIAN).long
+                val dVal = ByteBuffer.wrap(data, idx + 8, 8).order(ByteOrder.LITTLE_ENDIAN).long
+                when (dTag) {
+                    5L  -> strtab = dVal
+                    15L -> if (runpathStrOffset < 0) runpathStrOffset = dVal
+                    29L -> runpathStrOffset = dVal // DT_RUNPATH wins over DT_RPATH
+                }
+                if (dTag == 0L) break
+                off += 24
+            }
+        }
+
+        if (runpathStrOffset < 0 || strtab == 0) return null
+
+        val strLoad = loads.firstOrNull { strtab in it.pVaddr until (it.pVaddr + it.pMemsz) } ?: return null
+        val strOff = strLoad.pOffset + (strtab - strLoad.pVaddr) + runpathStrOffset
+        if (strOff < 0 || strOff.toInt() >= data.size) return null
+
+        var end = strOff.toInt()
+        while (end < data.size && data[end] != 0.toByte()) end++
+        return data.copyOfRange(strOff.toInt(), end).decodeToString()
     }
 
     /**

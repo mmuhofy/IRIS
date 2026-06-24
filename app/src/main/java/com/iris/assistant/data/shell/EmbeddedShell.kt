@@ -23,13 +23,14 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Persistent bash session running inside the embedded Termux bootstrap environment.
+ * Persistent shell session backed by Android's system shell (/system/bin/sh).
  *
- * Launches bash via /system/bin/linker64 (or /system/bin/linker on 32-bit) to
- * bypass Android SELinux restrictions that prevent executing binaries stored in
- * the app's private data directory. The DT_RUNPATH of the bash ELF has been
- * patched to "$ORIGIN/../lib" during bootstrap install so that the system
- * linker can locate shared libraries (libreadline, libncurses, etc.).
+ * Termux bootstrap binaries (in $PREFIX/bin) cannot be executed directly
+ * because Android SELinux blocks `execute` on app_data_file. Instead we
+ * proxy them through `/system/bin/linker64` (or `/system/bin/linker` on
+ * 32-bit), which IS executable by appdomain and can read the ELF as a data
+ * file. A thin `t` shell function is injected at startup so callers can
+ * write `t ls -la` to run any Termux binary with proper library resolution.
  *
  * Lifecycle:
  *   start() → [running] = true → commands flow in via [send] → stop() cleans up
@@ -43,8 +44,6 @@ class EmbeddedShell @Inject constructor(
         private const val TAG = "EmbeddedShell"
 
         private const val CMD_DONE_SENTINEL = "__IRIS_CMD_DONE_\$?__"
-
-        private const val SHELL_BIN = "usr/bin/bash"
     }
 
     private val _output = MutableSharedFlow<ShellLine>(replay = 200, extraBufferCapacity = 500)
@@ -55,70 +54,50 @@ class EmbeddedShell @Inject constructor(
 
     val isRunning: Boolean get() = process?.isAlive == true
 
+    private val linker: String
+        get() = if (File("/system/bin/linker64").exists()) "/system/bin/linker64" else "/system/bin/linker"
+
     suspend fun start() = withContext(Dispatchers.IO) {
         if (isRunning) return@withContext
 
-        val termuxDir  = File(context.filesDir, "termux")
-        val shellBin   = File(termuxDir, SHELL_BIN)
         val prefixPath = bootstrapDownloader.prefixDir.absolutePath
         val homePath   = bootstrapDownloader.homeDir.absolutePath
 
-        if (!shellBin.exists()) {
-            throw IllegalStateException(
-                "Termux bootstrap not installed: ${shellBin.absolutePath}"
-            )
-        }
-
-        val linker = if (File("/system/bin/linker64").exists()) {
-            "/system/bin/linker64"
-        } else {
-            "/system/bin/linker"
-        }
-
-        // Try direct exec first (works on devices where SELinux allows
-        // appdomain → app_data_file:file execute). Fall back to linker64
-        // if SELinux blocks it (EACCES).
-        fun ProcessBuilder.configure(): ProcessBuilder = apply {
-            environment().apply {
-                put("HOME",             homePath)
-                put("PREFIX",           prefixPath)
-                put("PATH",             "$prefixPath/bin:$prefixPath/sbin:/system/bin:/system/xbin")
-                put("TMPDIR",           "$prefixPath/tmp")
-                put("TERM",             "xterm-256color")
-                put("LANG",             "en_US.UTF-8")
-                put("LD_LIBRARY_PATH",  "$prefixPath/lib")
-                put("TERMUX_PREFIX",    prefixPath)
-            }
-            directory(File(homePath))
-        }
-
         val proc = try {
-            ProcessBuilder(shellBin.absolutePath, "--login")
+            ProcessBuilder("/system/bin/sh")
                 .redirectErrorStream(false)
-                .configure()
+                .apply {
+                    environment().apply {
+                        put("HOME",             homePath)
+                        put("PREFIX",           prefixPath)
+                        put("PATH",             "$prefixPath/bin:$prefixPath/sbin:/system/bin:/system/xbin")
+                        put("TMPDIR",           "$prefixPath/tmp")
+                        put("TERM",             "xterm-256color")
+                        put("LANG",             "en_US.UTF-8")
+                        put("LD_LIBRARY_PATH",  "$prefixPath/lib")
+                        put("TERMUX_PREFIX",    prefixPath)
+                        put("LINKER",           linker)
+                    }
+                    directory(File(homePath))
+                }
                 .start()
         } catch (e: IOException) {
-            if (e.message?.contains("error=13") == true) {
-                Log.w(TAG, "Direct exec blocked by SELinux (error=13), trying linker64 fallback")
-                try {
-                    ProcessBuilder(linker, shellBin.absolutePath, "--login")
-                        .redirectErrorStream(false)
-                        .configure()
-                        .start()
-                } catch (e2: IOException) {
-                    Log.e(TAG, "linker64 also failed: ${e2.message}")
-                    throw e2
-                }
-            } else {
-                Log.e(TAG, "Direct exec failed: ${e.message}")
-                throw e
-            }
+            Log.e(TAG, "Failed to start system shell: ${e.message}")
+            throw e
         }
 
         process     = proc
         stdinWriter = BufferedWriter(OutputStreamWriter(proc.outputStream))
 
-        // Stdout reader thread
+        // Inject the Termux command wrapper — `t ls -la` runs a Termux binary
+        // via linker64 so shared library resolution happens correctly.
+        val writer = stdinWriter!!
+        writer.write(
+            """t() { "$linker" "$prefixPath/bin/\$1" "\${@:2}"; }""" + "\n"
+        )
+        writer.write("__irix_ready__\n")
+        writer.flush()
+
         Thread({
             try {
                 BufferedReader(InputStreamReader(proc.inputStream)).use { reader ->
@@ -126,12 +105,9 @@ class EmbeddedShell @Inject constructor(
                         _output.tryEmit(ShellLine(line, ShellLine.Stream.STDOUT))
                     }
                 }
-            } catch (e: Exception) {
-                Log.d(TAG, "stdout reader ended: ${e.message}")
-            }
+            } catch (_: Exception) { }
         }, "iris-shell-stdout").also { it.isDaemon = true; it.start() }
 
-        // Stderr reader thread
         Thread({
             try {
                 BufferedReader(InputStreamReader(proc.errorStream)).use { reader ->
@@ -139,12 +115,90 @@ class EmbeddedShell @Inject constructor(
                         _output.tryEmit(ShellLine(line, ShellLine.Stream.STDERR))
                     }
                 }
-            } catch (e: Exception) {
-                Log.d(TAG, "stderr reader ended: ${e.message}")
-            }
+            } catch (_: Exception) { }
         }, "iris-shell-stderr").also { it.isDaemon = true; it.start() }
 
-        Log.d(TAG, "Shell session started")
+        Log.d(TAG, "Shell session started (system sh, linker=$linker)")
+    }
+
+    /**
+     * Runs a Termux bootstrap binary directly via linker64 and returns the
+     * output. Use this from Kotlin code when you need a Termux tool without
+     * going through the persistent shell session.
+     */
+    suspend fun runTermux(
+        binary: String,
+        vararg args: String,
+        timeoutMs: Long = 30_000,
+    ): ShellCommandResult = withContext(Dispatchers.IO) {
+        val prefixPath = bootstrapDownloader.prefixDir.absolutePath
+        val binPath    = "$prefixPath/bin/$binary"
+
+        if (!File(binPath).exists()) {
+            return@withContext ShellCommandResult(
+                command  = "t $binary ${args.joinToString(" ")}",
+                lines    = listOf(ShellLine("Binary not found: $binPath", ShellLine.Stream.STDERR)),
+                exitCode = 127,
+                timedOut = false,
+            )
+        }
+
+        val lines = mutableListOf<ShellLine>()
+        try {
+            val proc = ProcessBuilder(linker, binPath, *args)
+                .redirectErrorStream(true)
+                .apply {
+                    environment().apply {
+                        put("HOME",             bootstrapDownloader.homeDir.absolutePath)
+                        put("PREFIX",           prefixPath)
+                        put("LD_LIBRARY_PATH",  "$prefixPath/lib")
+                        put("PATH",             "$prefixPath/bin:$prefixPath/sbin:/system/bin:/system/xbin")
+                        put("TMPDIR",           "$prefixPath/tmp")
+                        put("TERM",             "dumb")
+                        put("LANG",             "en_US.UTF-8")
+                        put("TERMUX_PREFIX",    prefixPath)
+                    }
+                }
+                .start()
+
+            val reader = Thread({
+                try {
+                    BufferedReader(InputStreamReader(proc.inputStream)).use { r ->
+                        r.forEachLine { line ->
+                            lines.add(ShellLine(line, ShellLine.Stream.STDOUT))
+                        }
+                    }
+                } catch (_: Exception) { }
+            }, "iris-termux-reader").also { it.isDaemon = true; it.start() }
+
+            val exited = proc.waitFor(timeoutMs, TimeUnit.MILLISECONDS)
+            if (!exited) {
+                proc.destroyForcibly()
+                reader.join(1000)
+                return@withContext ShellCommandResult(
+                    command  = "t $binary ${args.joinToString(" ")}",
+                    lines    = lines,
+                    exitCode = -1,
+                    timedOut = true,
+                )
+            }
+            reader.join(1000)
+
+            ShellCommandResult(
+                command  = "t $binary ${args.joinToString(" ")}",
+                lines    = lines,
+                exitCode = proc.exitValue(),
+                timedOut = false,
+            )
+        } catch (e: Exception) {
+            Log.e(TAG, "runTermux failed: ${e.message}")
+            ShellCommandResult(
+                command  = "t $binary ${args.joinToString(" ")}",
+                lines    = lines + ShellLine("Error: ${e.message}", ShellLine.Stream.STDERR),
+                exitCode = -1,
+                timedOut = false,
+            )
+        }
     }
 
     suspend fun send(command: String) = withContext(Dispatchers.IO) {
@@ -156,6 +210,14 @@ class EmbeddedShell @Inject constructor(
         Log.d(TAG, "Sent: $command")
     }
 
+    /** Send a command to the persistent shell via stdin. */
+    suspend fun sendRaw(cmd: String) = withContext(Dispatchers.IO) {
+        val writer = stdinWriter
+            ?: throw IllegalStateException("Shell is not running.")
+        writer.write(cmd)
+        writer.flush()
+    }
+
     suspend fun runAndCollect(
         command: String,
         timeoutMs: Long,
@@ -165,8 +227,7 @@ class EmbeddedShell @Inject constructor(
         val lines = mutableListOf<ShellLine>()
         val doneChannel = Channel<Int>(1)
 
-        val collectScope = CoroutineScope(Dispatchers.IO)
-        val collectJob = collectScope.launch {
+        val collectJob = CoroutineScope(Dispatchers.IO).launch {
             output.collect { line ->
                 if (line.text.startsWith("__IRIS_CMD_DONE_")) {
                     val exitCode = line.text
