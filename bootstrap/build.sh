@@ -107,8 +107,6 @@ PACKAGES=(
     psmisc
     sed
     tar
-    xz-utils
-    bzip2
     termux-exec
     termux-tools
     util-linux
