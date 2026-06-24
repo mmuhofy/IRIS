@@ -571,7 +571,7 @@ class BootstrapDownloader @Inject constructor(
             val pOffset = ByteBuffer.wrap(data, phOff.toInt() + 8, 8).order(ByteOrder.LITTLE_ENDIAN).long
             val pVaddr = ByteBuffer.wrap(data, phOff.toInt() + 16, 8).order(ByteOrder.LITTLE_ENDIAN).long
             val pMemsz = ByteBuffer.wrap(data, phOff.toInt() + 40, 8).order(ByteOrder.LITTLE_ENDIAN).long
-            if (pType == 1 && (pFlags and 1) != 0) { // PT_LOAD, PF_X
+            if (pType == 1) { // PT_LOAD (any — .dynamic/.dynstr may not have PF_X)
                 loads.add(LoadSeg(pOffset, pVaddr, pMemsz))
             }
         }
