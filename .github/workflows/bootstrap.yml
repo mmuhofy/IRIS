@@ -64,7 +64,11 @@ jobs:
             curl -sL "https://dl.google.com/android/repository/android-ndk-${NDK_FULL}-linux.zip" \
               -o /tmp/ndk.zip
             unzip -q /tmp/ndk.zip -d "$HOME/lib/"
-            mv "$HOME/lib/android-ndk-${NDK_FULL}" "$HOME/lib/android-ndk-$NDK_FULL"
+            # The zip may extract as android-ndk-r29 or android-ndk-r29-linux
+            EXTRACTED=$(ls -d "$HOME/lib"/android-ndk-* 2>/dev/null | head -1)
+            if [ -n "$EXTRACTED" ] && [ "$EXTRACTED" != "$HOME/lib/android-ndk-$NDK_FULL" ]; then
+              mv "$EXTRACTED" "$HOME/lib/android-ndk-$NDK_FULL"
+            fi
             rm -f /tmp/ndk.zip
           fi
           echo "ANDROID_NDK_HOME=$HOME/lib/android-ndk-$NDK_FULL" >> "$GITHUB_ENV"
