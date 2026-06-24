@@ -3,7 +3,6 @@ package com.iris.assistant.data.shell
 import android.content.Context
 import android.util.Log
 import dagger.hilt.android.qualifiers.ApplicationContext
-import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
@@ -18,23 +17,21 @@ import java.io.BufferedWriter
 import java.io.File
 import java.io.InputStreamReader
 import java.io.OutputStreamWriter
+import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
  * Persistent bash session running inside the embedded Termux bootstrap environment.
  *
+ * Launches bash via /system/bin/linker64 (or /system/bin/linker on 32-bit) to
+ * bypass Android SELinux restrictions that prevent executing binaries stored in
+ * the app's private data directory. The DT_RUNPATH of the bash ELF has been
+ * patched to "$ORIGIN/../lib" during bootstrap install so that the system
+ * linker can locate shared libraries (libreadline, libncurses, etc.).
+ *
  * Lifecycle:
  *   start() → [running] = true → commands flow in via [send] → stop() cleans up
- *
- * The session is a single long-running Process. stdin is written per command;
- * stdout/stderr are streamed continuously and emitted as [ShellLine] events on
- * [output]. Callers collect [output] to display live terminal output.
- *
- * Thread safety: [send] and [stop] are coroutine-safe. The stdout/stderr reader
- * threads are internal and never exposed.
- *
- * UNTESTED — verify before use
  */
 @Singleton
 class EmbeddedShell @Inject constructor(
@@ -44,76 +41,60 @@ class EmbeddedShell @Inject constructor(
     companion object {
         private const val TAG = "EmbeddedShell"
 
-        // Sentinel written to stdout after each command so we know the command finished.
-        // Must be a string that cannot appear in normal command output.
         private const val CMD_DONE_SENTINEL = "__IRIS_CMD_DONE_\$?__"
 
-        // Shell binary inside the Termux prefix
         private const val SHELL_BIN = "usr/bin/bash"
     }
 
-    // ── Output stream ─────────────────────────────────────────────────────────
-
-    /**
-     * Emits every line produced by the shell (stdout + stderr).
-     * Replay = 200 so a reconnecting UI gets recent history.
-     */
     private val _output = MutableSharedFlow<ShellLine>(replay = 200, extraBufferCapacity = 500)
     val output: Flow<ShellLine> = _output.asSharedFlow()
 
-    // ── Process state ─────────────────────────────────────────────────────────
-
-    @Volatile private var process: ElfProcess? = null
+    @Volatile private var process: Process? = null
     @Volatile private var stdinWriter: BufferedWriter? = null
 
     val isRunning: Boolean get() = process?.isAlive == true
 
-    // ── Public API ────────────────────────────────────────────────────────────
-
-    /**
-     * Starts the bash session.
-     * No-op if already running.
-     * Must be called from a coroutine (switches to [Dispatchers.IO] internally).
-     *
-     * @throws IllegalStateException if the bootstrap is not installed
-     */
     suspend fun start() = withContext(Dispatchers.IO) {
         if (isRunning) return@withContext
 
-        val termuxDir = File(context.filesDir, "termux")
-        val shellBin  = File(termuxDir, SHELL_BIN)
-        val prefixDir = bootstrapDownloader.prefixDir
-        val prefixPath = prefixDir.absolutePath
+        val termuxDir  = File(context.filesDir, "termux")
+        val shellBin   = File(termuxDir, SHELL_BIN)
+        val prefixPath = bootstrapDownloader.prefixDir.absolutePath
         val homePath   = bootstrapDownloader.homeDir.absolutePath
 
         if (!shellBin.exists()) {
             throw IllegalStateException(
-                "Termux bootstrap not installed. Shell binary not found: ${shellBin.absolutePath}"
+                "Termux bootstrap not installed: ${shellBin.absolutePath}"
             )
         }
-        val libPath = "$prefixPath/lib"
 
-        val env = arrayOf(
-            "HOME=$homePath",
-            "PREFIX=$prefixPath",
-            "PATH=$prefixPath/bin:$prefixPath/sbin:/system/bin:/system/xbin",
-            "TMPDIR=$prefixPath/tmp",
-            "TERM=xterm-256color",
-            "LANG=en_US.UTF-8",
-            "TERMUX_PREFIX=$prefixPath",
-        )
+        val linker = if (File("/system/bin/linker64").exists()) {
+            "/system/bin/linker64"
+        } else {
+            "/system/bin/linker"
+        }
 
         val proc = try {
-            ElfLoader.execute(
-                elfPath = shellBin.absolutePath,
-                libPath = libPath,
-                args    = arrayOf("--login"),
-                env     = env,
-            )
+            ProcessBuilder(linker, shellBin.absolutePath, "--login")
+                .redirectErrorStream(false)
+                .apply {
+                    environment().apply {
+                        put("HOME",          homePath)
+                        put("PREFIX",        prefixPath)
+                        put("PATH",          "$prefixPath/bin:$prefixPath/sbin:/system/bin:/system/xbin")
+                        put("TMPDIR",        "$prefixPath/tmp")
+                        put("TERM",          "xterm-256color")
+                        put("LANG",          "en_US.UTF-8")
+                        put("TERMUX_PREFIX", prefixPath)
+                    }
+                    directory(File(homePath))
+                }
+                .start()
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to start shell process: ${e.message}")
+            Log.e(TAG, "Failed to start shell: ${e.message}")
             throw e
         }
+
         process     = proc
         stdinWriter = BufferedWriter(OutputStreamWriter(proc.outputStream))
 
@@ -143,34 +124,18 @@ class EmbeddedShell @Inject constructor(
             }
         }, "iris-shell-stderr").also { it.isDaemon = true; it.start() }
 
-        Log.d(TAG, "Shell session started")
+        Log.d(TAG, "Shell session started (pid=${proc.pid()})")
     }
 
-    /**
-     * Sends a command to the running bash session.
-     * The command is followed by a sentinel echo so callers can detect completion.
-     *
-     * @throws IllegalStateException if the shell is not running
-     */
     suspend fun send(command: String) = withContext(Dispatchers.IO) {
         val writer = stdinWriter
             ?: throw IllegalStateException("Shell is not running. Call start() first.")
-        // Write the command, then echo the sentinel with the exit code embedded
         writer.write("$command\n")
         writer.write("echo \"$CMD_DONE_SENTINEL\"\n")
         writer.flush()
         Log.d(TAG, "Sent: $command")
     }
 
-    /**
-     * Sends a command and collects output lines until the done sentinel appears,
-     * up to [timeoutMs]. Returns collected lines (sentinel excluded).
-     *
-     * Intended for AI tool-fallback calls where the caller needs the full output
-     * before returning a [com.iris.assistant.domain.tools.ToolResult].
-     *
-     * UNTESTED — verify before use
-     */
     suspend fun runAndCollect(
         command: String,
         timeoutMs: Long,
@@ -178,14 +143,12 @@ class EmbeddedShell @Inject constructor(
         if (!isRunning) throw IllegalStateException("Shell is not running.")
 
         val lines = mutableListOf<ShellLine>()
-        val doneChannel = Channel<Int>(1) // carries exit code from sentinel
+        val doneChannel = Channel<Int>(1)
 
-        // Collect from the shared flow until sentinel arrives
         val collectScope = CoroutineScope(Dispatchers.IO)
         val collectJob = collectScope.launch {
             output.collect { line ->
                 if (line.text.startsWith("__IRIS_CMD_DONE_")) {
-                    // Sentinel format: __IRIS_CMD_DONE_<exitCode>__
                     val exitCode = line.text
                         .removePrefix("__IRIS_CMD_DONE_")
                         .removeSuffix("__")
@@ -213,9 +176,6 @@ class EmbeddedShell @Inject constructor(
         )
     }
 
-    /**
-     * Sends SIGTERM to the shell process, waits up to 2 s, then SIGKILL.
-     */
     suspend fun stop() = withContext(Dispatchers.IO) {
         val proc = process ?: return@withContext
         stdinWriter?.runCatching { close() }
@@ -227,22 +187,15 @@ class EmbeddedShell @Inject constructor(
         Log.d(TAG, "Shell session stopped")
     }
 
-    /**
-     * Interrupts the currently running foreground command by sending Ctrl-C (ETX).
-     * Does not stop the shell session itself.
-     */
     suspend fun interrupt() = withContext(Dispatchers.IO) {
         stdinWriter?.apply {
-            write("\u0003\n") // ETX = Ctrl-C
+            write("\u0003\n")
             flush()
         }
         Log.d(TAG, "Sent interrupt (Ctrl-C)")
     }
 }
 
-// ── Data types ────────────────────────────────────────────────────────────────
-
-/** A single line of output from the shell. */
 data class ShellLine(
     val text   : String,
     val stream : Stream,
@@ -250,14 +203,12 @@ data class ShellLine(
     enum class Stream { STDOUT, STDERR }
 }
 
-/** Result of a single [EmbeddedShell.runAndCollect] call. */
 data class ShellCommandResult(
     val command  : String,
     val lines    : List<ShellLine>,
     val exitCode : Int,
     val timedOut : Boolean,
 ) {
-    /** Concatenated output as a single string, suitable for LLM consumption. */
     fun outputText(): String = lines.joinToString("\n") { it.text }
     val succeeded: Boolean get() = exitCode == 0 && !timedOut
 }

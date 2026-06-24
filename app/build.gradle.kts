@@ -31,7 +31,6 @@ kotlin {
 android {
     namespace   = "com.iris.assistant"
     compileSdk  = 36
-    ndkVersion  = "27.0.12077973"
 
     defaultConfig {
         applicationId = "com.iris.assistant"
@@ -100,19 +99,6 @@ android {
             reset()
             include("arm64-v8a")
             isUniversalApk = false
-        }
-    }
-
-    packaging {
-        jniLibs {
-            pickFirsts += setOf("libc++_shared.so")
-        }
-    }
-
-    externalNativeBuild {
-        cmake {
-            path = file("src/main/cpp/CMakeLists.txt")
-            version = "3.22.1"
         }
     }
 

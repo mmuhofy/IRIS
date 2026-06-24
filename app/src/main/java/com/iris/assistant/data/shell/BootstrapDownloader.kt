@@ -17,6 +17,8 @@ import kotlinx.serialization.json.Json
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.File
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
 import java.security.MessageDigest
 import java.util.zip.ZipInputStream
 import javax.inject.Inject
@@ -221,7 +223,17 @@ class BootstrapDownloader @Inject constructor(
         // like libreadline.so.8 → libreadline.so.8.0.
         fixSymlinks(prefixDir)
 
-        // ── Step 9: install proot via apt ────────────────────────────────
+        // ── Step 10: patch DT_RUNPATH in key binaries ────────────────────
+        // The system linker requires DT_RUNPATH or DT_RPATH to locate shared
+        // libraries for PIE binaries. Termux's prebuilt binaries have
+        // hardcoded paths (e.g. /data/data/com.termux/files/usr/lib) which
+        // are invalid when extracted to our app's data dir. We rewrite them
+        // to $ORIGIN/../lib so that the linker resolves libraries relative to
+        // the binary's own location.
+        File(prefixDir, "bin/bash").let { if (it.exists()) patchElfRunpath(it) }
+        File(prefixDir, "bin/apt-get").let { if (it.exists()) patchElfRunpath(it) }
+
+        // ── Step 11: install proot via apt ───────────────────────────────
         // proot is not bundled in the bootstrap zip — it must be pulled via
         // the Termux package manager. We run apt in a one-shot subprocess
         // (not via EmbeddedShell, which isn't started yet) to avoid a
@@ -478,6 +490,91 @@ class BootstrapDownloader @Inject constructor(
                 }
             }
         }
+    }
+
+    /**
+     * Patches the DT_RUNPATH (or DT_RPATH) of a 64-bit ELF binary to point
+     * to $ORIGIN/../lib. This is required because Termux's prebuilt binaries
+     * have hardcoded RPATHs like /data/data/com.termux/files/usr/lib, which
+     * are invalid when the bootstrap is extracted to our app's data directory.
+     *
+     * The replacement string ($ORIGIN/../lib, 14 bytes) is always shorter
+     * than the original Termux path (≥34 bytes), so we overwrite in-place
+     * and null-pad the remainder. No ELF section resizing needed.
+     */
+    private fun patchElfRunpath(elfFile: File) {
+        if (!elfFile.isFile) return
+        val data = elfFile.readBytes()
+        if (data.size < 64) return
+
+        // ELF magic
+        if (data[0] != 0x7f || data[1] != 'E'.code.toByte() ||
+            data[2] != 'L'.code.toByte() || data[3] != 'F'.code.toByte()) return
+
+        // Only handle 64-bit ELF (arm64-v8a)
+        if (data[4] != 2.toByte()) return
+
+        val phoff = ByteBuffer.wrap(data, 32, 8).order(ByteOrder.LITTLE_ENDIAN).long
+        val phentsize = ByteBuffer.wrap(data, 54, 2).order(ByteOrder.LITTLE_ENDIAN).short.toInt() and 0xFFFF
+        val phnum = ByteBuffer.wrap(data, 56, 2).order(ByteOrder.LITTLE_ENDIAN).short.toInt() and 0xFFFF
+
+        var strtab = 0L
+        var strsz = 0L
+        var runpathStrOffset = -1L
+
+        // Locate PT_DYNAMIC and parse its entries
+        for (i in 0 until phnum) {
+            val phOff = phoff + i * phentsize
+            val pType = ByteBuffer.wrap(data, phOff.toInt(), 4).order(ByteOrder.LITTLE_ENDIAN).int
+            if (pType != 2) continue // PT_DYNAMIC
+
+            val pVaddr = ByteBuffer.wrap(data, phOff.toInt() + 16, 8).order(ByteOrder.LITTLE_ENDIAN).long
+            val pFilesz = ByteBuffer.wrap(data, phOff.toInt() + 32, 8).order(ByteOrder.LITTLE_ENDIAN).long
+
+            var dynOff = pVaddr
+            while (dynOff < pVaddr + pFilesz) {
+                val dTag = ByteBuffer.wrap(data, dynOff.toInt(), 8).order(ByteOrder.LITTLE_ENDIAN).long
+                val dVal = ByteBuffer.wrap(data, dynOff.toInt() + 8, 8).order(ByteOrder.LITTLE_ENDIAN).long
+
+                when (dTag) {
+                    5L  -> strtab = dVal           // DT_STRTAB
+                    10L -> strsz = dVal            // DT_STRSZ
+                    15L -> runpathStrOffset = dVal // DT_RPATH (legacy)
+                    29L -> runpathStrOffset = dVal // DT_RUNPATH
+                }
+
+                if (dTag == 0L) break // DT_NULL marks end
+                dynOff += 24 // sizeof(Elf64_Dyn)
+            }
+            break
+        }
+
+        if (runpathStrOffset < 0L || strtab == 0L) {
+            Log.d(TAG, "No DT_RUNPATH/DT_RPATH in ${elfFile.name} — skipping")
+            return
+        }
+
+        val stringPos = (strtab + runpathStrOffset).toInt()
+        if (stringPos + 1 >= data.size) return
+
+        val endPos = data.indexOf(0.toByte(), stringPos)
+        val oldLen = if (endPos >= 0) endPos - stringPos else data.size - stringPos
+
+        val newRunpath = "\$ORIGIN/../lib"
+        if (newRunpath.length > oldLen) {
+            Log.w(TAG, "Cannot patch ${elfFile.name}: new RUNPATH (${newRunpath.length}) longer than old ($oldLen)")
+            return
+        }
+
+        val oldPath = data.copyOfRange(stringPos, stringPos + oldLen).decodeToString()
+        val newBytes = newRunpath.encodeToByteArray()
+        newBytes.copyInto(data, stringPos)
+        // Null-pad remaining bytes
+        data.fill(0, stringPos + newBytes.size, stringPos + oldLen)
+        if (endPos >= 0) data[stringPos + newBytes.size] = 0
+
+        elfFile.writeBytes(data)
+        Log.i(TAG, "Patched DT_RUNPATH in ${elfFile.name}: '$oldPath' -> '$newRunpath'")
     }
 
     /**
