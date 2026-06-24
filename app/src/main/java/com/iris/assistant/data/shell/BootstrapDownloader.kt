@@ -461,11 +461,16 @@ class BootstrapDownloader @Inject constructor(
      * libreadline.so.8.0). Without real files at the versioned name, the
      * system linker cannot resolve DT_NEEDED entries like "libreadline.so.8".
      *
-     * Detection: scans all files < 100 bytes, reads raw bytes, strips
-     * non-printable chars (null bytes, newlines), and checks if the result
-     * is a relative path to an existing file in the same directory.
+     * Symlink chains can be multiple levels deep (libfoo.so → libfoo.so.26 →
+     * libfoo.so.26.0.1). We resolve the entire chain recursively until we
+     * find the real ELF file (≥ 100 bytes), then copy it to every node in
+     * the chain.
      */
     private fun fixSymlinks(dir: File) {
+        // Collect all potential symlink-text files first (stable iteration)
+        data class Link(val file: File, val targetName: String)
+        val links = mutableListOf<Link>()
+
         dir.walkTopDown().forEach { file ->
             if (!file.isFile || file.length() > 100L) return@forEach
             val content = file.readBytes()
@@ -476,18 +481,34 @@ class BootstrapDownloader @Inject constructor(
             if (content.isEmpty() || content.length > 64) return@forEach
             val target = File(file.parentFile, content)
             if (target.exists() && target.isFile && target != file) {
-                Log.d(TAG, "Symlink-text ${file.name} -> $content (${content.length} chars)")
-                if (target.length() < 100L) {
-                    Log.w(TAG, "Target $content is also < 100 bytes, likely also a symlink — skipping ${file.name}")
-                    return@forEach
-                }
-                file.delete()
-                try {
-                    target.copyTo(file, overwrite = false)
-                    Log.d(TAG, "Copied $content -> ${file.name}")
-                } catch (e: Exception) {
-                    Log.w(TAG, "Failed to copy $content -> ${file.name}: ${e.message}")
-                }
+                links.add(Link(file, content))
+            }
+        }
+
+        // Recursively follow a symlink chain to the real file
+        fun resolveReal(start: File, visited: MutableSet<String>): File? {
+            if (start.length() >= 100L) return start
+            if (!visited.add(start.absolutePath)) return null
+            val content = start.readBytes()
+                .filterNot { it == 0x0.toByte() || it == 0x0a.toByte() || it == 0x0d.toByte() }
+                .toByteArray()
+                .decodeToString()
+                .trim()
+            if (content.isEmpty() || content.length > 64) return null
+            val next = File(start.parentFile, content)
+            if (!next.exists() || next == start) return null
+            return resolveReal(next, visited)
+        }
+
+        for ((linkFile, _) in links) {
+            val real = resolveReal(linkFile, mutableSetOf()) ?: continue
+            if (real.length() < 100L) continue
+            linkFile.delete()
+            try {
+                real.copyTo(linkFile, overwrite = false)
+                Log.d(TAG, "Resolved symlink chain: ${linkFile.name} -> ... -> ${real.name}")
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed to copy ${real.name} -> ${linkFile.name}: ${e.message}")
             }
         }
     }
