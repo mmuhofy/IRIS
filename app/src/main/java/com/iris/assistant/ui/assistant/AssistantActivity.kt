@@ -51,6 +51,7 @@ import androidx.compose.ui.unit.sp
 import com.iris.assistant.service.voice.VoiceInteractionEntryPoint
 import com.iris.assistant.ui.theme.ColorTextSecondary
 import com.iris.assistant.ui.theme.IrisTheme
+import com.iris.assistant.ui.theme.IrisThemeTransparent
 import com.phosphor.icons.PhIcons
 import com.phosphor.icons.filled.MicrophoneFill
 import com.phosphor.icons.filled.PaperPlaneRightFill
