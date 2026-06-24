@@ -79,7 +79,8 @@ private fun buildDarkColorScheme(iris: IrisColorScheme) = darkColorScheme(
 )
 
 // ---------------------------------------------------------------------------
-// IrisTheme — root composable, wrap entire app with this
+// IrisTheme — standard theme with opaque background Surface.
+// Use for MainActivity and all normal screens.
 // ---------------------------------------------------------------------------
 @Composable
 fun IrisTheme(
@@ -88,7 +89,6 @@ fun IrisTheme(
     content: @Composable () -> Unit
 ) {
     val irisColors = colorSchemeOption.toIrisColorScheme()
-
     CompositionLocalProvider(LocalIrisColorScheme provides irisColors) {
         MaterialTheme(
             colorScheme = buildDarkColorScheme(irisColors),
@@ -100,6 +100,31 @@ fun IrisTheme(
             ) {
                 content()
             }
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// IrisThemeTransparent — same theme tokens but WITHOUT the opaque Surface.
+// Use ONLY for translucent overlay activities (AssistantActivity).
+// The opaque Surface in IrisTheme paints the entire window #18181B,
+// which defeats windowIsTranslucent and makes the overlay fully black.
+// ---------------------------------------------------------------------------
+@Composable
+fun IrisThemeTransparent(
+    colorSchemeOption: ColorSchemeOption = ColorSchemeOption.LAVENDER,
+    fontFamily: AppFont = AppFont.Inter,
+    content: @Composable () -> Unit
+) {
+    val irisColors = colorSchemeOption.toIrisColorScheme()
+    CompositionLocalProvider(LocalIrisColorScheme provides irisColors) {
+        MaterialTheme(
+            colorScheme = buildDarkColorScheme(irisColors),
+            typography  = fontFamily.toTypography(),
+        ) {
+            // No Surface here — window background stays transparent,
+            // allowing the activity behind to show through.
+            content()
         }
     }
 }

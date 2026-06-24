@@ -64,15 +64,23 @@ class AssistantActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Translucent overlay: must NOT call enableEdgeToEdge().
-        // Clear FLAG_NOT_FOCUSABLE so TextField and IME work.
+        // Translucent overlay window setup.
+        //
+        // Rules:
+        // - NO enableEdgeToEdge() — overrides translucent theme → black bg.
+        // - NO FLAG_NOT_TOUCH_MODAL — prevents IME from attaching to this
+        //   window, causing TextField to need lock/unlock to get focus.
+        //   Touch-outside dismiss is handled in Compose instead.
+        // - NO FLAG_LAYOUT_NO_LIMITS — causes Compose root to fill with
+        //   system background color (black).
+        // - NO FLAG_NOT_FOCUSABLE — must be clear for IME to work.
+        //
+        // We only ensure these flags are CLEARED (not set):
         @Suppress("DEPRECATION")
-        window.setFlags(
-            WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS or
-            WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
-            WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS or
+        window.clearFlags(
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
             WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE // clear this bit
+            WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
         )
 
         Log.d(TAG, "onCreate")
@@ -89,7 +97,11 @@ class AssistantActivity : ComponentActivity() {
         )
 
         setContent {
-            IrisTheme {
+            // IrisTheme wraps with Surface(background = #18181B) which makes
+            // the entire window opaque. For the translucent overlay we must
+            // skip that Surface — use MaterialTheme + CompositionLocalProvider
+            // directly without the opaque Surface wrapper.
+            IrisThemeTransparent {
                 AssistantScreen(viewModel = viewModel, onClose = { finish() })
             }
         }
@@ -123,9 +135,14 @@ private fun AssistantScreen(viewModel: AssistantViewModel, onClose: () -> Unit) 
         if (state.isDone) { delay(300); onClose() }
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-
-        // Tap-outside dismiss — NO background color, fully transparent
+    // Root box: Color.Transparent so the window beneath shows through.
+    // DO NOT use fillMaxSize() with any non-transparent background here.
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Transparent)
+    ) {
+        // Tap-outside dismiss — invisible touch layer, no color
         if (sweepPhase == SweepPhase.DONE && !state.isDone) {
             Box(
                 modifier = Modifier
