@@ -130,6 +130,30 @@ fun IrisThemeTransparent(
 }
 
 // ---------------------------------------------------------------------------
+// IrisThemeTransparent — same tokens, NO opaque Surface.
+// Use ONLY for translucent overlay activities (AssistantActivity).
+// IrisTheme's Surface fills the window with #18181B, defeating
+// windowIsTranslucent and making the overlay fully black.
+// ---------------------------------------------------------------------------
+@Composable
+fun IrisThemeTransparent(
+    colorSchemeOption: ColorSchemeOption = ColorSchemeOption.LAVENDER,
+    fontFamily: AppFont = AppFont.Inter,
+    content: @Composable () -> Unit
+) {
+    val irisColors = colorSchemeOption.toIrisColorScheme()
+    CompositionLocalProvider(LocalIrisColorScheme provides irisColors) {
+        MaterialTheme(
+            colorScheme = buildDarkColorScheme(irisColors),
+            typography  = fontFamily.toTypography(),
+        ) {
+            // No Surface — window background stays transparent.
+            content()
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
 // Convenience accessor — use in composables: IrisTheme.colors.primary
 // ---------------------------------------------------------------------------
 object IrisTheme {
