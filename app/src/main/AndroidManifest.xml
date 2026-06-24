@@ -57,13 +57,30 @@
             </intent-filter>
         </activity>
 
+        <!--
+            AssistantActivity — power-button triggered overlay assistant.
+
+            Key flags:
+            - Theme.IRIS.Translucent    : transparent window background
+            - excludeFromRecents        : don't show in app switcher
+            - noHistory                 : don't keep in back stack
+            - showWhenLocked            : visible on lock screen
+            - turnScreenOn              : wake screen when triggered
+            - taskAffinity=""           : separate task, doesn't merge with main
+            - softInput=adjustPan       : keyboard pushes content up, doesn't
+                                          resize the window (avoids layout jump
+                                          with translucent windows)
+        -->
         <activity
             android:name=".ui.assistant.AssistantActivity"
             android:exported="true"
             android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:showWhenLocked="true"
+            android:turnScreenOn="true"
             android:theme="@style/Theme.IRIS.Translucent"
             android:taskAffinity=""
-            android:windowSoftInputMode="adjustResize" />
+            android:windowSoftInputMode="adjustPan|stateHidden" />
 
         <service
             android:name=".service.WakeWordService"

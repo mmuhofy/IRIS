@@ -71,18 +71,23 @@ class AssistantActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
-
-        // ── BUG FIX: Translucent activity focus issue ──────────────────────
-        // windowIsTranslucent=true causes Android to sometimes not hand focus
-        // to this window, making TextField untappable until screen lock/unlock.
-        // Fix: explicitly take focus and ensure touch events are not blocked.
-        window.addFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL.inv())
+        // ── Window flags for overlay-style translucent activity ────────────
+        // DO NOT call enableEdgeToEdge() — it overrides the translucent theme
+        // and makes the window opaque (black background).
+        //
+        // FLAG_NOT_TOUCH_MODAL  : touches outside our UI pass through to the
+        //                         window below (scrim handles dismiss instead).
+        // FLAG_NOT_FOCUSABLE    : must NOT be set — removing it lets the IME
+        //                         attach and TextField receive focus.
+        // FLAG_LAYOUT_NO_LIMITS : allow drawing under status/nav bars so the
+        //                         sweep animation covers the full screen.
         @Suppress("DEPRECATION")
-        window.clearFlags(WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE)
-        window.setSoftInputMode(
-            WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE or
-            WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE
+        window.setFlags(
+            WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS or
+            WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
+            WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS or
+            WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE  // clear NOT_FOCUSABLE
         )
 
         Log.d(TAG, "onCreate")
