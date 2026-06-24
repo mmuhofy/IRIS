@@ -11,9 +11,6 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 
-// ---------------------------------------------------------------------------
-// IrisColorScheme — holds primary, gradientEnd, secondary for each scheme
-// ---------------------------------------------------------------------------
 @Immutable
 data class IrisColorScheme(
     val primary     : Color,
@@ -21,13 +18,8 @@ data class IrisColorScheme(
     val secondary   : Color
 )
 
-val LocalIrisColorScheme = staticCompositionLocalOf {
-    IrisColorSchemeLavender // default
-}
+val LocalIrisColorScheme = staticCompositionLocalOf { IrisColorSchemeLavender }
 
-// ---------------------------------------------------------------------------
-// Predefined schemes
-// ---------------------------------------------------------------------------
 val IrisColorSchemeLavender   = IrisColorScheme(LavenderPrimary,   LavenderGradient,   LavenderSecondary)
 val IrisColorSchemeSunset     = IrisColorScheme(SunsetPrimary,     SunsetGradient,     SunsetSecondary)
 val IrisColorSchemeOcean      = IrisColorScheme(OceanPrimary,      OceanGradient,      OceanSecondary)
@@ -38,12 +30,8 @@ val IrisColorSchemeNeural     = IrisColorScheme(NeuralPrimary,     NeuralGradien
 val IrisColorSchemeAurora     = IrisColorScheme(AuroraPrimary,     AuroraGradient,     AuroraSecondary)
 val IrisColorSchemeMonolith   = IrisColorScheme(MonolithPrimary,   MonolithGradient,   MonolithSecondary)
 
-// ---------------------------------------------------------------------------
-// ColorSchemeOption enum — used in Settings + DataStore
-// ---------------------------------------------------------------------------
 enum class ColorSchemeOption {
-    LAVENDER, SUNSET, OCEAN, FOREST, ROSE, MONOCHROME,
-    NEURAL, AURORA, MONOLITH;
+    LAVENDER, SUNSET, OCEAN, FOREST, ROSE, MONOCHROME, NEURAL, AURORA, MONOLITH;
 
     fun toIrisColorScheme(): IrisColorScheme = when (this) {
         LAVENDER   -> IrisColorSchemeLavender
@@ -58,9 +46,6 @@ enum class ColorSchemeOption {
     }
 }
 
-// ---------------------------------------------------------------------------
-// Material3 dark color scheme — wired to active IrisColorScheme
-// ---------------------------------------------------------------------------
 private fun buildDarkColorScheme(iris: IrisColorScheme) = darkColorScheme(
     primary          = iris.primary,
     secondary        = iris.secondary,
@@ -78,10 +63,7 @@ private fun buildDarkColorScheme(iris: IrisColorScheme) = darkColorScheme(
     onSurfaceVariant = ColorTextSecondary,
 )
 
-// ---------------------------------------------------------------------------
-// IrisTheme — standard theme with opaque background Surface.
-// Use for MainActivity and all normal screens.
-// ---------------------------------------------------------------------------
+// Normal theme — opaque Surface background. Use for all regular screens.
 @Composable
 fun IrisTheme(
     colorSchemeOption: ColorSchemeOption = ColorSchemeOption.LAVENDER,
@@ -94,22 +76,15 @@ fun IrisTheme(
             colorScheme = buildDarkColorScheme(irisColors),
             typography  = fontFamily.toTypography(),
         ) {
-            Surface(
-                modifier = Modifier.fillMaxSize(),
-                color    = MaterialTheme.colorScheme.background,
-            ) {
+            Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                 content()
             }
         }
     }
 }
 
-// ---------------------------------------------------------------------------
-// IrisThemeTransparent — same theme tokens but WITHOUT the opaque Surface.
-// Use ONLY for translucent overlay activities (AssistantActivity).
-// The opaque Surface in IrisTheme paints the entire window #18181B,
-// which defeats windowIsTranslucent and makes the overlay fully black.
-// ---------------------------------------------------------------------------
+// Transparent theme — NO Surface. Use ONLY for AssistantActivity (translucent overlay).
+// IrisTheme's Surface paints the window #18181B, defeating windowIsTranslucent.
 @Composable
 fun IrisThemeTransparent(
     colorSchemeOption: ColorSchemeOption = ColorSchemeOption.LAVENDER,
@@ -122,40 +97,11 @@ fun IrisThemeTransparent(
             colorScheme = buildDarkColorScheme(irisColors),
             typography  = fontFamily.toTypography(),
         ) {
-            // No Surface here — window background stays transparent,
-            // allowing the activity behind to show through.
             content()
         }
     }
 }
 
-// ---------------------------------------------------------------------------
-// IrisThemeTransparent — same tokens, NO opaque Surface.
-// Use ONLY for translucent overlay activities (AssistantActivity).
-// IrisTheme's Surface fills the window with #18181B, defeating
-// windowIsTranslucent and making the overlay fully black.
-// ---------------------------------------------------------------------------
-@Composable
-fun IrisThemeTransparent(
-    colorSchemeOption: ColorSchemeOption = ColorSchemeOption.LAVENDER,
-    fontFamily: AppFont = AppFont.Inter,
-    content: @Composable () -> Unit
-) {
-    val irisColors = colorSchemeOption.toIrisColorScheme()
-    CompositionLocalProvider(LocalIrisColorScheme provides irisColors) {
-        MaterialTheme(
-            colorScheme = buildDarkColorScheme(irisColors),
-            typography  = fontFamily.toTypography(),
-        ) {
-            // No Surface — window background stays transparent.
-            content()
-        }
-    }
-}
-
-// ---------------------------------------------------------------------------
-// Convenience accessor — use in composables: IrisTheme.colors.primary
-// ---------------------------------------------------------------------------
 object IrisTheme {
     val colors: IrisColorScheme
         @Composable get() = LocalIrisColorScheme.current
