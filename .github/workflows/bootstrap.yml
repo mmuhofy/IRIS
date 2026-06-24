@@ -38,7 +38,7 @@ jobs:
             python3 python3-pip \
             ccache ninja-build \
             gettext autopoint po4a lzip xmlto asciidoc docbook-xsl \
-            imagemagick txt2man \
+            imagemagick txt2man pandoc \
             libxml2-utils xsltproc \
             libssl-dev libelf-dev \
             patchelf \
