@@ -18,6 +18,12 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
+      - name: Set up Android NDK
+        uses: nttld/setup-ndk@v1
+        with:
+          ndk-version: r27c
+          add-to-path: true
+
       - name: Cache Gradle & Android build cache
         uses: actions/cache@v4
         with:
@@ -31,13 +37,13 @@ jobs:
 
       - name: Inject API keys
         run: |
-          echo "GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}"     >> local.properties
-          echo "GROQ_API_KEY=${{ secrets.GROQ_API_KEY }}"         >> local.properties
-          echo "WEATHER_API_KEY=${{ secrets.WEATHER_API_KEY }}"   >> local.properties
-          echo "TAVILY_API_KEY=${{ secrets.TAVILY_API_KEY }}"     >> local.properties
-          echo "NEWS_API_KEY=${{ secrets.NEWS_API_KEY }}"         >> local.properties
+          echo "GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}"      >> local.properties
+          echo "GROQ_API_KEY=${{ secrets.GROQ_API_KEY }}"          >> local.properties
+          echo "WEATHER_API_KEY=${{ secrets.WEATHER_API_KEY }}"    >> local.properties
+          echo "TAVILY_API_KEY=${{ secrets.TAVILY_API_KEY }}"      >> local.properties
+          echo "NEWS_API_KEY=${{ secrets.NEWS_API_KEY }}"          >> local.properties
           echo "GROQ_LLM_API_KEY=${{ secrets.GROQ_LLM_API_KEY }}" >> local.properties
-          echo "HF_API_KEY=${{ secrets.HF_API_KEY }}"             >> local.properties
+          echo "HF_API_KEY=${{ secrets.HF_API_KEY }}"              >> local.properties
 
       - name: Grant Gradle wrapper permission
         run: chmod +x gradlew

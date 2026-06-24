@@ -1,18 +1,17 @@
 package com.iris.assistant.di
 
-import com.iris.assistant.data.shell.BootstrapDownloader
 import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 
 /**
- * Hilt module for Phase 4 Power Mode / Embedded Shell dependencies.
+ * Hilt module for Phase 4 Power Mode / Embedded Shell.
  *
- * [BootstrapDownloader] is a @Singleton annotated with @Inject constructor,
- * so Hilt resolves it automatically — no explicit @Provides needed here.
+ * [BootstrapInstaller] and [EmbeddedShell] are both @Singleton + @Inject constructor,
+ * so Hilt resolves them automatically — no explicit @Provides needed.
  *
- * This module exists as a placeholder for future shell-related bindings
- * (e.g. EmbeddedShell interface → EmbeddedShellImpl) in subsequent steps.
+ * BootstrapDownloader has been removed. Bootstrap is now embedded in the APK
+ * as libiris-bootstrap.so via NDK and extracted by BootstrapInstaller.
  */
 @Module
 @InstallIn(SingletonComponent::class)
