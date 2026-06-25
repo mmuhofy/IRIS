@@ -64,6 +64,9 @@ class IrisShellSession @Inject constructor(
         }
         if (!shellBin.canExecute()) shellBin.setExecutable(true)
 
+        val nativeLibDir = context.applicationInfo.nativeLibraryDir
+        val execHook = "$nativeLibDir/libiris-exec-hook.so"
+
         val envVars = arrayOf(
             "HOME=$homePath",
             "PREFIX=$prefixPath",
@@ -72,6 +75,7 @@ class IrisShellSession @Inject constructor(
             "TERM=xterm-256color",
             "LANG=en_US.UTF-8",
             "LD_LIBRARY_PATH=$prefixPath/lib",
+            "LD_PRELOAD=$execHook",
             "TERMUX_PREFIX=$prefixPath",
         )
 
