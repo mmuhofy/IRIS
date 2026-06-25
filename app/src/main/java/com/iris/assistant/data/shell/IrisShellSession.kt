@@ -32,6 +32,7 @@ class IrisShellSession @Inject constructor(
             System.loadLibrary("iris-bootstrap")
         }
 
+        @JvmStatic
         private external fun nativeCreateSubprocess(
             shellPath: String,
             cwd: String,
