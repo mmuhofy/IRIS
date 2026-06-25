@@ -8,43 +8,7 @@
 #include <errno.h>
 #include <sys/stat.h>
 #include <android/log.h>
-#include <sys/syscall.h>
-
 #define TAG "IrisSubprocess"
-
-// Syscall numbers for memfd_create and execveat (kernel 3.17+ / Android 11+)
-// These bypass noexec mount restrictions via anonymous memory file descriptor.
-#ifndef __NR_memfd_create
-#if defined(__aarch64__)
-#define __NR_memfd_create 279
-#elif defined(__arm__)
-#define __NR_memfd_create 385
-#elif defined(__x86_64__)
-#define __NR_memfd_create 319
-#elif defined(__i386__)
-#define __NR_memfd_create 356
-#endif
-#endif
-
-#ifndef __NR_execveat
-#if defined(__aarch64__)
-#define __NR_execveat 281
-#elif defined(__arm__)
-#define __NR_execveat 387
-#elif defined(__x86_64__)
-#define __NR_execveat 322
-#elif defined(__i386__)
-#define __NR_execveat 358
-#endif
-#endif
-
-#ifndef MFD_CLOEXEC
-#define MFD_CLOEXEC 0x0001U
-#endif
-
-#ifndef AT_EMPTY_PATH
-#define AT_EMPTY_PATH 0x1000
-#endif
 #define LOGI(...) __android_log_print(ANDROID_LOG_INFO, TAG, __VA_ARGS__)
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, TAG, __VA_ARGS__)
 
@@ -133,43 +97,40 @@ Java_com_iris_assistant_data_shell_IrisShellSession_nativeCreateSubprocess(
         // Force execute permission before exec
         chmod(argv[0], 0755);
 
-        // Primary attempt: direct execve
+        // Primary attempt: direct execve (works on targetSdk<29 devices)
         execvp(argv[0], argv);
         LOGE("execvp(%s) failed: %s", argv[0], strerror(errno));
         dprintf(STDERR_FILENO, "\r\n[IRIS] execvp(%s) failed: %s\r\n",
                 argv[0], strerror(errno));
 
-        // Fallback: memfd_create + execveat bypasses noexec mount restriction
-        // (Android 11+, kernel 3.17+). memfd is an anonymous file in memory,
-        // not bound to any filesystem mount, so noexec does not apply.
+        // Fallback: use /system/bin/linker[64] to load the shell binary.
+        // SELinux blocks direct execvp() for untrusted_app_29 (targetSdk>=29)
+        // on app_data_file, but the dynamic linker (system_file context) can
+        // mmap the binary via the allowed file:map permission — same mechanism
+        // used by System.loadLibrary().
         if (errno == EACCES) {
-            dprintf(STDERR_FILENO, "\r\n[IRIS] trying execveat(memfd)...\r\n");
-#ifdef __NR_memfd_create
-            int memfd = (int)syscall(__NR_memfd_create, "iris_exec", MFD_CLOEXEC);
-            if (memfd >= 0) {
-                int srcFd = open(argv[0], O_RDONLY);
-                if (srcFd >= 0) {
-                    char buf[8192];
-                    ssize_t n;
-                    while ((n = read(srcFd, buf, sizeof(buf))) > 0)
-                        write(memfd, buf, n);
-                    close(srcFd);
-                    fchmod(memfd, 0755);
-
-                    syscall(__NR_execveat, memfd, "", argv, envp, AT_EMPTY_PATH);
-                    LOGE("execveat(memfd) failed: %s", strerror(errno));
-                    dprintf(STDERR_FILENO, "\r\n[IRIS] execveat(memfd) failed: %s\r\n",
-                            strerror(errno));
-                    close(memfd);
-                } else {
-                    close(memfd);
-                }
-            } else {
-                LOGE("memfd_create failed: %s", strerror(errno));
+            struct stat st;
+            const char* linker = NULL;
+            if (stat("/system/bin/linker64", &st) == 0) {
+                linker = "/system/bin/linker64";
+            } else if (stat("/system/bin/linker", &st) == 0) {
+                linker = "/system/bin/linker";
             }
-#else
-            dprintf(STDERR_FILENO, "\r\n[IRIS] memfd_create not available\r\n");
-#endif
+
+            if (linker != NULL) {
+                int linker_argc = argc + 1;
+                char** linker_argv = malloc((linker_argc + 1) * sizeof(char*));
+                linker_argv[0] = strdup(linker);
+                linker_argv[1] = argv[0];
+                for (int i = 1; i < argc; i++) linker_argv[i + 1] = argv[i];
+                linker_argv[linker_argc] = NULL;
+
+                dprintf(STDERR_FILENO, "\r\n[IRIS] trying %s...\r\n", linker);
+                execvpe(linker, linker_argv, envp);
+                LOGE("%s failed: %s", linker, strerror(errno));
+                dprintf(STDERR_FILENO, "\r\n[IRIS] %s failed: %s\r\n",
+                        linker, strerror(errno));
+            }
         }
 
         _exit(127);
