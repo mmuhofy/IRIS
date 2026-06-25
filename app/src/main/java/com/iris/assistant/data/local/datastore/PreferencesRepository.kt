@@ -1,3 +1,4 @@
+// app/src/main/java/com/iris/assistant/data/local/datastore/PreferencesRepository.kt
 package com.iris.assistant.data.local.datastore
 
 import android.content.Context
@@ -28,6 +29,7 @@ class PreferencesRepository @Inject constructor(
 ) {
     private object Keys {
         val COLOR_SCHEME         = stringPreferencesKey("color_scheme")
+        val USE_MATERIAL_YOU     = booleanPreferencesKey("use_material_you")
         val BACKGROUND_LISTENING = booleanPreferencesKey("background_listening")
         val ONBOARDING_COMPLETED = booleanPreferencesKey("onboarding_completed")
         val TTS_VOICE            = stringPreferencesKey("tts_voice")
@@ -47,36 +49,41 @@ class PreferencesRepository @Inject constructor(
     val preferences: Flow<UserPreferences> = context.dataStore.data.map { prefs ->
         UserPreferences(
             colorScheme = prefs[Keys.COLOR_SCHEME]
-                ?.let { runCatching { ColorSchemeOption.valueOf(it) }.getOrDefault(ColorSchemeOption.LAVENDER) }
-                ?: ColorSchemeOption.LAVENDER,
+                ?.let { runCatching { ColorSchemeOption.valueOf(it) }.getOrDefault(ColorSchemeOption.SLATE) }
+                ?: ColorSchemeOption.SLATE,
+            useMaterialYou      = prefs[Keys.USE_MATERIAL_YOU]     ?: false,
             backgroundListening = prefs[Keys.BACKGROUND_LISTENING] ?: true,
             onboardingCompleted = prefs[Keys.ONBOARDING_COMPLETED] ?: false,
             ttsVoice = prefs[Keys.TTS_VOICE]
                 ?.let { TtsVoice.fromApiName(it) }
                 ?: TtsVoice.DEFAULT,
-            userName        = prefs[Keys.USER_NAME]    ?: Constants.USER_NAME,
-            llmProvider     = prefs[Keys.LLM_PROVIDER] ?: Constants.LLM_PROVIDER_GEMINI,
-            llmModel        = prefs[Keys.LLM_MODEL]    ?: Constants.GEMINI_MODEL,
-            autonomyLevel   = prefs[Keys.AUTONOMY_LEVEL]
+            userName      = prefs[Keys.USER_NAME]    ?: Constants.USER_NAME,
+            llmProvider   = prefs[Keys.LLM_PROVIDER] ?: Constants.LLM_PROVIDER_GEMINI,
+            llmModel      = prefs[Keys.LLM_MODEL]    ?: Constants.GEMINI_MODEL,
+            autonomyLevel = prefs[Keys.AUTONOMY_LEVEL]
                 ?.let { runCatching { AutonomyLevel.valueOf(it) }.getOrDefault(AutonomyLevel.SAFE) }
                 ?: AutonomyLevel.SAFE,
-            localModelName  = prefs[Keys.LOCAL_MODEL_NAME] ?: "",
-            localModelPath  = prefs[Keys.LOCAL_MODEL_PATH] ?: "",
-            fontFamilyKey   = prefs[Keys.FONT_FAMILY] ?: AppFont.SystemDefault.key,
-            fontFamily      = prefs[Keys.FONT_FAMILY]
+            localModelName = prefs[Keys.LOCAL_MODEL_NAME] ?: "",
+            localModelPath = prefs[Keys.LOCAL_MODEL_PATH] ?: "",
+            fontFamilyKey  = prefs[Keys.FONT_FAMILY] ?: AppFont.SystemDefault.key,
+            fontFamily     = prefs[Keys.FONT_FAMILY]
                 ?.let { AppFont.fromKey(it) }
                 ?: AppFont.SystemDefault,
-            ttsProvider     = prefs[Keys.TTS_PROVIDER]
+            ttsProvider = prefs[Keys.TTS_PROVIDER]
                 ?.let { TtsProviderType.fromKey(it) }
                 ?: TtsProviderType.GEMINI,
             // Phase 4 — Power Mode
             powerModeEnabled = prefs[Keys.POWER_MODE_ENABLED] ?: false,
-            shellSecurity    = prefs[Keys.SHELL_SECURITY] ?: Constants.SHELL_SECURITY_DEFAULT,
+            shellSecurity    = prefs[Keys.SHELL_SECURITY]     ?: Constants.SHELL_SECURITY_DEFAULT,
         )
     }
 
     suspend fun setColorScheme(scheme: ColorSchemeOption) {
         context.dataStore.edit { it[Keys.COLOR_SCHEME] = scheme.name }
+    }
+
+    suspend fun setUseMaterialYou(enabled: Boolean) {
+        context.dataStore.edit { it[Keys.USE_MATERIAL_YOU] = enabled }
     }
 
     suspend fun setBackgroundListening(enabled: Boolean) {

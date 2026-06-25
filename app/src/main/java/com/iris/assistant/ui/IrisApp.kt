@@ -1,10 +1,8 @@
+// app/src/main/java/com/iris/assistant/ui/IrisApp.kt
 package com.iris.assistant.ui
 
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -37,7 +35,7 @@ class AppViewModel @Inject constructor(
         .stateIn(
             scope        = viewModelScope,
             started      = SharingStarted.Eagerly,
-            initialValue = UserPreferences()
+            initialValue = UserPreferences(),
         )
 
     init {
@@ -50,7 +48,7 @@ class AppViewModel @Inject constructor(
 
 @Composable
 fun IrisApp(
-    viewModel: AppViewModel = hiltViewModel()
+    viewModel: AppViewModel = hiltViewModel(),
 ) {
     val isReady by viewModel.isReady.collectAsStateWithLifecycle()
     if (!isReady) return
@@ -65,12 +63,12 @@ fun IrisApp(
 
     IrisTheme(
         colorSchemeOption = preferences.colorScheme,
-        fontFamily        = preferences.fontFamily
+        fontFamily        = preferences.fontFamily,
+        useMaterialYou    = preferences.useMaterialYou,
     ) {
-        // Theme.kt already wraps content in Surface — no extra Surface needed here.
         IrisNavGraph(
             navController    = navController,
-            startDestination = startDestination
+            startDestination = startDestination,
         )
     }
 }

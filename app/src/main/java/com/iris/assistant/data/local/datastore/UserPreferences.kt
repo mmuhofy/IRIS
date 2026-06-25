@@ -1,3 +1,4 @@
+// app/src/main/java/com/iris/assistant/data/local/datastore/UserPreferences.kt
 package com.iris.assistant.data.local.datastore
 
 import com.iris.assistant.domain.model.AutonomyLevel
@@ -8,7 +9,8 @@ import com.iris.assistant.ui.theme.ColorSchemeOption
 import com.iris.assistant.util.Constants
 
 data class UserPreferences(
-    val colorScheme         : ColorSchemeOption = ColorSchemeOption.LAVENDER,
+    val colorScheme         : ColorSchemeOption = ColorSchemeOption.SLATE,
+    val useMaterialYou      : Boolean           = false,
     val backgroundListening : Boolean           = true,
     val onboardingCompleted : Boolean           = false,
     val ttsVoice            : TtsVoice          = TtsVoice.DEFAULT,

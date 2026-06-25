@@ -1,71 +1,49 @@
+// app/src/main/java/com/iris/assistant/ui/theme/Color.kt
 package com.iris.assistant.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
 // ---------------------------------------------------------------------------
-// Base dark surface colors — shared across all schemes
+// Base surfaces — shared across all schemes
 // ---------------------------------------------------------------------------
-val ColorBackground    = Color(0xFF18181B)
-val ColorSurface       = Color(0xFF27272A)
+val ColorBackground    = Color(0xFF0F0F10)
+val ColorSurface       = Color(0xFF1A1A1C)
+val ColorSurfaceHigh   = Color(0xFF242426)
 val ColorError         = Color(0xFFF87171)
 val ColorTextPrimary   = Color(0xFFFAFAFA)
 val ColorTextSecondary = Color(0xFF71717A)
 
 // ---------------------------------------------------------------------------
-// Color schemes
+// Themes — accent-only approach
+// Base surfaces above never change; only the accent triplet changes per theme.
 // ---------------------------------------------------------------------------
 
-// Lavender (default)
-val LavenderPrimary   = Color(0xFFA78BFA)
-val LavenderGradient  = Color(0xFF818CF8)
-val LavenderSecondary = Color(0xFF34D399)
+// Slate (default) — off-white primary, single amber warmth
+val SlatePrimary   = Color(0xFFE2E2E2)
+val SlateGradient  = Color(0xFFA3A3A3)
+val SlateSecondary = Color(0xFFF59E0B)
 
-// Sunset
-val SunsetPrimary   = Color(0xFFFF6B6B)
-val SunsetGradient  = Color(0xFFFFB627)
-val SunsetSecondary = Color(0xFFFFD93D)
+// Rose Quartz — soft pink
+val RoseQuartzPrimary   = Color(0xFFF9A8D4)
+val RoseQuartzGradient  = Color(0xFFFBCFE8)
+val RoseQuartzSecondary = Color(0xFFF59E0B)
 
-// Ocean
-val OceanPrimary   = Color(0xFF06B6D4)
-val OceanGradient  = Color(0xFF3B82F6)
-val OceanSecondary = Color(0xFF34D399)
+// Sage — soft green, warm secondary
+val SagePrimary   = Color(0xFF86EFAC)
+val SageGradient  = Color(0xFF4ADE80)
+val SageSecondary = Color(0xFFFCD34D)
 
-// Forest
-val ForestPrimary   = Color(0xFF34D399)
-val ForestGradient  = Color(0xFF10B981)
-val ForestSecondary = Color(0xFFFCD34D)
+// Cobalt — pastel blue, cool
+val CobaltPrimary   = Color(0xFF93C5FD)
+val CobaltGradient  = Color(0xFF60A5FA)
+val CobaltSecondary = Color(0xFFA5B4FC)
 
-// Rose
-val RosePrimary   = Color(0xFFFB7185)
-val RoseGradient  = Color(0xFFA78BFA)
-val RoseSecondary = Color(0xFFFCD34D)
+// Ember — orange accent, single warm tone
+val EmberPrimary   = Color(0xFFFB923C)
+val EmberGradient  = Color(0xFFF97316)
+val EmberSecondary = Color(0xFFFBBF24)
 
-// Monochrome
+// Monochrome — no color, only grey/white
 val MonochromePrimary   = Color(0xFFE4E4E7)
 val MonochromeGradient  = Color(0xFFA1A1AA)
-val MonochromeSecondary = Color(0xFF34D399)
-
-// ---------------------------------------------------------------------------
-// NEW — Neural / Cosmic
-// Buz mavisi zeka + derin mor + soft fuşya.
-// AGSL animasyonuyla siyan→mor geçişi çok güçlü görünür.
-// ---------------------------------------------------------------------------
-val NeuralPrimary   = Color(0xFF6EE7F7)   // ice blue / cyan
-val NeuralGradient  = Color(0xFFA78BFA)   // deep lavender
-val NeuralSecondary = Color(0xFFF0ABFC)   // soft fuchsia
-
-// ---------------------------------------------------------------------------
-// NEW — Aurora
-// Kuzey ışıkları: turkuaz → mavi → mor.
-// ---------------------------------------------------------------------------
-val AuroraPrimary   = Color(0xFF34EBC4)   // turquoise
-val AuroraGradient  = Color(0xFF5B8DEF)   // sky blue
-val AuroraSecondary = Color(0xFFC084FC)   // purple
-
-// ---------------------------------------------------------------------------
-// NEW — Monolith
-// Premium minimal: ghost white accent, tek sıcak renk.
-// ---------------------------------------------------------------------------
-val MonolithPrimary   = Color(0xFFE2E8FF)   // ghost white/blue
-val MonolithGradient  = Color(0xFF8B9CF4)   // slate blue
-val MonolithSecondary = Color(0xFFFF6B6B)   // single warm accent
+val MonochromeSecondary = Color(0xFF71717A)

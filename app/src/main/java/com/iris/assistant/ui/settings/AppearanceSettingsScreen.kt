@@ -1,5 +1,7 @@
+// app/src/main/java/com/iris/assistant/ui/settings/AppearanceSettingsScreen.kt
 package com.iris.assistant.ui.settings
 
+import android.os.Build
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -25,6 +27,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -61,18 +64,14 @@ private data class ThemeMeta(
 )
 
 private val ALL_THEMES = listOf(
-    ThemeMeta(ColorSchemeOption.LAVENDER,   "Lavender",   "Mor & indigo"),
-    ThemeMeta(ColorSchemeOption.SUNSET,     "Sunset",     "Kırmızı & altın"),
-    ThemeMeta(ColorSchemeOption.OCEAN,      "Ocean",      "Siyan & mavi"),
-    ThemeMeta(ColorSchemeOption.FOREST,     "Forest",     "Yeşil & sarı"),
-    ThemeMeta(ColorSchemeOption.ROSE,       "Rose",       "Pembe & mor"),
-    ThemeMeta(ColorSchemeOption.MONOCHROME, "Monochrome", "Gri tonları"),
-    ThemeMeta(ColorSchemeOption.NEURAL,     "Neural",     "Buz mavisi & fuşya"),
-    ThemeMeta(ColorSchemeOption.AURORA,     "Aurora",     "Kuzey ışıkları"),
-    ThemeMeta(ColorSchemeOption.MONOLITH,   "Monolith",   "Premium minimal"),
+    ThemeMeta(ColorSchemeOption.SLATE,       "Slate",       "Off-white & amber — varsayılan"),
+    ThemeMeta(ColorSchemeOption.ROSE_QUARTZ, "Rose Quartz", "Soft pembe"),
+    ThemeMeta(ColorSchemeOption.SAGE,        "Sage",        "Soft yeşil"),
+    ThemeMeta(ColorSchemeOption.COBALT,      "Cobalt",      "Pastel mavi"),
+    ThemeMeta(ColorSchemeOption.EMBER,       "Ember",       "Turuncu & altın"),
+    ThemeMeta(ColorSchemeOption.MONOCHROME,  "Monochrome",  "Sadece gri & beyaz"),
 )
 
-// Builtin fonts for selection (Custom excluded — no UI for that in MVP)
 private val FONT_OPTIONS: List<AppFont> = AppFont.builtin
 
 // ---------------------------------------------------------------------------
@@ -120,9 +119,23 @@ fun AppearanceSettingsScreen(
             contentPadding      = PaddingValues(bottom = 32.dp),
         ) {
 
-            // ── Color scheme section ──────────────────────────────────────
+            // ── Material You (Android 12+ only) ──────────────────────────
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                item {
+                    Spacer(Modifier.height(4.dp))
+                    AppearanceSectionLabel("Sistem Entegrasyonu")
+                }
+                item {
+                    MaterialYouToggle(
+                        enabled  = uiState.useMaterialYou,
+                        onToggle = { viewModel.onMaterialYouChange(it) },
+                    )
+                }
+                item { Spacer(Modifier.height(8.dp)) }
+            }
+
+            // ── Color scheme ──────────────────────────────────────────────
             item {
-                Spacer(Modifier.height(4.dp))
                 AppearanceSectionLabel("Renk Teması")
             }
 
@@ -139,7 +152,7 @@ fun AppearanceSettingsScreen(
                 )
             }
 
-            // ── Font section ──────────────────────────────────────────────
+            // ── Font ──────────────────────────────────────────────────────
             item {
                 Spacer(Modifier.height(12.dp))
                 AppearanceSectionLabel("Yazı Tipi")
@@ -174,6 +187,47 @@ private fun AppearanceSectionLabel(text: String) {
         letterSpacing = 1.2.sp,
         modifier      = Modifier.padding(start = 4.dp, bottom = 4.dp),
     )
+}
+
+// ---------------------------------------------------------------------------
+// Material You toggle — only rendered on Android 12+, caller guards too
+// ---------------------------------------------------------------------------
+
+@Composable
+private fun MaterialYouToggle(
+    enabled : Boolean,
+    onToggle: (Boolean) -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(18.dp))
+            .background(MaterialTheme.colorScheme.surface)
+            .border(1.dp, Color.White.copy(alpha = 0.07f), RoundedCornerShape(18.dp))
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment     = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text       = "Material You",
+                style      = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Medium,
+                color      = ColorTextPrimary,
+            )
+            Spacer(Modifier.height(2.dp))
+            Text(
+                text  = "Arka plan renkleri duvar kağıdından gelir, accent rengi sabit kalır",
+                style = MaterialTheme.typography.bodySmall,
+                color = ColorTextSecondary,
+            )
+        }
+        Spacer(Modifier.width(12.dp))
+        Switch(
+            checked         = enabled,
+            onCheckedChange = onToggle,
+        )
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -272,9 +326,8 @@ private fun FontCard(
             .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        // Font preview circle — renders "Aa" in the target font
         Box(
-            modifier         = Modifier
+            modifier = Modifier
                 .size(44.dp)
                 .clip(CircleShape)
                 .background(
@@ -298,13 +351,13 @@ private fun FontCard(
 
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text       = font.displayName,
-                style      = TextStyle(
+                text  = font.displayName,
+                style = TextStyle(
                     fontFamily = font.fontFamily,
                     fontSize   = 16.sp,
                     fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
                 ),
-                color      = if (selected) IrisTheme.colors.primary else ColorTextPrimary,
+                color = if (selected) IrisTheme.colors.primary else ColorTextPrimary,
             )
             Text(
                 text  = "Merhaba, ben IRIS!",

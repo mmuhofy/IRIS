@@ -1,48 +1,46 @@
+// app/src/main/java/com/iris/assistant/ui/theme/Theme.kt
 package com.iris.assistant.ui.theme
 
+import android.os.Build
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 
 @Immutable
 data class IrisColorScheme(
     val primary     : Color,
     val gradientEnd : Color,
-    val secondary   : Color
+    val secondary   : Color,
 )
 
-val LocalIrisColorScheme = staticCompositionLocalOf { IrisColorSchemeLavender }
+val LocalIrisColorScheme = staticCompositionLocalOf { IrisColorSchemeSlate }
 
-val IrisColorSchemeLavender   = IrisColorScheme(LavenderPrimary,   LavenderGradient,   LavenderSecondary)
-val IrisColorSchemeSunset     = IrisColorScheme(SunsetPrimary,     SunsetGradient,     SunsetSecondary)
-val IrisColorSchemeOcean      = IrisColorScheme(OceanPrimary,      OceanGradient,      OceanSecondary)
-val IrisColorSchemeForest     = IrisColorScheme(ForestPrimary,     ForestGradient,     ForestSecondary)
-val IrisColorSchemeRose       = IrisColorScheme(RosePrimary,       RoseGradient,       RoseSecondary)
+val IrisColorSchemeSlate      = IrisColorScheme(SlatePrimary,      SlateGradient,      SlateSecondary)
+val IrisColorSchemeRoseQuartz = IrisColorScheme(RoseQuartzPrimary, RoseQuartzGradient, RoseQuartzSecondary)
+val IrisColorSchemeSage       = IrisColorScheme(SagePrimary,       SageGradient,       SageSecondary)
+val IrisColorSchemeCobalt     = IrisColorScheme(CobaltPrimary,     CobaltGradient,     CobaltSecondary)
+val IrisColorSchemeEmber      = IrisColorScheme(EmberPrimary,      EmberGradient,      EmberSecondary)
 val IrisColorSchemeMonochrome = IrisColorScheme(MonochromePrimary, MonochromeGradient, MonochromeSecondary)
-val IrisColorSchemeNeural     = IrisColorScheme(NeuralPrimary,     NeuralGradient,     NeuralSecondary)
-val IrisColorSchemeAurora     = IrisColorScheme(AuroraPrimary,     AuroraGradient,     AuroraSecondary)
-val IrisColorSchemeMonolith   = IrisColorScheme(MonolithPrimary,   MonolithGradient,   MonolithSecondary)
 
 enum class ColorSchemeOption {
-    LAVENDER, SUNSET, OCEAN, FOREST, ROSE, MONOCHROME, NEURAL, AURORA, MONOLITH;
+    SLATE, ROSE_QUARTZ, SAGE, COBALT, EMBER, MONOCHROME;
 
     fun toIrisColorScheme(): IrisColorScheme = when (this) {
-        LAVENDER   -> IrisColorSchemeLavender
-        SUNSET     -> IrisColorSchemeSunset
-        OCEAN      -> IrisColorSchemeOcean
-        FOREST     -> IrisColorSchemeForest
-        ROSE       -> IrisColorSchemeRose
-        MONOCHROME -> IrisColorSchemeMonochrome
-        NEURAL     -> IrisColorSchemeNeural
-        AURORA     -> IrisColorSchemeAurora
-        MONOLITH   -> IrisColorSchemeMonolith
+        SLATE       -> IrisColorSchemeSlate
+        ROSE_QUARTZ -> IrisColorSchemeRoseQuartz
+        SAGE        -> IrisColorSchemeSage
+        COBALT      -> IrisColorSchemeCobalt
+        EMBER       -> IrisColorSchemeEmber
+        MONOCHROME  -> IrisColorSchemeMonochrome
     }
 }
 
@@ -59,21 +57,46 @@ private fun buildDarkColorScheme(iris: IrisColorScheme) = darkColorScheme(
     onBackground     = ColorTextPrimary,
     onSurface        = ColorTextPrimary,
     onError          = ColorBackground,
-    surfaceVariant   = ColorSurface,
+    surfaceVariant   = ColorSurfaceHigh,
     onSurfaceVariant = ColorTextSecondary,
 )
 
-// Normal theme — opaque Surface background. Use for all regular screens.
+// ---------------------------------------------------------------------------
+// Normal theme — opaque Surface. Use for all regular screens.
+//
+// useMaterialYou behaviour (Android 12+ only):
+//   background/surface come from the system DynamicColorScheme so the app
+//   feels at home on the device, BUT primary/secondary/tertiary are always
+//   the chosen IrisColorScheme values — Iris Core and branded elements are
+//   never overridden by the wallpaper colour.
+// ---------------------------------------------------------------------------
 @Composable
 fun IrisTheme(
-    colorSchemeOption: ColorSchemeOption = ColorSchemeOption.LAVENDER,
-    fontFamily: AppFont = AppFont.Inter,
-    content: @Composable () -> Unit
+    colorSchemeOption : ColorSchemeOption = ColorSchemeOption.SLATE,
+    fontFamily        : AppFont           = AppFont.Inter,
+    useMaterialYou    : Boolean           = false,
+    content           : @Composable () -> Unit,
 ) {
     val irisColors = colorSchemeOption.toIrisColorScheme()
+    val context    = LocalContext.current
+
+    val m3Scheme = if (useMaterialYou && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        // UNTESTED — verify before use
+        dynamicDarkColorScheme(context).copy(
+            primary          = irisColors.primary,
+            secondary        = irisColors.secondary,
+            tertiary         = irisColors.gradientEnd,
+            onPrimary        = ColorBackground,
+            onSecondary      = ColorBackground,
+            onTertiary       = ColorBackground,
+        )
+    } else {
+        buildDarkColorScheme(irisColors)
+    }
+
     CompositionLocalProvider(LocalIrisColorScheme provides irisColors) {
         MaterialTheme(
-            colorScheme = buildDarkColorScheme(irisColors),
+            colorScheme = m3Scheme,
             typography  = fontFamily.toTypography(),
         ) {
             Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
@@ -83,18 +106,34 @@ fun IrisTheme(
     }
 }
 
-// Transparent theme — NO Surface. Use ONLY for AssistantActivity (translucent overlay).
-// IrisTheme's Surface paints the window #18181B, defeating windowIsTranslucent.
+// ---------------------------------------------------------------------------
+// Transparent theme — NO Surface. Use ONLY for AssistantActivity overlay.
+// IrisTheme's Surface paints the window background, defeating windowIsTranslucent.
+// ---------------------------------------------------------------------------
 @Composable
 fun IrisThemeTransparent(
-    colorSchemeOption: ColorSchemeOption = ColorSchemeOption.LAVENDER,
-    fontFamily: AppFont = AppFont.Inter,
-    content: @Composable () -> Unit
+    colorSchemeOption : ColorSchemeOption = ColorSchemeOption.SLATE,
+    fontFamily        : AppFont           = AppFont.Inter,
+    useMaterialYou    : Boolean           = false,
+    content           : @Composable () -> Unit,
 ) {
     val irisColors = colorSchemeOption.toIrisColorScheme()
+    val context    = LocalContext.current
+
+    val m3Scheme = if (useMaterialYou && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        // UNTESTED — verify before use
+        dynamicDarkColorScheme(context).copy(
+            primary   = irisColors.primary,
+            secondary = irisColors.secondary,
+            tertiary  = irisColors.gradientEnd,
+        )
+    } else {
+        buildDarkColorScheme(irisColors)
+    }
+
     CompositionLocalProvider(LocalIrisColorScheme provides irisColors) {
         MaterialTheme(
-            colorScheme = buildDarkColorScheme(irisColors),
+            colorScheme = m3Scheme,
             typography  = fontFamily.toTypography(),
         ) {
             content()
