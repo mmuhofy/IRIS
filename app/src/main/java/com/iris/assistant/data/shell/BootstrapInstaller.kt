@@ -88,7 +88,7 @@ class BootstrapInstaller @Inject constructor(
             stagingDir.mkdirs()
             prefixDir.deleteRecursively()
 
-            val zipBytes = nativeGetBootstrapZip()
+            val zipBytes = resolveNestedZip(nativeGetBootstrapZip())
             ZipInputStream(zipBytes.inputStream().buffered()).use { zis ->
                 while (true) {
                     val entry = zis.nextEntry ?: break
@@ -216,6 +216,36 @@ class BootstrapInstaller @Inject constructor(
         homeDir.deleteRecursively()
         versionFile.delete()
         Log.i(TAG, "Bootstrap uninstalled")
+    }
+
+    /**
+     * If [zipBytes] is a double-zipped archive (a zip containing a single zip),
+     * extract and return the inner zip bytes. Otherwise return as-is.
+     */
+    private fun resolveNestedZip(zipBytes: ByteArray): ByteArray {
+        val firstEntry: ZipEntry
+        val firstEntryBytes: ByteArray
+        try {
+            val stream = zipBytes.inputStream().buffered()
+            ZipInputStream(stream).use { zis ->
+                firstEntry = zis.nextEntry ?: return zipBytes
+                val buf = ByteArray(BUFFER_SIZE)
+                val inner = java.io.ByteArrayOutputStream()
+                while (true) {
+                    val n = zis.read(buf)
+                    if (n == -1) break
+                    inner.write(buf, 0, n)
+                }
+                firstEntryBytes = inner.toByteArray()
+                if (zis.nextEntry != null) return zipBytes
+            }
+        } catch (_: Exception) {
+            return zipBytes
+        }
+        if (firstEntryBytes.size < 4) return zipBytes
+        if (firstEntryBytes[0] != 0x50.toByte() || firstEntryBytes[1] != 0x4B.toByte()) return zipBytes
+        Log.i(TAG, "Detected nested zip, unwrapping: '${firstEntry.name}' (${firstEntryBytes.size} bytes)")
+        return firstEntryBytes
     }
 
     // ── ELF patching helpers ────────────────────────────────────────────────
