@@ -6,6 +6,7 @@
 #include <sys/ioctl.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <sys/stat.h>
 #include <android/log.h>
 
 #define TAG "IrisSubprocess"
