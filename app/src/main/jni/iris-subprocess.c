@@ -6,53 +6,13 @@
 #include <sys/ioctl.h>
 #include <fcntl.h>
 #include <errno.h>
-#include <dlfcn.h>
 #include <android/log.h>
 
 #define TAG "IrisSubprocess"
 #define LOGI(...) __android_log_print(ANDROID_LOG_INFO, TAG, __VA_ARGS__)
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, TAG, __VA_ARGS__)
 
-typedef jobject (*AFileDescriptorCreateFunc)(JNIEnv*, jint);
-
-static jobject createFileDescriptor(JNIEnv* env, int fd) {
-    // Try AFileDescriptor_create (Android API 33+) via dlsym
-    void* handle = dlopen("libandroid.so", RTLD_LAZY | RTLD_LOCAL);
-    if (handle) {
-        AFileDescriptorCreateFunc func =
-            (AFileDescriptorCreateFunc)dlsym(handle, "AFileDescriptor_create");
-        if (func) {
-            jobject result = func(env, fd);
-            dlclose(handle);
-            if (result != NULL) return result;
-        }
-        dlclose(handle);
-    }
-
-    // Fallback: manual field access (pre-API 33)
-    jclass clazz = (*env)->FindClass(env, "java/io/FileDescriptor");
-    jmethodID ctor = (*env)->GetMethodID(env, clazz, "<init>", "()V");
-    jobject result = (*env)->NewObject(env, clazz, ctor);
-
-    jfieldID descField = (*env)->GetFieldID(env, clazz, "descriptor", "J");
-    if (descField != NULL) {
-        (*env)->SetLongField(env, result, descField, (jlong)fd);
-        return result;
-    }
-    if ((*env)->ExceptionCheck(env)) (*env)->ExceptionClear(env);
-
-    jfieldID fdField = (*env)->GetFieldID(env, clazz, "fd", "I");
-    if (fdField != NULL) {
-        (*env)->SetIntField(env, result, fdField, fd);
-        return result;
-    }
-    if ((*env)->ExceptionCheck(env)) (*env)->ExceptionClear(env);
-
-    LOGE("Cannot find FileDescriptor field (tried AFileDescriptor_create, 'descriptor', 'fd')");
-    return NULL;
-}
-
-JNIEXPORT jobject JNICALL
+JNIEXPORT jint JNICALL
 Java_com_iris_assistant_data_shell_IrisShellSession_nativeCreateSubprocess(
     JNIEnv* env, jclass clazz,
     jstring jShellPath, jstring jCwd,
@@ -88,7 +48,7 @@ Java_com_iris_assistant_data_shell_IrisShellSession_nativeCreateSubprocess(
     int ptyMaster = posix_openpt(O_RDWR | O_NOCTTY);
     if (ptyMaster < 0) {
         LOGE("posix_openpt failed: %s", strerror(errno));
-        return NULL;
+        goto cleanup;
     }
     grantpt(ptyMaster);
     unlockpt(ptyMaster);
@@ -98,7 +58,7 @@ Java_com_iris_assistant_data_shell_IrisShellSession_nativeCreateSubprocess(
     if (pid < 0) {
         LOGE("fork failed: %s", strerror(errno));
         close(ptyMaster);
-        return NULL;
+        goto cleanup;
     }
 
     if (pid == 0) {
@@ -139,7 +99,7 @@ Java_com_iris_assistant_data_shell_IrisShellSession_nativeCreateSubprocess(
         _exit(127);
     }
 
-    // Parent: store PID, return FD
+    // Parent: store PID, return raw fd
     if (jPid != NULL) {
         jboolean isCopy;
         jint* pidPtr = (*env)->GetIntArrayElements(env, jPid, &isCopy);
@@ -149,8 +109,6 @@ Java_com_iris_assistant_data_shell_IrisShellSession_nativeCreateSubprocess(
         }
     }
 
-    jobject fdObj = createFileDescriptor(env, ptyMaster);
-
     (*env)->ReleaseStringUTFChars(env, jShellPath, shellPath);
     (*env)->ReleaseStringUTFChars(env, jCwd, cwd);
 
@@ -159,5 +117,14 @@ Java_com_iris_assistant_data_shell_IrisShellSession_nativeCreateSubprocess(
     for (int i = 0; i < envc; i++) free(envp[i]);
     free(envp);
 
-    return fdObj;
+    return (jint)ptyMaster;
+
+cleanup:
+    (*env)->ReleaseStringUTFChars(env, jShellPath, shellPath);
+    (*env)->ReleaseStringUTFChars(env, jCwd, cwd);
+    for (int i = 0; i < argc; i++) free(argv[i]);
+    free(argv);
+    for (int i = 0; i < envc; i++) free(envp[i]);
+    free(envp);
+    return -1;
 }

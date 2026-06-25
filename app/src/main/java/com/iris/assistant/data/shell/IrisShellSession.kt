@@ -39,7 +39,26 @@ class IrisShellSession @Inject constructor(
             args: Array<String>?,
             envVars: Array<String>?,
             pid: IntArray,
-        ): FileDescriptor
+        ): Int
+    }
+
+    private fun createFileDescriptorFromFd(rawFd: Int): FileDescriptor {
+        val fd = FileDescriptor()
+        try {
+            val descField = FileDescriptor::class.java.getDeclaredField("descriptor")
+            descField.isAccessible = true
+            descField.setLong(fd, rawFd.toLong())
+            return fd
+        } catch (_: NoSuchFieldException) {
+        }
+        try {
+            val fdField = FileDescriptor::class.java.getDeclaredField("fd")
+            fdField.isAccessible = true
+            fdField.setInt(fd, rawFd)
+            return fd
+        } catch (_: NoSuchFieldException) {
+        }
+        throw RuntimeException("Cannot set fd on FileDescriptor (tried 'descriptor' and 'fd')")
     }
 
     private val _output = MutableSharedFlow<ShellLine>(replay = 200, extraBufferCapacity = 500)
@@ -74,16 +93,17 @@ class IrisShellSession @Inject constructor(
         )
 
         val pid = IntArray(1)
-        val result = nativeCreateSubprocess(
+        val rawFd = nativeCreateSubprocess(
             shellBin.absolutePath,
             homePath,
             arrayOf("--login"),
             envVars,
             pid,
         )
+        if (rawFd < 0) throw RuntimeException("Failed to create subprocess (native returned $rawFd)")
 
         processPid = pid[0]
-        fd = result
+        fd = createFileDescriptorFromFd(rawFd)
 
         Log.i(TAG, "Shell session started (pid=$processPid, fd=$result)")
 
