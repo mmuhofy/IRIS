@@ -16,9 +16,21 @@ static jobject createFileDescriptor(JNIEnv* env, int fd) {
     jclass clazz = (*env)->FindClass(env, "java/io/FileDescriptor");
     jmethodID ctor = (*env)->GetMethodID(env, clazz, "<init>", "()V");
     jobject result = (*env)->NewObject(env, clazz, ctor);
+
+    jfieldID descField = (*env)->GetFieldID(env, clazz, "descriptor", "J");
+    if (descField != NULL) {
+        (*env)->SetLongField(env, result, descField, (jlong)fd);
+        return result;
+    }
+
     jfieldID fdField = (*env)->GetFieldID(env, clazz, "fd", "I");
-    (*env)->SetIntField(env, result, fdField, fd);
-    return result;
+    if (fdField != NULL) {
+        (*env)->SetIntField(env, result, fdField, fd);
+        return result;
+    }
+
+    LOGE("Cannot find FileDescriptor field (tried 'descriptor' and 'fd')");
+    return NULL;
 }
 
 JNIEXPORT jobject JNICALL
