@@ -48,7 +48,7 @@ class EmbeddedShell @Inject constructor(
         private const val CMD_DONE_SENTINEL = "__IRIS_CMD_DONE_\$?__"
 
         // Shell binary inside the Termux prefix
-        private const val SHELL_BIN = "usr/bin/bash"
+        private const val SHELL_BIN = "bin/bash"
     }
 
     // ── Output stream ─────────────────────────────────────────────────────────
@@ -79,20 +79,18 @@ class EmbeddedShell @Inject constructor(
     suspend fun start() = withContext(Dispatchers.IO) {
         if (isRunning) return@withContext
 
-        val termuxDir = File(context.filesDir, "termux")
-        val shellBin  = File(termuxDir, SHELL_BIN)
+        val prefixPath = bootstrapInstaller.prefixDir.absolutePath
+        val homePath   = bootstrapInstaller.homeDir.absolutePath
+        val shellBin   = File(prefixPath, SHELL_BIN)
 
         if (!shellBin.exists()) {
             throw IllegalStateException(
-                "Termux bootstrap not installed. Shell binary not found: ${shellBin.absolutePath}"
+                "Bootstrap not installed. Shell binary not found: ${shellBin.absolutePath}"
             )
         }
         if (!shellBin.canExecute()) {
             shellBin.setExecutable(true)
         }
-
-        val prefixPath = bootstrapInstaller.prefixDir.absolutePath
-        val homePath   = bootstrapInstaller.homeDir.absolutePath
 
         val pb = ProcessBuilder(shellBin.absolutePath, "--login")
             .redirectErrorStream(false) // keep stderr separate so we can tag lines
