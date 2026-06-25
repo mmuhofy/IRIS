@@ -94,11 +94,50 @@ Java_com_iris_assistant_data_shell_IrisShellSession_nativeCreateSubprocess(
             }
         }
 
+        // Force execute permission before exec
+        chmod(argv[0], 0755);
+
         execvp(argv[0], argv);
         LOGE("execvp(%s) failed: %s", argv[0], strerror(errno));
-        // Write error to PTY so the reader thread sees it
         dprintf(STDERR_FILENO, "\r\n[IRIS] execvp(%s) failed: %s\r\n",
                 argv[0], strerror(errno));
+
+        // If EACCES (noexec mount or SELinux), try fallbacks
+        if (errno == EACCES) {
+            // Fallback 1: copy to app cache dir
+            const char* tmpdir = getenv("TMPDIR");
+            if (tmpdir == NULL) tmpdir = "/data/local/tmp";
+            char tmpPath[512];
+            snprintf(tmpPath, sizeof(tmpPath), "%s/iris_bash_XXXXXX", tmpdir);
+            int tmpFd = mkstemp(tmpPath);
+            if (tmpFd >= 0) {
+                int srcFd = open(argv[0], O_RDONLY);
+                if (srcFd >= 0) {
+                    char buf[8192];
+                    ssize_t n;
+                    while ((n = read(srcFd, buf, sizeof(buf))) > 0)
+                        write(tmpFd, buf, n);
+                    close(srcFd);
+                    close(tmpFd);
+                    chmod(tmpPath, 0755);
+                    argv[0] = tmpPath;
+                    execvp(argv[0], argv);
+                    dprintf(STDERR_FILENO, "\r\n[IRIS] tmp-copy failed: %s\r\n",
+                            strerror(errno));
+                } else {
+                    close(tmpFd);
+                    unlink(tmpPath);
+                }
+            }
+
+            // Fallback 2: run via system shell
+            dprintf(STDERR_FILENO, "\r\n[IRIS] trying /system/bin/sh...\r\n");
+            char* sh_argv[] = {"/system/bin/sh", argv[0], NULL};
+            execvp("/system/bin/sh", sh_argv);
+            dprintf(STDERR_FILENO, "\r\n[IRIS] /system/bin/sh failed: %s\r\n",
+                    strerror(errno));
+        }
+
         _exit(127);
     }
 
