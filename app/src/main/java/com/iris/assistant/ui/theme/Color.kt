@@ -5,6 +5,7 @@ import androidx.compose.ui.graphics.Color
 // ---------------------------------------------------------------------------
 // Base surface/text colors shared across both modes
 // ---------------------------------------------------------------------------
+val ColorSurface       = Color(0xFF1A1A1C)
 val ColorError         = Color(0xFFF87171)
 val ColorTextPrimary   = Color(0xFFFAFAFA)
 val ColorTextSecondary = Color(0xFF71717A)
