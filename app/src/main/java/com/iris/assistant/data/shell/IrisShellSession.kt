@@ -105,7 +105,7 @@ class IrisShellSession @Inject constructor(
         processPid = pid[0]
         fd = createFileDescriptorFromFd(rawFd)
 
-        Log.i(TAG, "Shell session started (pid=$processPid, fd=$result)")
+        Log.i(TAG, "Shell session started (pid=$processPid, fd=$rawFd)")
 
         Thread({
             try {
