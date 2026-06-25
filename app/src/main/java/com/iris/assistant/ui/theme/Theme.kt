@@ -13,26 +13,27 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
-val LocalIrisColorScheme = staticCompositionLocalOf {
-    generateIrisColorScheme(SlatePrimary, SlateGradient, SlateSecondary, SlateWarmth, isDark = true)
-}
+val LocalIrisColorScheme = staticCompositionLocalOf { SlateDark }
 
 // ---------------------------------------------------------------------------
-// Scheme definition — each entry stores its seed colors + warmth hint
+// Scheme definition — each entry holds pre-built dark + light IrisColorScheme
 // ---------------------------------------------------------------------------
 
 enum class ColorSchemeOption(
-    val seedPrimary  : Color,
-    val seedGradient : Color,
-    val seedSecondary: Color,
-    val warmth       : Float,
+    val dark : IrisColorScheme,
+    val light: IrisColorScheme,
 ) {
-    SLATE      (SlatePrimary,   SlateGradient,   SlateSecondary,   SlateWarmth),
-    ROSE_QUARTZ(RoseQuartzPrimary, RoseQuartzGradient, RoseQuartzSecondary, RoseQuartzWarmth),
-    SAGE       (SagePrimary,    SageGradient,    SageSecondary,    SageWarmth),
-    COBALT     (CobaltPrimary,  CobaltGradient,  CobaltSecondary,  CobaltWarmth),
-    EMBER      (EmberPrimary,   EmberGradient,   EmberSecondary,   EmberWarmth),
-    MONOCHROME (MonochromePrimary, MonochromeGradient, MonochromeSecondary, MonochromeWarmth);
+    SLATE      (SlateDark,       SlateLight),
+    ROSE_QUARTZ(RoseQuartzDark,  RoseQuartzLight),
+    SAGE       (SageDark,        SageLight),
+    COBALT     (CobaltDark,      CobaltLight),
+    EMBER      (EmberDark,       EmberLight),
+    MONOCHROME (MonochromeDark,  MonochromeLight);
+
+    // Preview colors used by appearance settings theme cards
+    val seedPrimary  : Color get() = dark.primary
+    val seedGradient : Color get() = dark.gradientEnd
+    val seedSecondary: Color get() = dark.secondary
 }
 
 // ---------------------------------------------------------------------------
@@ -47,13 +48,7 @@ fun IrisTheme(
     isDark            : Boolean           = true,
     content           : @Composable () -> Unit,
 ) {
-    val fullScheme = generateIrisColorScheme(
-        seedPrimary   = colorSchemeOption.seedPrimary,
-        seedGradient  = colorSchemeOption.seedGradient,
-        seedSecondary = colorSchemeOption.seedSecondary,
-        warmth        = colorSchemeOption.warmth,
-        isDark        = isDark,
-    )
+    val fullScheme = if (isDark) colorSchemeOption.dark else colorSchemeOption.light
 
     val m3Scheme = if (useMaterialYou && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
         val dynamic = if (isDark) dynamicDarkColorScheme(LocalContext.current)
@@ -103,13 +98,7 @@ fun IrisThemeTransparent(
     isDark            : Boolean           = true,
     content           : @Composable () -> Unit,
 ) {
-    val fullScheme = generateIrisColorScheme(
-        seedPrimary   = colorSchemeOption.seedPrimary,
-        seedGradient  = colorSchemeOption.seedGradient,
-        seedSecondary = colorSchemeOption.seedSecondary,
-        warmth        = colorSchemeOption.warmth,
-        isDark        = isDark,
-    )
+    val fullScheme = if (isDark) colorSchemeOption.dark else colorSchemeOption.light
 
     val m3Scheme = if (useMaterialYou && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
         val dynamic = if (isDark) dynamicDarkColorScheme(LocalContext.current)

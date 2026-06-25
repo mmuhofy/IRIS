@@ -64,12 +64,12 @@ private data class ThemeMeta(
 )
 
 private val ALL_THEMES = listOf(
-    ThemeMeta(ColorSchemeOption.SLATE,       "Slate",       "Off-white & amber — varsayılan"),
-    ThemeMeta(ColorSchemeOption.ROSE_QUARTZ, "Rose Quartz", "Soft pembe"),
-    ThemeMeta(ColorSchemeOption.SAGE,        "Sage",        "Soft yeşil"),
-    ThemeMeta(ColorSchemeOption.COBALT,      "Cobalt",      "Pastel mavi"),
-    ThemeMeta(ColorSchemeOption.EMBER,       "Ember",       "Turuncu & altın"),
-    ThemeMeta(ColorSchemeOption.MONOCHROME,  "Monochrome",  "Sadece gri & beyaz"),
+    ThemeMeta(ColorSchemeOption.SLATE,       "Slate",       "Viyole — varsayılan"),
+    ThemeMeta(ColorSchemeOption.ROSE_QUARTZ, "Rose Quartz", "Toz pembe"),
+    ThemeMeta(ColorSchemeOption.SAGE,        "Sage",        "Adaçayı yeşili"),
+    ThemeMeta(ColorSchemeOption.COBALT,      "Cobalt",      "Gece mavisi"),
+    ThemeMeta(ColorSchemeOption.EMBER,       "Ember",       "Bakır sıcaklığı"),
+    ThemeMeta(ColorSchemeOption.MONOCHROME,  "Monochrome",  "Grafit gri"),
 )
 
 private val FONT_OPTIONS: List<AppFont> = AppFont.builtin
