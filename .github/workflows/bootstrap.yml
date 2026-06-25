@@ -127,6 +127,36 @@ jobs:
           path: ./output/bootstrap-*.zip
           if-no-files-found: error
 
+      - name: Unwrap if double-zipped
+        run: |
+          ZIPFILE=$(ls ./output/bootstrap-*.zip 2>/dev/null | head -1)
+          if [ -z "$ZIPFILE" ]; then
+            echo "No zip found in ./output/"
+            exit 1
+          fi
+          # If the zip contains exactly one entry that is itself a .zip file, unwrap it.
+          ENTRY_COUNT=$(unzip -l "$ZIPFILE" | grep -E "^\s+[0-9]+" | wc -l)
+          ZIP_ENTRIES=$(unzip -l "$ZIPFILE" | grep -E "\.zip$" | wc -l)
+          if [ "$ENTRY_COUNT" -eq 1 ] && [ "$ZIP_ENTRIES" -eq 1 ]; then
+            echo "Detected wrapper zip (1 entry, which is a .zip). Unwrapping..."
+            WORKDIR=$(mktemp -d)
+            unzip -qo "$ZIPFILE" -d "$WORKDIR"
+            INNER_ZIP=$(ls "$WORKDIR"/*.zip 2>/dev/null | head -1)
+            if [ -n "$INNER_ZIP" ]; then
+              mv -f "$INNER_ZIP" "$ZIPFILE"
+              echo "Unwrapped: $ZIPFILE ($(ls -lh "$ZIPFILE" | awk '{print $5}'))"
+            fi
+            rm -rf "$WORKDIR"
+          else
+            echo "Zip structure OK ($ENTRY_COUNT entries, $ZIP_ENTRIES zip entries)"
+          fi
+
+      - name: Verify bootstrap zip is valid
+        run: |
+          ZIPFILE=$(ls ./output/bootstrap-*.zip | head -1)
+          unzip -tq "$ZIPFILE" || { echo "Corrupt zip!"; exit 1; }
+          echo "Bootstrap zip verified: $ZIPFILE"
+
       - name: Create Release
         if: github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
