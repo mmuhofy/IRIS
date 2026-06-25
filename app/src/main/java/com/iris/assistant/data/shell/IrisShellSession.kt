@@ -47,7 +47,11 @@ class IrisShellSession @Inject constructor(
         try {
             val descField = FileDescriptor::class.java.getDeclaredField("descriptor")
             descField.isAccessible = true
-            descField.setLong(fd, rawFd.toLong())
+            when (descField.type) {
+                Long::class.javaPrimitiveType -> descField.setLong(fd, rawFd.toLong())
+                Int::class.javaPrimitiveType -> descField.setInt(fd, rawFd)
+                else -> throw RuntimeException("Unexpected type '${descField.type}' for 'descriptor'")
+            }
             return fd
         } catch (_: NoSuchFieldException) {
         }
