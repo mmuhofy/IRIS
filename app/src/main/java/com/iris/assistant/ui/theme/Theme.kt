@@ -65,10 +65,12 @@ private fun buildDarkColorScheme(iris: IrisColorScheme) = darkColorScheme(
 // Normal theme — opaque Surface. Use for all regular screens.
 //
 // useMaterialYou behaviour (Android 12+ only):
-//   background/surface come from the system DynamicColorScheme so the app
-//   feels at home on the device, BUT primary/secondary/tertiary are always
-//   the chosen IrisColorScheme values — Iris Core and branded elements are
-//   never overridden by the wallpaper colour.
+//   Background comes from the system DynamicColorScheme so the app
+//   feels at home on the device, BUT surface/surfaceVariant use fixed
+//   Iris values (#1A1A1C / #242426) so option cards and buttons stay
+//   visually distinct from the background. Primary/secondary/tertiary
+//   are always the chosen IrisColorScheme values — Iris Core and
+//   branded elements are never overridden by the wallpaper colour.
 // ---------------------------------------------------------------------------
 @Composable
 fun IrisTheme(
@@ -81,7 +83,6 @@ fun IrisTheme(
     val context    = LocalContext.current
 
     val m3Scheme = if (useMaterialYou && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-        // UNTESTED — verify before use
         dynamicDarkColorScheme(context).copy(
             primary          = irisColors.primary,
             secondary        = irisColors.secondary,
@@ -89,6 +90,11 @@ fun IrisTheme(
             onPrimary        = ColorBackground,
             onSecondary      = ColorBackground,
             onTertiary       = ColorBackground,
+            surface          = ColorSurface,
+            surfaceVariant   = ColorSurfaceHigh,
+            onSurface        = ColorTextPrimary,
+            onSurfaceVariant = ColorTextSecondary,
+            onBackground     = ColorTextPrimary,
         )
     } else {
         buildDarkColorScheme(irisColors)
@@ -109,6 +115,8 @@ fun IrisTheme(
 // ---------------------------------------------------------------------------
 // Transparent theme — NO Surface. Use ONLY for AssistantActivity overlay.
 // IrisTheme's Surface paints the window background, defeating windowIsTranslucent.
+//
+// useMaterialYou surface/surfaceVariant overrides match IrisTheme above.
 // ---------------------------------------------------------------------------
 @Composable
 fun IrisThemeTransparent(
@@ -121,11 +129,18 @@ fun IrisThemeTransparent(
     val context    = LocalContext.current
 
     val m3Scheme = if (useMaterialYou && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-        // UNTESTED — verify before use
         dynamicDarkColorScheme(context).copy(
-            primary   = irisColors.primary,
-            secondary = irisColors.secondary,
-            tertiary  = irisColors.gradientEnd,
+            primary          = irisColors.primary,
+            secondary        = irisColors.secondary,
+            tertiary         = irisColors.gradientEnd,
+            onPrimary        = ColorBackground,
+            onSecondary      = ColorBackground,
+            onTertiary       = ColorBackground,
+            surface          = ColorSurface,
+            surfaceVariant   = ColorSurfaceHigh,
+            onSurface        = ColorTextPrimary,
+            onSurfaceVariant = ColorTextSecondary,
+            onBackground     = ColorTextPrimary,
         )
     } else {
         buildDarkColorScheme(irisColors)
