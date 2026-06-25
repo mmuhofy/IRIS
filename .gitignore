@@ -2,4 +2,4 @@ index.txt
 .indexer.conf
 
 # Bootstrap zip — placed by CI workflow before build, too large to track in git
-app/src/main/assets/bootstrap-aarch64.zip
+app/src/main/jni/bootstrap-aarch64.zip

@@ -5,13 +5,13 @@ import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 
 /**
- * Hilt module for Phase 4 Power Mode / Embedded Shell.
+ * Hilt module for Phase 4 Power Mode / Shell.
  *
- * [BootstrapInstaller] and [EmbeddedShell] are both @Singleton + @Inject constructor,
+ * [BootstrapInstaller] and [IrisShellSession] are both @Singleton + @Inject constructor,
  * so Hilt resolves them automatically — no explicit @Provides needed.
  *
- * BootstrapDownloader has been removed. Bootstrap zip is now embedded in
- * app/src/main/assets/ and extracted by BootstrapInstaller at runtime.
+ * Bootstrap is embedded in libiris-bootstrap.so via NDK (jni/) and extracted
+ * by BootstrapInstaller at runtime through JNI.
  */
 @Module
 @InstallIn(SingletonComponent::class)

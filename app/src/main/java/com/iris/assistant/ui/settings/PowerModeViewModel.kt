@@ -4,7 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.iris.assistant.data.local.datastore.PreferencesRepository
 import com.iris.assistant.data.shell.BootstrapInstaller
-import com.iris.assistant.data.shell.EmbeddedShell
+import com.iris.assistant.data.shell.IrisShellSession
 import com.iris.assistant.data.shell.ShellLine
 import com.iris.assistant.domain.model.BootstrapState
 import com.iris.assistant.util.Constants
@@ -32,7 +32,7 @@ data class PowerModeUiState(
 class PowerModeViewModel @Inject constructor(
     private val prefsRepo         : PreferencesRepository,
     private val bootstrapInstaller: BootstrapInstaller,
-    private val embeddedShell     : EmbeddedShell,
+    private val shellSession      : IrisShellSession,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(PowerModeUiState())
@@ -63,7 +63,7 @@ class PowerModeViewModel @Inject constructor(
         }
         // Stream terminal output into UI state
         viewModelScope.launch {
-            embeddedShell.output.collect { line ->
+            shellSession.output.collect { line ->
                 _uiState.update { state ->
                     state.copy(
                         terminalLines = (state.terminalLines + line)
@@ -112,7 +112,7 @@ class PowerModeViewModel @Inject constructor(
     private fun disablePowerMode() {
         viewModelScope.launch {
             // Stop shell if running
-            if (embeddedShell.isRunning) embeddedShell.stop()
+            if (shellSession.isRunning) shellSession.stop()
             prefsRepo.setPowerModeEnabled(false)
         }
     }
@@ -129,7 +129,7 @@ class PowerModeViewModel @Inject constructor(
 
     fun uninstallBootstrap() {
         viewModelScope.launch {
-            if (embeddedShell.isRunning) embeddedShell.stop()
+            if (shellSession.isRunning) shellSession.stop()
             bootstrapInstaller.uninstall()
             _uiState.update { it.copy(bootstrapState = BootstrapState.Idle) }
         }
@@ -139,7 +139,7 @@ class PowerModeViewModel @Inject constructor(
 
     fun startShell() {
         viewModelScope.launch {
-            runCatching { embeddedShell.start() }
+            runCatching { shellSession.start() }
                 .onSuccess { _uiState.update { it.copy(shellRunning = true) } }
                 .onFailure { ex ->
                     _uiState.update {
@@ -158,7 +158,7 @@ class PowerModeViewModel @Inject constructor(
     fun sendCommand(command: String) {
         if (command.isBlank()) return
         viewModelScope.launch {
-            runCatching { embeddedShell.send(command) }
+            runCatching { shellSession.send(command) }
                 .onFailure { ex ->
                     _uiState.update { state ->
                         state.copy(
@@ -173,12 +173,12 @@ class PowerModeViewModel @Inject constructor(
     }
 
     fun interruptShell() {
-        viewModelScope.launch { embeddedShell.interrupt() }
+        viewModelScope.launch { shellSession.interrupt() }
     }
 
     fun stopShell() {
         viewModelScope.launch {
-            embeddedShell.stop()
+            shellSession.stop()
             _uiState.update { it.copy(shellRunning = false) }
         }
     }

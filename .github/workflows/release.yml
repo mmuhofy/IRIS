@@ -21,6 +21,25 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
+      - name: Setup Android NDK
+        run: |
+          SDK_DIR="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          echo "ANDROID_HOME=$SDK_DIR" >> "$GITHUB_ENV"
+          SDKMANAGER=""
+          for sp in "$SDK_DIR/cmdline-tools/latest/bin/sdkmanager" \
+                     "$SDK_DIR/tools/bin/sdkmanager"; do
+            if [ -f "$sp" ]; then SDKMANAGER="$sp"; break; fi
+          done
+          if [ -z "$SDKMANAGER" ]; then
+            echo "ERROR: sdkmanager not found at $SDK_DIR"
+            exit 1
+          fi
+          NDK_VERSION="27.0.12077973"
+          if [ ! -d "$SDK_DIR/ndk/$NDK_VERSION" ]; then
+            yes | "$SDKMANAGER" "ndk;$NDK_VERSION" 2>&1
+          fi
+          echo "ANDROID_NDK_HOME=$SDK_DIR/ndk/$NDK_VERSION" >> "$GITHUB_ENV"
+
       - name: Cache Gradle & Android build cache
         uses: actions/cache@v4
         with:
@@ -45,18 +64,18 @@ jobs:
       - name: Decode release keystore
         run: echo "${{ secrets.RELEASE_KEYSTORE_B64 }}" | base64 -d > release.keystore
 
-      - name: Download bootstrap zip to assets
+      - name: Download bootstrap zip to NDK jni directory
         run: |
-          mkdir -p app/src/main/assets
+          mkdir -p app/src/main/jni
           curl -fsSL \
             "https://github.com/mmuhofy/IRIS/releases/download/bootstrap-20260624-r1/CHECKSUMS.sha256" \
             -o /tmp/CHECKSUMS.sha256
           curl -fsSL \
             "https://github.com/mmuhofy/IRIS/releases/download/bootstrap-20260624-r1/bootstrap-aarch64.zip" \
-            -o app/src/main/assets/bootstrap-aarch64.zip
+            -o app/src/main/jni/bootstrap-aarch64.zip
           # Verify SHA-256
           EXPECTED=$(grep "bootstrap-aarch64.zip" /tmp/CHECKSUMS.sha256 | awk '{print $1}')
-          ACTUAL=$(sha256sum app/src/main/assets/bootstrap-aarch64.zip | awk '{print $1}')
+          ACTUAL=$(sha256sum app/src/main/jni/bootstrap-aarch64.zip | awk '{print $1}')
           if [ "$EXPECTED" != "$ACTUAL" ]; then
             echo "SHA-256 mismatch! expected=$EXPECTED actual=$ACTUAL"
             exit 1

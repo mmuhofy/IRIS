@@ -19,10 +19,13 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Installs the IRIS bootstrap from assets into the app's private files directory.
+ * Installs the IRIS bootstrap into the app's private files directory.
  *
- * The bootstrap zip lives at app/src/main/assets/bootstrap-aarch64.zip.
- * It contains a fully extracted filesystem under the prefix:
+ * The bootstrap zip is embedded in libiris-bootstrap.so at compile time
+ * via NDK (iris-bootstrap-zip.S + iris-bootstrap.c) and extracted at
+ * runtime through JNI. This avoids the need to bundle a large zip in assets.
+ *
+ * The zip contains a fully extracted filesystem under the prefix:
  *   data/data/com.iris.assistant/files/
  * which is stripped during extraction, landing everything under [context.filesDir].
  *
@@ -30,8 +33,6 @@ import javax.inject.Singleton
  *   filesDir/
  *     usr/     ← PREFIX
  *     home/    ← HOME
- *
- * UNTESTED — verify before use
  */
 @Singleton
 class BootstrapInstaller @Inject constructor(
@@ -39,11 +40,17 @@ class BootstrapInstaller @Inject constructor(
 ) {
     companion object {
         private const val TAG               = "BootstrapInstaller"
-        private const val ASSET_NAME        = "bootstrap-aarch64.zip"
         private const val STRIP_PREFIX      = "data/data/com.iris.assistant/files/"
         private const val VERSION_FILE      = "bootstrap/INSTALLED_VERSION"
         private const val BOOTSTRAP_VERSION = "iris-1"
         private const val BUFFER_SIZE       = 8096
+
+        init {
+            System.loadLibrary("iris-bootstrap")
+        }
+
+        @JvmStatic
+        private external fun nativeGetBootstrapZip(): ByteArray
     }
 
     val prefixDir: File
@@ -81,51 +88,49 @@ class BootstrapInstaller @Inject constructor(
             stagingDir.mkdirs()
             prefixDir.deleteRecursively()
 
-            context.assets.open(ASSET_NAME).use { assetStream ->
-                ZipInputStream(assetStream.buffered()).use { zis ->
-                    while (true) {
-                        val entry = zis.nextEntry ?: break
+            val zipBytes = nativeGetBootstrapZip()
+            ZipInputStream(zipBytes.inputStream().buffered()).use { zis ->
+                while (true) {
+                    val entry = zis.nextEntry ?: break
 
-                        val name = entry.name
-                        if (!name.startsWith(STRIP_PREFIX)) {
-                            zis.closeEntry()
-                            continue
-                        }
-
-                        val relative = name.removePrefix(STRIP_PREFIX)
-                        if (relative.isEmpty()) {
-                            zis.closeEntry()
-                            continue
-                        }
-
-                        // usr/ → stagingDir for atomic rename; rest → filesDir directly
-                        val destFile: File = if (relative.startsWith("usr/")) {
-                            File(stagingDir, relative.removePrefix("usr/"))
-                        } else {
-                            File(context.filesDir, relative)
-                        }
-
-                        if (entry.isDirectory) {
-                            destFile.mkdirs()
-                        } else {
-                            destFile.parentFile?.mkdirs()
-                            FileOutputStream(destFile).use { out ->
-                                while (true) {
-                                    val n = zis.read(buffer)
-                                    if (n == -1) break
-                                    out.write(buffer, 0, n)
-                                }
-                            }
-                            if (relative.startsWith("usr/bin/") ||
-                                relative.startsWith("usr/sbin/") ||
-                                relative.startsWith("usr/libexec/") ||
-                                relative.startsWith("usr/lib/apt/")
-                            ) {
-                                destFile.setExecutable(true, false)
-                            }
-                        }
+                    val name = entry.name
+                    if (!name.startsWith(STRIP_PREFIX)) {
                         zis.closeEntry()
+                        continue
                     }
+
+                    val relative = name.removePrefix(STRIP_PREFIX)
+                    if (relative.isEmpty()) {
+                        zis.closeEntry()
+                        continue
+                    }
+
+                    val destFile: File = if (relative.startsWith("usr/")) {
+                        File(stagingDir, relative.removePrefix("usr/"))
+                    } else {
+                        File(context.filesDir, relative)
+                    }
+
+                    if (entry.isDirectory) {
+                        destFile.mkdirs()
+                    } else {
+                        destFile.parentFile?.mkdirs()
+                        FileOutputStream(destFile).use { out ->
+                            while (true) {
+                                val n = zis.read(buffer)
+                                if (n == -1) break
+                                out.write(buffer, 0, n)
+                            }
+                        }
+                        if (relative.startsWith("usr/bin/") ||
+                            relative.startsWith("usr/sbin/") ||
+                            relative.startsWith("usr/libexec/") ||
+                            relative.startsWith("usr/lib/apt/")
+                        ) {
+                            destFile.setExecutable(true, false)
+                        }
+                    }
+                    zis.closeEntry()
                 }
             }
 
