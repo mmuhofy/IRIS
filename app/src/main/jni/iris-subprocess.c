@@ -96,6 +96,9 @@ Java_com_iris_assistant_data_shell_IrisShellSession_nativeCreateSubprocess(
 
         execvp(argv[0], argv);
         LOGE("execvp(%s) failed: %s", argv[0], strerror(errno));
+        // Write error to PTY so the reader thread sees it
+        dprintf(STDERR_FILENO, "\r\n[IRIS] execvp(%s) failed: %s\r\n",
+                argv[0], strerror(errno));
         _exit(127);
     }
 

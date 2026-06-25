@@ -1,5 +1,6 @@
 package com.iris.assistant.data.shell
 
+import android.os.ParcelFileDescriptor
 import android.system.ErrnoException
 import android.system.Os
 import android.system.OsConstants
@@ -42,32 +43,12 @@ class IrisShellSession @Inject constructor(
         ): Int
     }
 
-    private fun createFileDescriptorFromFd(rawFd: Int): FileDescriptor {
-        val fd = FileDescriptor()
-        // Set BOTH fields (if they exist) — Os.read/Os.write may read from either.
-        try {
-            val descField = FileDescriptor::class.java.getDeclaredField("descriptor")
-            descField.isAccessible = true
-            when (descField.type) {
-                Long::class.javaPrimitiveType -> descField.setLong(fd, rawFd.toLong())
-                Int::class.javaPrimitiveType -> descField.setInt(fd, rawFd)
-            }
-        } catch (_: NoSuchFieldException) {
-        }
-        try {
-            val fdField = FileDescriptor::class.java.getDeclaredField("fd")
-            fdField.isAccessible = true
-            fdField.setInt(fd, rawFd)
-        } catch (_: NoSuchFieldException) {
-        }
-        return fd
-    }
-
     private val _output = MutableSharedFlow<ShellLine>(replay = 200, extraBufferCapacity = 500)
     val output: Flow<ShellLine> = _output.asSharedFlow()
 
     @Volatile private var fd: FileDescriptor? = null
     @Volatile private var processPid: Int = -1
+    private var pfdRef: ParcelFileDescriptor? = null
 
     val isRunning: Boolean get() = fd != null && processPid > 0
 
@@ -105,9 +86,13 @@ class IrisShellSession @Inject constructor(
         if (rawFd < 0) throw RuntimeException("Failed to create subprocess (native returned $rawFd)")
 
         processPid = pid[0]
-        fd = createFileDescriptorFromFd(rawFd)
 
-        Log.i(TAG, "Shell session started (pid=$processPid, fd=$rawFd)")
+        pfdRef?.close()
+        val pfd = ParcelFileDescriptor.fromFd(rawFd)
+        pfdRef = pfd
+        fd = pfd.fileDescriptor
+
+        Log.i(TAG, "Shell session started (pid=$processPid, rawFd=$rawFd)")
 
         Thread({
             try {
@@ -116,11 +101,18 @@ class IrisShellSession @Inject constructor(
                 while (fd != null) {
                     val n = try {
                         Os.read(fd!!, buf, 0, buf.size)
-                    } catch (_: ErrnoException) {
+                    } catch (e: ErrnoException) {
+                        Log.w(TAG, "PTY read errno=${e.errno}: ${e.message}")
+                        _output.tryEmit(ShellLine("[PTY error: ${e.message}]", ShellLine.Stream.STDERR))
                         break
                     }
-                    if (n <= 0) break
-                    sb.append(buf.decodeToString(0, n))
+                    if (n <= 0) {
+                        Log.w(TAG, "PTY EOF (n=$n)")
+                        break
+                    }
+                    val chunk = buf.decodeToString(0, n)
+                    Log.d(TAG, "PTY read ${chunk.length}B")
+                    sb.append(chunk)
                     val text = sb.toString()
                     val lines = text.split("\n")
                     if (text.endsWith("\n")) {
@@ -135,7 +127,8 @@ class IrisShellSession @Inject constructor(
                     _output.tryEmit(ShellLine(sb.toString(), ShellLine.Stream.STDOUT))
                 }
             } catch (e: Exception) {
-                Log.d(TAG, "PTY reader ended: ${e.message}")
+                Log.w(TAG, "PTY reader ended: ${e.message}")
+                _output.tryEmit(ShellLine("[Reader error: ${e.message}]", ShellLine.Stream.STDERR))
             }
             Log.d(TAG, "PTY reader thread finished")
         }, "iris-pty-reader").also { it.isDaemon = true; it.start() }
@@ -144,14 +137,21 @@ class IrisShellSession @Inject constructor(
     suspend fun send(command: String) = withContext(Dispatchers.IO) {
         val f = fd ?: throw IllegalStateException("Shell not running")
         val data = "$command\n".encodeToByteArray()
-        Os.write(f, data, 0, data.size)
-        Log.d(TAG, "Sent: $command")
+        try {
+            Os.write(f, data, 0, data.size)
+            Log.d(TAG, "Sent: $command")
+        } catch (e: ErrnoException) {
+            throw IllegalStateException("write failed (errno=${e.errno}): ${e.message}")
+        }
     }
 
     private suspend fun sendDoneSentinel() = withContext(Dispatchers.IO) {
         val f = fd ?: return@withContext
         val data = "echo \"$CMD_DONE_SENTINEL\"\n".encodeToByteArray()
-        Os.write(f, data, 0, data.size)
+        try {
+            Os.write(f, data, 0, data.size)
+        } catch (_: ErrnoException) {
+        }
     }
 
     suspend fun runAndCollect(
@@ -203,11 +203,11 @@ class IrisShellSession @Inject constructor(
     suspend fun stop() = withContext(Dispatchers.IO) {
         if (processPid > 0) {
             runCatching { Os.kill(processPid, OsConstants.SIGTERM) }
-            // Allow 2s for graceful shutdown
             Thread.sleep(200)
             runCatching { Os.kill(processPid, OsConstants.SIGKILL) }
         }
-        runCatching { fd?.let { Os.close(it) } }
+        pfdRef?.close()
+        pfdRef = null
         fd = null
         processPid = -1
         Log.d(TAG, "Shell session stopped")
