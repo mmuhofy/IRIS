@@ -14,6 +14,7 @@ import java.io.File
 import java.io.FileOutputStream
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
+import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
 import javax.inject.Inject
 import javax.inject.Singleton
