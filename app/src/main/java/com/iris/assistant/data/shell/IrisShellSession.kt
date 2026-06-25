@@ -44,25 +44,23 @@ class IrisShellSession @Inject constructor(
 
     private fun createFileDescriptorFromFd(rawFd: Int): FileDescriptor {
         val fd = FileDescriptor()
+        // Set BOTH fields (if they exist) — Os.read/Os.write may read from either.
         try {
             val descField = FileDescriptor::class.java.getDeclaredField("descriptor")
             descField.isAccessible = true
             when (descField.type) {
                 Long::class.javaPrimitiveType -> descField.setLong(fd, rawFd.toLong())
                 Int::class.javaPrimitiveType -> descField.setInt(fd, rawFd)
-                else -> throw RuntimeException("Unexpected type '${descField.type}' for 'descriptor'")
             }
-            return fd
         } catch (_: NoSuchFieldException) {
         }
         try {
             val fdField = FileDescriptor::class.java.getDeclaredField("fd")
             fdField.isAccessible = true
             fdField.setInt(fd, rawFd)
-            return fd
         } catch (_: NoSuchFieldException) {
         }
-        throw RuntimeException("Cannot set fd on FileDescriptor (tried 'descriptor' and 'fd')")
+        return fd
     }
 
     private val _output = MutableSharedFlow<ShellLine>(replay = 200, extraBufferCapacity = 500)
