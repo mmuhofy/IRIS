@@ -295,7 +295,7 @@ private fun WelcomeFeatureRow(icon: ImageVector, text: String) {
             modifier = Modifier
                 .size(32.dp)
                 .clip(CircleShape)
-                .background(IrisTheme.colors.primary.copy(alpha = 0.12f))
+                .background(MaterialTheme.colorScheme.primaryContainer)
         ) {
             Icon(
                 imageVector        = icon,

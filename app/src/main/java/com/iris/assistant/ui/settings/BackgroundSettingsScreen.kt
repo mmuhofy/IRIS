@@ -115,7 +115,7 @@ fun BackgroundSettingsScreen(
                             modifier         = Modifier
                                 .size(36.dp)
                                 .clip(CircleShape)
-                                .background(IrisTheme.colors.primary.copy(alpha = 0.12f)),
+                                .background(MaterialTheme.colorScheme.primaryContainer),
                             contentAlignment = Alignment.Center,
                         ) {
                             Icon(
@@ -195,7 +195,7 @@ private fun InfoRow(label: String, body: String) {
             modifier         = Modifier
                 .size(36.dp)
                 .clip(CircleShape)
-                .background(IrisTheme.colors.secondary.copy(alpha = 0.12f)),
+                .background(MaterialTheme.colorScheme.secondaryContainer),
             contentAlignment = Alignment.Center,
         ) {
             Icon(

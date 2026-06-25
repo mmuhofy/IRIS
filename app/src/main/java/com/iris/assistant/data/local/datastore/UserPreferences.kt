@@ -24,6 +24,7 @@ data class UserPreferences(
     val fontFamily          : AppFont           = AppFont.Inter,
     val fontFamilyKey       : String            = AppFont.Inter.key,
     // Phase 4 — Power Mode
+    val isDarkMode          : Boolean           = true,
     val powerModeEnabled    : Boolean           = false,
     val shellSecurity       : String            = Constants.SHELL_SECURITY_DEFAULT,
 )

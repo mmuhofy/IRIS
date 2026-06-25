@@ -167,7 +167,7 @@ private fun TtsProviderCards(
                         .clip(CircleShape)
                         .background(
                             if (selected) Color.White.copy(alpha = 0.2f)
-                            else IrisTheme.colors.primary.copy(alpha = 0.1f)
+                            else MaterialTheme.colorScheme.primaryContainer
                         ),
                     contentAlignment = Alignment.Center,
                 ) {
@@ -269,7 +269,7 @@ private fun VoiceRow(
                 .clip(CircleShape)
                 .background(
                     if (selected) IrisTheme.colors.primary
-                    else IrisTheme.colors.primary.copy(alpha = 0.10f)
+                    else MaterialTheme.colorScheme.primaryContainer
                 ),
             contentAlignment = Alignment.Center,
         ) {
@@ -295,7 +295,7 @@ private fun VoiceRow(
                 modifier = Modifier
                     .clip(RoundedCornerShape(5.dp))
                     .background(
-                        if (selected) IrisTheme.colors.primary.copy(alpha = 0.12f)
+                        if (selected) MaterialTheme.colorScheme.primaryContainer
                         else MaterialTheme.colorScheme.surfaceVariant
                     )
                     .padding(horizontal = 7.dp, vertical = 2.dp),
@@ -314,7 +314,7 @@ private fun VoiceRow(
                 .size(34.dp)
                 .clip(CircleShape)
                 .background(
-                    if (selected) IrisTheme.colors.primary.copy(alpha = 0.12f)
+                    if (selected) MaterialTheme.colorScheme.primaryContainer
                     else MaterialTheme.colorScheme.surfaceVariant
                 ),
             contentAlignment = Alignment.Center,

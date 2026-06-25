@@ -1,4 +1,3 @@
-// app/src/main/java/com/iris/assistant/ui/settings/AppearanceSettingsViewModel.kt
 package com.iris.assistant.ui.settings
 
 import androidx.lifecycle.ViewModel
@@ -17,6 +16,7 @@ import javax.inject.Inject
 data class AppearanceSettingsUiState(
     val colorScheme    : ColorSchemeOption = ColorSchemeOption.SLATE,
     val useMaterialYou : Boolean           = false,
+    val isDarkMode     : Boolean           = true,
     val fontFamily     : AppFont           = AppFont.SystemDefault,
 )
 
@@ -30,6 +30,7 @@ class AppearanceSettingsViewModel @Inject constructor(
             AppearanceSettingsUiState(
                 colorScheme    = prefs.colorScheme,
                 useMaterialYou = prefs.useMaterialYou,
+                isDarkMode     = prefs.isDarkMode,
                 fontFamily     = prefs.fontFamily,
             )
         }
@@ -45,6 +46,10 @@ class AppearanceSettingsViewModel @Inject constructor(
 
     fun onMaterialYouChange(enabled: Boolean) {
         viewModelScope.launch { preferencesRepository.setUseMaterialYou(enabled) }
+    }
+
+    fun onDarkModeChange(isDark: Boolean) {
+        viewModelScope.launch { preferencesRepository.setIsDarkMode(isDark) }
     }
 
     fun onFontChange(font: AppFont) {

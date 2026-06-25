@@ -139,7 +139,7 @@ fun DataSettingsScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(18.dp))
-                            .background(IrisTheme.colors.primary.copy(alpha = 0.10f))
+                            .background(MaterialTheme.colorScheme.primaryContainer)
                             .border(
                                 width = 1.dp,
                                 color = IrisTheme.colors.primary.copy(alpha = 0.25f),

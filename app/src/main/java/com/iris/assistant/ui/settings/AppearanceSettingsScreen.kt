@@ -134,6 +134,19 @@ fun AppearanceSettingsScreen(
                 item { Spacer(Modifier.height(8.dp)) }
             }
 
+            // ── Appearance mode ──────────────────────────────────────────
+            item {
+                Spacer(Modifier.height(4.dp))
+                AppearanceSectionLabel("Görünüm Modu")
+            }
+            item {
+                DarkModeToggle(
+                    enabled  = uiState.isDarkMode,
+                    onToggle = { viewModel.onDarkModeChange(it) },
+                )
+            }
+            item { Spacer(Modifier.height(8.dp)) }
+
             // ── Color scheme ──────────────────────────────────────────────
             item {
                 AppearanceSectionLabel("Renk Teması")
@@ -231,6 +244,47 @@ private fun MaterialYouToggle(
 }
 
 // ---------------------------------------------------------------------------
+// Dark/Light mode toggle
+// ---------------------------------------------------------------------------
+
+@Composable
+private fun DarkModeToggle(
+    enabled : Boolean,
+    onToggle: (Boolean) -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(18.dp))
+            .background(MaterialTheme.colorScheme.surface)
+            .border(1.dp, Color.White.copy(alpha = 0.07f), RoundedCornerShape(18.dp))
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment     = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text       = if (enabled) "Karanlık Mod" else "Aydınlık Mod",
+                style      = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Medium,
+                color      = ColorTextPrimary,
+            )
+            Spacer(Modifier.height(2.dp))
+            Text(
+                text  = "Arayüz renklerini gece/gündüz moduna göre ayarla",
+                style = MaterialTheme.typography.bodySmall,
+                color = ColorTextSecondary,
+            )
+        }
+        Spacer(Modifier.width(12.dp))
+        Switch(
+            checked         = enabled,
+            onCheckedChange = onToggle,
+        )
+    }
+}
+
+// ---------------------------------------------------------------------------
 // Theme card
 // ---------------------------------------------------------------------------
 
@@ -240,9 +294,9 @@ private fun ThemeCard(
     selected: Boolean,
     onClick : () -> Unit,
 ) {
-    val colors      = meta.option.toIrisColorScheme()
+    val seedColors = with(meta.option) { listOf(seedPrimary, seedGradient, seedSecondary) }
     val borderColor by animateColorAsState(
-        targetValue   = if (selected) colors.primary else Color.White.copy(alpha = 0.07f),
+        targetValue   = if (selected) seedColors[0] else Color.White.copy(alpha = 0.07f),
         animationSpec = tween(200),
         label         = "themeBorder",
     )
@@ -264,9 +318,7 @@ private fun ThemeCard(
                 .size(44.dp)
                 .clip(CircleShape)
                 .background(
-                    Brush.linearGradient(
-                        colors = listOf(colors.primary, colors.gradientEnd, colors.secondary)
-                    )
+                    Brush.linearGradient(colors = seedColors)
                 )
         )
 
@@ -277,7 +329,7 @@ private fun ThemeCard(
                 text       = meta.label,
                 style      = MaterialTheme.typography.bodyLarge,
                 fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
-                color      = if (selected) colors.primary else ColorTextPrimary,
+                color      = if (selected) seedColors[0] else ColorTextPrimary,
             )
             Spacer(Modifier.height(2.dp))
             Text(
@@ -292,7 +344,7 @@ private fun ThemeCard(
             Icon(
                 imageVector        = PhIcons.Regular.CheckCircle,
                 contentDescription = null,
-                tint               = colors.primary,
+                tint               = seedColors[0],
                 modifier           = Modifier.size(22.dp),
             )
         }
@@ -331,7 +383,7 @@ private fun FontCard(
                 .size(44.dp)
                 .clip(CircleShape)
                 .background(
-                    if (selected) IrisTheme.colors.primary.copy(alpha = 0.15f)
+                    if (selected) MaterialTheme.colorScheme.primaryContainer
                     else MaterialTheme.colorScheme.surfaceVariant
                 ),
             contentAlignment = Alignment.Center,

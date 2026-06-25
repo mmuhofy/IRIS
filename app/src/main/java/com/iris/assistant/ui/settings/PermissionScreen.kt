@@ -379,7 +379,7 @@ private fun PermissionRow(
                     .fillMaxSize()
                     .clip(CircleShape)
                     .background(
-                        IrisTheme.colors.primary.copy(alpha = if (granted) 0.12f else 0.05f)
+                        if (granted) MaterialTheme.colorScheme.primaryContainer else IrisTheme.colors.primary.copy(alpha = 0.05f)
                     ),
                 contentAlignment = Alignment.Center,
             ) {
@@ -426,7 +426,7 @@ private fun PermissionRow(
             Surface(
                 onClick = onOpenGuide,
                 shape   = RoundedCornerShape(10.dp),
-                color   = IrisTheme.colors.primary.copy(alpha = 0.10f),
+                color   = MaterialTheme.colorScheme.primaryContainer,
                 modifier = Modifier.size(34.dp),
             ) {
                 Box(contentAlignment = Alignment.Center) {
@@ -445,7 +445,7 @@ private fun PermissionRow(
         Surface(
             onClick  = onOpenSettings,
             shape    = RoundedCornerShape(10.dp),
-            color    = IrisTheme.colors.primary.copy(alpha = 0.10f),
+            color    = MaterialTheme.colorScheme.primaryContainer,
             modifier = Modifier.size(34.dp),
         ) {
             Box(contentAlignment = Alignment.Center) {
@@ -497,7 +497,7 @@ private fun AccessibilityGuideDialog(onDismiss: () -> Unit) {
                             modifier = Modifier
                                 .size(22.dp)
                                 .clip(CircleShape)
-                                .background(IrisTheme.colors.primary.copy(alpha = 0.13f)),
+                                .background(MaterialTheme.colorScheme.primaryContainer),
                             contentAlignment = Alignment.Center,
                         ) {
                             Text(

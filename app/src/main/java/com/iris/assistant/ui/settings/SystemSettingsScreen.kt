@@ -141,7 +141,7 @@ private fun SystemNavRow(
             modifier         = Modifier
                 .size(36.dp)
                 .clip(CircleShape)
-                .background(IrisTheme.colors.primary.copy(alpha = 0.12f)),
+                .background(MaterialTheme.colorScheme.primaryContainer),
             contentAlignment = Alignment.Center,
         ) {
             Icon(

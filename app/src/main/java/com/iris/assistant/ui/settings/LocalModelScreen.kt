@@ -175,7 +175,7 @@ private fun LocalModelCard(
                     .size(42.dp)
                     .clip(CircleShape)
                     .background(
-                        if (isSelected) IrisTheme.colors.primary.copy(alpha = 0.15f)
+                        if (isSelected) MaterialTheme.colorScheme.primaryContainer
                         else MaterialTheme.colorScheme.surfaceVariant
                     ),
                 contentAlignment = Alignment.Center,
@@ -205,7 +205,7 @@ private fun LocalModelCard(
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(5.dp))
-                                .background(IrisTheme.colors.secondary.copy(alpha = 0.15f))
+                                .background(MaterialTheme.colorScheme.secondaryContainer)
                                 .padding(horizontal = 6.dp, vertical = 2.dp),
                         ) {
                             Text(
@@ -347,7 +347,7 @@ private fun LocalModelCard(
                                     modifier = Modifier
                                         .weight(1f)
                                         .clip(RoundedCornerShape(12.dp))
-                                        .background(IrisTheme.colors.primary.copy(alpha = 0.12f))
+                                        .background(MaterialTheme.colorScheme.primaryContainer)
                                         .padding(vertical = 10.dp),
                                     contentAlignment = Alignment.Center,
                                 ) {
@@ -382,7 +382,7 @@ private fun LocalModelCard(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(12.dp))
-                                .background(IrisTheme.colors.primary.copy(alpha = 0.10f))
+                                .background(MaterialTheme.colorScheme.primaryContainer)
                                 .border(
                                     width = 1.dp,
                                     color = IrisTheme.colors.primary.copy(alpha = 0.25f),

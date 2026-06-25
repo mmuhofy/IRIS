@@ -248,7 +248,7 @@ private fun StepInfoRow(icon: ImageVector, text: String) {
             modifier = Modifier
                 .size(30.dp)
                 .clip(CircleShape)
-                .background(IrisTheme.colors.primary.copy(alpha = 0.12f))
+                .background(MaterialTheme.colorScheme.primaryContainer)
         ) {
             Icon(
                 imageVector        = icon,
@@ -275,7 +275,7 @@ private fun ExampleCommandChip(text: String) {
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(50))
-            .background(IrisTheme.colors.primary.copy(alpha = 0.10f))
+            .background(MaterialTheme.colorScheme.primaryContainer)
             .border(
                 width = 1.dp,
                 color = IrisTheme.colors.primary.copy(alpha = 0.30f),
@@ -306,7 +306,7 @@ private fun NumberedStepRow(number: Int, text: String) {
             modifier = Modifier
                 .size(24.dp)
                 .clip(CircleShape)
-                .background(IrisTheme.colors.primary.copy(alpha = 0.15f))
+                .background(MaterialTheme.colorScheme.primaryContainer)
         ) {
             Text(
                 text  = number.toString(),

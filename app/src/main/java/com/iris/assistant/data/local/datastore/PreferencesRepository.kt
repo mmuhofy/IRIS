@@ -41,6 +41,7 @@ class PreferencesRepository @Inject constructor(
         val LOCAL_MODEL_PATH     = stringPreferencesKey("local_model_path")
         val FONT_FAMILY          = stringPreferencesKey("font_family")
         val TTS_PROVIDER         = stringPreferencesKey("tts_provider")
+        val IS_DARK_MODE          = booleanPreferencesKey("is_dark_mode")
         // Phase 4 — Power Mode
         val POWER_MODE_ENABLED   = booleanPreferencesKey("power_mode_enabled")
         val SHELL_SECURITY       = stringPreferencesKey("shell_security")
@@ -65,6 +66,7 @@ class PreferencesRepository @Inject constructor(
                 ?: AutonomyLevel.SAFE,
             localModelName = prefs[Keys.LOCAL_MODEL_NAME] ?: "",
             localModelPath = prefs[Keys.LOCAL_MODEL_PATH] ?: "",
+            isDarkMode         = prefs[Keys.IS_DARK_MODE]  ?: true,
             fontFamilyKey  = prefs[Keys.FONT_FAMILY] ?: AppFont.SystemDefault.key,
             fontFamily     = prefs[Keys.FONT_FAMILY]
                 ?.let { AppFont.fromKey(it) }
@@ -128,6 +130,10 @@ class PreferencesRepository @Inject constructor(
 
     suspend fun setFontFamily(font: AppFont) {
         context.dataStore.edit { it[Keys.FONT_FAMILY] = font.key }
+    }
+
+    suspend fun setIsDarkMode(isDark: Boolean) {
+        context.dataStore.edit { it[Keys.IS_DARK_MODE] = isDark }
     }
 
     // Phase 4 — Power Mode

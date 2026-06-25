@@ -140,7 +140,7 @@ fun ModelSettingsScreen(
                                 modifier         = Modifier
                                     .size(36.dp)
                                     .clip(CircleShape)
-                                    .background(IrisTheme.colors.primary.copy(alpha = 0.12f)),
+                                    .background(MaterialTheme.colorScheme.primaryContainer),
                                 contentAlignment = Alignment.Center,
                             ) {
                                 Icon(
@@ -172,7 +172,7 @@ fun ModelSettingsScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(18.dp))
-                                .background(IrisTheme.colors.primary.copy(alpha = 0.10f))
+                                .background(MaterialTheme.colorScheme.primaryContainer)
                                 .clickable(onClick = onOpenLocalModels)
                                 .padding(horizontal = 16.dp, vertical = 16.dp),
                             contentAlignment = Alignment.Center,
@@ -237,7 +237,7 @@ private fun ProviderCards(
                         .clip(CircleShape)
                         .background(
                             if (selected) Color.White.copy(alpha = 0.2f)
-                            else IrisTheme.colors.primary.copy(alpha = 0.10f)
+                            else MaterialTheme.colorScheme.primaryContainer
                         ),
                     contentAlignment = Alignment.Center,
                 ) {
