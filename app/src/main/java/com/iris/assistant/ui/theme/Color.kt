@@ -18,32 +18,32 @@ val ColorTextSecondary = Color(0xFF71717A)
 // Base surfaces above never change; only the accent triplet changes per theme.
 // ---------------------------------------------------------------------------
 
-// Slate (default) — off-white primary, single amber warmth
-val SlatePrimary   = Color(0xFFE2E2E2)
-val SlateGradient  = Color(0xFFA3A3A3)
-val SlateSecondary = Color(0xFFF59E0B)
+// Slate (default) — warm lavender-violet, sophisticated default
+val SlatePrimary   = Color(0xFFC7B9FF)
+val SlateGradient  = Color(0xFF9D8AFF)
+val SlateSecondary = Color(0xFFFFD166)
 
-// Rose Quartz — soft pink
+// Rose Quartz — soft pink with mauve accent
 val RoseQuartzPrimary   = Color(0xFFF9A8D4)
-val RoseQuartzGradient  = Color(0xFFFBCFE8)
-val RoseQuartzSecondary = Color(0xFFF59E0B)
+val RoseQuartzGradient  = Color(0xFFF472B6)
+val RoseQuartzSecondary = Color(0xFFD8B4FE)
 
 // Sage — soft green, warm secondary
 val SagePrimary   = Color(0xFF86EFAC)
 val SageGradient  = Color(0xFF4ADE80)
 val SageSecondary = Color(0xFFFCD34D)
 
-// Cobalt — pastel blue, cool
+// Cobalt — pastel blue with lavender contrast
 val CobaltPrimary   = Color(0xFF93C5FD)
 val CobaltGradient  = Color(0xFF60A5FA)
-val CobaltSecondary = Color(0xFFA5B4FC)
+val CobaltSecondary = Color(0xFFC4B5FD)
 
-// Ember — orange accent, single warm tone
+// Ember — warm orange, honey accent
 val EmberPrimary   = Color(0xFFFB923C)
 val EmberGradient  = Color(0xFFF97316)
 val EmberSecondary = Color(0xFFFBBF24)
 
-// Monochrome — no color, only grey/white
+// Monochrome — pure greyscale
 val MonochromePrimary   = Color(0xFFE4E4E7)
 val MonochromeGradient  = Color(0xFFA1A1AA)
 val MonochromeSecondary = Color(0xFF71717A)
