@@ -18,12 +18,6 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Set up Android NDK
-        uses: nttld/setup-ndk@v1
-        with:
-          ndk-version: r27c
-          add-to-path: true
-
       - name: Cache Gradle & Android build cache
         uses: actions/cache@v4
         with:
@@ -45,17 +39,18 @@ jobs:
           echo "GROQ_LLM_API_KEY=${{ secrets.GROQ_LLM_API_KEY }}" >> local.properties
           echo "HF_API_KEY=${{ secrets.HF_API_KEY }}"              >> local.properties
 
-      - name: Download bootstrap zip
+      - name: Download bootstrap zip to assets
         run: |
+          mkdir -p app/src/main/assets
           curl -fsSL \
             "https://github.com/mmuhofy/IRIS/releases/download/bootstrap-20260624-r1/CHECKSUMS.sha256" \
             -o /tmp/CHECKSUMS.sha256
           curl -fsSL \
             "https://github.com/mmuhofy/IRIS/releases/download/bootstrap-20260624-r1/bootstrap-aarch64.zip" \
-            -o app/src/main/cpp/bootstrap-aarch64.zip
+            -o app/src/main/assets/bootstrap-aarch64.zip
           # Verify SHA-256
           EXPECTED=$(grep "bootstrap-aarch64.zip" /tmp/CHECKSUMS.sha256 | awk '{print $1}')
-          ACTUAL=$(sha256sum app/src/main/cpp/bootstrap-aarch64.zip | awk '{print $1}')
+          ACTUAL=$(sha256sum app/src/main/assets/bootstrap-aarch64.zip | awk '{print $1}')
           if [ "$EXPECTED" != "$ACTUAL" ]; then
             echo "SHA-256 mismatch! expected=$EXPECTED actual=$ACTUAL"
             exit 1
