@@ -8,8 +8,43 @@
 #include <errno.h>
 #include <sys/stat.h>
 #include <android/log.h>
+#include <sys/syscall.h>
 
 #define TAG "IrisSubprocess"
+
+// Syscall numbers for memfd_create and execveat (kernel 3.17+ / Android 11+)
+// These bypass noexec mount restrictions via anonymous memory file descriptor.
+#ifndef __NR_memfd_create
+#if defined(__aarch64__)
+#define __NR_memfd_create 279
+#elif defined(__arm__)
+#define __NR_memfd_create 385
+#elif defined(__x86_64__)
+#define __NR_memfd_create 319
+#elif defined(__i386__)
+#define __NR_memfd_create 356
+#endif
+#endif
+
+#ifndef __NR_execveat
+#if defined(__aarch64__)
+#define __NR_execveat 281
+#elif defined(__arm__)
+#define __NR_execveat 387
+#elif defined(__x86_64__)
+#define __NR_execveat 322
+#elif defined(__i386__)
+#define __NR_execveat 358
+#endif
+#endif
+
+#ifndef MFD_CLOEXEC
+#define MFD_CLOEXEC 0x0001U
+#endif
+
+#ifndef AT_EMPTY_PATH
+#define AT_EMPTY_PATH 0x1000
+#endif
 #define LOGI(...) __android_log_print(ANDROID_LOG_INFO, TAG, __VA_ARGS__)
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, TAG, __VA_ARGS__)
 
@@ -98,45 +133,43 @@ Java_com_iris_assistant_data_shell_IrisShellSession_nativeCreateSubprocess(
         // Force execute permission before exec
         chmod(argv[0], 0755);
 
+        // Primary attempt: direct execve
         execvp(argv[0], argv);
         LOGE("execvp(%s) failed: %s", argv[0], strerror(errno));
         dprintf(STDERR_FILENO, "\r\n[IRIS] execvp(%s) failed: %s\r\n",
                 argv[0], strerror(errno));
 
-        // If EACCES (noexec mount or SELinux), try fallbacks
+        // Fallback: memfd_create + execveat bypasses noexec mount restriction
+        // (Android 11+, kernel 3.17+). memfd is an anonymous file in memory,
+        // not bound to any filesystem mount, so noexec does not apply.
         if (errno == EACCES) {
-            // Fallback 1: copy to app cache dir
-            const char* tmpdir = getenv("TMPDIR");
-            if (tmpdir == NULL) tmpdir = "/data/local/tmp";
-            char tmpPath[512];
-            snprintf(tmpPath, sizeof(tmpPath), "%s/iris_bash_XXXXXX", tmpdir);
-            int tmpFd = mkstemp(tmpPath);
-            if (tmpFd >= 0) {
+            dprintf(STDERR_FILENO, "\r\n[IRIS] trying execveat(memfd)...\r\n");
+#ifdef __NR_memfd_create
+            int memfd = (int)syscall(__NR_memfd_create, "iris_exec", MFD_CLOEXEC);
+            if (memfd >= 0) {
                 int srcFd = open(argv[0], O_RDONLY);
                 if (srcFd >= 0) {
                     char buf[8192];
                     ssize_t n;
                     while ((n = read(srcFd, buf, sizeof(buf))) > 0)
-                        write(tmpFd, buf, n);
+                        write(memfd, buf, n);
                     close(srcFd);
-                    close(tmpFd);
-                    chmod(tmpPath, 0755);
-                    argv[0] = tmpPath;
-                    execvp(argv[0], argv);
-                    dprintf(STDERR_FILENO, "\r\n[IRIS] tmp-copy failed: %s\r\n",
-                            strerror(errno));
-                } else {
-                    close(tmpFd);
-                    unlink(tmpPath);
-                }
-            }
+                    fchmod(memfd, 0755);
 
-            // Fallback 2: run via system shell
-            dprintf(STDERR_FILENO, "\r\n[IRIS] trying /system/bin/sh...\r\n");
-            char* sh_argv[] = {"/system/bin/sh", argv[0], NULL};
-            execvp("/system/bin/sh", sh_argv);
-            dprintf(STDERR_FILENO, "\r\n[IRIS] /system/bin/sh failed: %s\r\n",
-                    strerror(errno));
+                    syscall(__NR_execveat, memfd, "", argv, envp, AT_EMPTY_PATH);
+                    LOGE("execveat(memfd) failed: %s", strerror(errno));
+                    dprintf(STDERR_FILENO, "\r\n[IRIS] execveat(memfd) failed: %s\r\n",
+                            strerror(errno));
+                    close(memfd);
+                } else {
+                    close(memfd);
+                }
+            } else {
+                LOGE("memfd_create failed: %s", strerror(errno));
+            }
+#else
+            dprintf(STDERR_FILENO, "\r\n[IRIS] memfd_create not available\r\n");
+#endif
         }
 
         _exit(127);
