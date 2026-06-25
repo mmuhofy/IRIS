@@ -1,5 +1,9 @@
 package com.iris.assistant.ui.settings
 
+import android.content.Context
+import android.os.Build
+import android.os.Environment
+import android.provider.Settings
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.iris.assistant.data.local.datastore.PreferencesRepository
@@ -9,6 +13,7 @@ import com.iris.assistant.data.shell.ShellLine
 import com.iris.assistant.domain.model.BootstrapState
 import com.iris.assistant.util.Constants
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -30,6 +35,7 @@ data class PowerModeUiState(
 
 @HiltViewModel
 class PowerModeViewModel @Inject constructor(
+    @ApplicationContext private val context          : Context,
     private val prefsRepo         : PreferencesRepository,
     private val bootstrapInstaller: BootstrapInstaller,
     private val shellSession      : IrisShellSession,
@@ -191,6 +197,22 @@ class PowerModeViewModel @Inject constructor(
 
     fun setShellSecurity(level: String) {
         viewModelScope.launch { prefsRepo.setShellSecurity(level) }
+    }
+
+    // ── Storage access ─────────────────────────────────────────────────────────
+
+    val allFilesAccessGranted: Boolean
+        get() = if (Build.VERSION.SDK_INT >= 30) Environment.isExternalStorageManager() else true
+
+    fun requestAllFilesAccess() {
+        if (Build.VERSION.SDK_INT >= 30 && !allFilesAccessGranted) {
+            val intent = android.content.Intent(
+                Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
+                android.net.Uri.parse("package:${context.packageName}"),
+            )
+            intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+            context.startActivity(intent)
+        }
     }
 
     override fun onCleared() {

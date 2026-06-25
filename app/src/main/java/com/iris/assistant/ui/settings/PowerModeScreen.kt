@@ -177,6 +177,39 @@ fun PowerModeScreen(
                     )
                 }
 
+                // ── Storage permission (if not granted) ────────────────────
+                if (!viewModel.allFilesAccessGranted) {
+                    item {
+                        IrisCard {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 16.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text       = "Tüm Dosyalara Erişim",
+                                        style      = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color      = ColorTextPrimary,
+                                    )
+                                    Text(
+                                        text  = "Shell'in harici depolamaya erişmesi için gerekli",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = ColorTextSecondary,
+                                    )
+                                }
+                                Spacer(Modifier.width(8.dp))
+                                OutlinedButton(onClick = viewModel::requestAllFilesAccess) {
+                                    Text("İzin Ver", color = IrisTheme.colors.secondary)
+                                }
+                            }
+                        }
+                    }
+                }
+
                 // ── Terminal (only when bootstrap installed) ───────────────
                 if (state.bootstrapState is BootstrapState.Installed) {
                     item {
