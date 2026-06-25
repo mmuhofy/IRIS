@@ -6,13 +6,30 @@
 #include <sys/ioctl.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <dlfcn.h>
 #include <android/log.h>
 
 #define TAG "IrisSubprocess"
 #define LOGI(...) __android_log_print(ANDROID_LOG_INFO, TAG, __VA_ARGS__)
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, TAG, __VA_ARGS__)
 
+typedef jobject (*AFileDescriptorCreateFunc)(JNIEnv*, jint);
+
 static jobject createFileDescriptor(JNIEnv* env, int fd) {
+    // Try AFileDescriptor_create (Android API 33+) via dlsym
+    void* handle = dlopen("libandroid.so", RTLD_LAZY | RTLD_LOCAL);
+    if (handle) {
+        AFileDescriptorCreateFunc func =
+            (AFileDescriptorCreateFunc)dlsym(handle, "AFileDescriptor_create");
+        if (func) {
+            jobject result = func(env, fd);
+            dlclose(handle);
+            if (result != NULL) return result;
+        }
+        dlclose(handle);
+    }
+
+    // Fallback: manual field access (pre-API 33)
     jclass clazz = (*env)->FindClass(env, "java/io/FileDescriptor");
     jmethodID ctor = (*env)->GetMethodID(env, clazz, "<init>", "()V");
     jobject result = (*env)->NewObject(env, clazz, ctor);
@@ -22,14 +39,16 @@ static jobject createFileDescriptor(JNIEnv* env, int fd) {
         (*env)->SetLongField(env, result, descField, (jlong)fd);
         return result;
     }
+    if ((*env)->ExceptionCheck(env)) (*env)->ExceptionClear(env);
 
     jfieldID fdField = (*env)->GetFieldID(env, clazz, "fd", "I");
     if (fdField != NULL) {
         (*env)->SetIntField(env, result, fdField, fd);
         return result;
     }
+    if ((*env)->ExceptionCheck(env)) (*env)->ExceptionClear(env);
 
-    LOGE("Cannot find FileDescriptor field (tried 'descriptor' and 'fd')");
+    LOGE("Cannot find FileDescriptor field (tried AFileDescriptor_create, 'descriptor', 'fd')");
     return NULL;
 }
 

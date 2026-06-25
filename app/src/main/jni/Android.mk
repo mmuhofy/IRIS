@@ -11,7 +11,7 @@ LOCAL_SRC_FILES := \
     iris-bootstrap-zip.S \
     iris-bootstrap.c \
     iris-subprocess.c
-LOCAL_LDLIBS    := -llog
+LOCAL_LDLIBS    := -llog -ldl
 LOCAL_CFLAGS    := -std=c17
 
 include $(BUILD_SHARED_LIBRARY)
