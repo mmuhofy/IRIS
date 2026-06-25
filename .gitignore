@@ -1,6 +1,5 @@
 index.txt
 .indexer.conf
 
-# Bootstrap zip — downloaded at build time by CI workflow, never committed
+# Bootstrap zip — placed by CI workflow before build, too large to track in git
 app/src/main/assets/bootstrap-aarch64.zip
-app/src/main/cpp/bootstrap-*.zipbootstrap-aarch64.zip

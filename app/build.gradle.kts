@@ -48,14 +48,9 @@ android {
         buildConfigField("String", "GROQ_LLM_API_KEY", apiKey("GROQ_LLM_API_KEY"))
         buildConfigField("String", "HF_API_KEY",       apiKey("HF_API_KEY"))
 
-        // NDK — build libiris-bootstrap.so from termux-bootstrap-zip.S + termux-bootstrap.c
-        // The bootstrap-*.zip files must be placed in app/src/main/cpp/ before building.
-        // ABI is restricted to arm64-v8a via splits.abi below — no ndk.abiFilters needed.
-        externalNativeBuild {
-            ndkBuild {
-                // Pass nothing — Android.mk picks up all sources automatically
-            }
-        }
+        // Bootstrap zip is extracted from assets at runtime (BootstrapInstaller).
+        // Place bootstrap-aarch64.zip in app/src/main/assets/ before building.
+        // Download from: https://github.com/mmuhofy/IRIS/releases/tag/bootstrap-20260624-r1
     }
 
     buildFeatures {

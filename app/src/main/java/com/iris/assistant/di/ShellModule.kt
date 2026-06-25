@@ -10,8 +10,8 @@ import dagger.hilt.components.SingletonComponent
  * [BootstrapInstaller] and [EmbeddedShell] are both @Singleton + @Inject constructor,
  * so Hilt resolves them automatically — no explicit @Provides needed.
  *
- * BootstrapDownloader has been removed. Bootstrap is now embedded in the APK
- * as libiris-bootstrap.so via NDK and extracted by BootstrapInstaller.
+ * BootstrapDownloader has been removed. Bootstrap zip is now embedded in
+ * app/src/main/assets/ and extracted by BootstrapInstaller at runtime.
  */
 @Module
 @InstallIn(SingletonComponent::class)
