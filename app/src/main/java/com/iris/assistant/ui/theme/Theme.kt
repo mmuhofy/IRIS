@@ -1,17 +1,13 @@
 package com.iris.assistant.ui.theme
 
-import android.os.Build
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 
 val LocalIrisColorScheme = staticCompositionLocalOf { SlateDark }
 
@@ -44,35 +40,11 @@ enum class ColorSchemeOption(
 fun IrisTheme(
     colorSchemeOption : ColorSchemeOption = ColorSchemeOption.SLATE,
     fontFamily        : AppFont           = AppFont.Inter,
-    useMaterialYou    : Boolean           = false,
     isDark            : Boolean           = true,
     content           : @Composable () -> Unit,
 ) {
     val fullScheme = if (isDark) colorSchemeOption.dark else colorSchemeOption.light
-
-    val m3Scheme = if (useMaterialYou && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-        val dynamic = if (isDark) dynamicDarkColorScheme(LocalContext.current)
-                      else dynamicLightColorScheme(LocalContext.current)
-        dynamic.copy(
-            primary              = fullScheme.primary,
-            onPrimary            = fullScheme.onPrimary,
-            primaryContainer     = fullScheme.primaryContainer,
-            onPrimaryContainer   = fullScheme.onPrimaryContainer,
-            secondary            = fullScheme.secondary,
-            onSecondary          = fullScheme.onSecondary,
-            secondaryContainer   = fullScheme.secondaryContainer,
-            onSecondaryContainer = fullScheme.onSecondaryContainer,
-            tertiary             = fullScheme.gradientEnd,
-            onTertiary           = fullScheme.onGradientEnd,
-            surface              = fullScheme.surface,
-            surfaceVariant       = fullScheme.surfaceVariant,
-            onSurface            = fullScheme.onSurface,
-            onSurfaceVariant     = fullScheme.onSurfaceVariant,
-            onBackground         = fullScheme.onBackground,
-        )
-    } else {
-        fullScheme.toMaterial3()
-    }
+    val m3Scheme   = fullScheme.toMaterial3()
 
     CompositionLocalProvider(LocalIrisColorScheme provides fullScheme) {
         MaterialTheme(
@@ -94,35 +66,11 @@ fun IrisTheme(
 fun IrisThemeTransparent(
     colorSchemeOption : ColorSchemeOption = ColorSchemeOption.SLATE,
     fontFamily        : AppFont           = AppFont.Inter,
-    useMaterialYou    : Boolean           = false,
     isDark            : Boolean           = true,
     content           : @Composable () -> Unit,
 ) {
     val fullScheme = if (isDark) colorSchemeOption.dark else colorSchemeOption.light
-
-    val m3Scheme = if (useMaterialYou && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-        val dynamic = if (isDark) dynamicDarkColorScheme(LocalContext.current)
-                      else dynamicLightColorScheme(LocalContext.current)
-        dynamic.copy(
-            primary              = fullScheme.primary,
-            onPrimary            = fullScheme.onPrimary,
-            primaryContainer     = fullScheme.primaryContainer,
-            onPrimaryContainer   = fullScheme.onPrimaryContainer,
-            secondary            = fullScheme.secondary,
-            onSecondary          = fullScheme.onSecondary,
-            secondaryContainer   = fullScheme.secondaryContainer,
-            onSecondaryContainer = fullScheme.onSecondaryContainer,
-            tertiary             = fullScheme.gradientEnd,
-            onTertiary           = fullScheme.onGradientEnd,
-            surface              = fullScheme.surface,
-            surfaceVariant       = fullScheme.surfaceVariant,
-            onSurface            = fullScheme.onSurface,
-            onSurfaceVariant     = fullScheme.onSurfaceVariant,
-            onBackground         = fullScheme.onBackground,
-        )
-    } else {
-        fullScheme.toMaterial3()
-    }
+    val m3Scheme   = fullScheme.toMaterial3()
 
     CompositionLocalProvider(LocalIrisColorScheme provides fullScheme) {
         MaterialTheme(

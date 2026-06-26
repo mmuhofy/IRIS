@@ -64,7 +64,6 @@ fun IrisApp(
     IrisTheme(
         colorSchemeOption = preferences.colorScheme,
         fontFamily        = preferences.fontFamily,
-        useMaterialYou    = preferences.useMaterialYou,
         isDark            = preferences.isDarkMode,
     ) {
         IrisNavGraph(

@@ -1,7 +1,6 @@
 // app/src/main/java/com/iris/assistant/ui/settings/AppearanceSettingsScreen.kt
 package com.iris.assistant.ui.settings
 
-import android.os.Build
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -119,21 +118,6 @@ fun AppearanceSettingsScreen(
             contentPadding      = PaddingValues(bottom = 32.dp),
         ) {
 
-            // ── Material You (Android 12+ only) ──────────────────────────
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                item {
-                    Spacer(Modifier.height(4.dp))
-                    AppearanceSectionLabel("Sistem Entegrasyonu")
-                }
-                item {
-                    MaterialYouToggle(
-                        enabled  = uiState.useMaterialYou,
-                        onToggle = { viewModel.onMaterialYouChange(it) },
-                    )
-                }
-                item { Spacer(Modifier.height(8.dp)) }
-            }
-
             // ── Appearance mode ──────────────────────────────────────────
             item {
                 Spacer(Modifier.height(4.dp))
@@ -200,47 +184,6 @@ private fun AppearanceSectionLabel(text: String) {
         letterSpacing = 1.2.sp,
         modifier      = Modifier.padding(start = 4.dp, bottom = 4.dp),
     )
-}
-
-// ---------------------------------------------------------------------------
-// Material You toggle — only rendered on Android 12+, caller guards too
-// ---------------------------------------------------------------------------
-
-@Composable
-private fun MaterialYouToggle(
-    enabled : Boolean,
-    onToggle: (Boolean) -> Unit,
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(18.dp))
-            .background(MaterialTheme.colorScheme.surface)
-            .border(1.dp, Color.White.copy(alpha = 0.07f), RoundedCornerShape(18.dp))
-            .padding(horizontal = 16.dp, vertical = 14.dp),
-        verticalAlignment     = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween,
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text       = "Material You",
-                style      = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Medium,
-                color      = ColorTextPrimary,
-            )
-            Spacer(Modifier.height(2.dp))
-            Text(
-                text  = "Arka plan renkleri duvar kağıdından gelir, accent rengi sabit kalır",
-                style = MaterialTheme.typography.bodySmall,
-                color = ColorTextSecondary,
-            )
-        }
-        Spacer(Modifier.width(12.dp))
-        Switch(
-            checked         = enabled,
-            onCheckedChange = onToggle,
-        )
-    }
 }
 
 // ---------------------------------------------------------------------------

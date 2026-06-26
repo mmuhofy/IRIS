@@ -10,7 +10,6 @@ import com.iris.assistant.util.Constants
 
 data class UserPreferences(
     val colorScheme         : ColorSchemeOption = ColorSchemeOption.SLATE,
-    val useMaterialYou      : Boolean           = false,
     val backgroundListening : Boolean           = true,
     val onboardingCompleted : Boolean           = false,
     val ttsVoice            : TtsVoice          = TtsVoice.DEFAULT,

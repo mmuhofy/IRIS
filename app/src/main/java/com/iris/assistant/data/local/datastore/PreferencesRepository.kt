@@ -29,7 +29,7 @@ class PreferencesRepository @Inject constructor(
 ) {
     private object Keys {
         val COLOR_SCHEME         = stringPreferencesKey("color_scheme")
-        val USE_MATERIAL_YOU     = booleanPreferencesKey("use_material_you")
+
         val BACKGROUND_LISTENING = booleanPreferencesKey("background_listening")
         val ONBOARDING_COMPLETED = booleanPreferencesKey("onboarding_completed")
         val TTS_VOICE            = stringPreferencesKey("tts_voice")
@@ -52,7 +52,7 @@ class PreferencesRepository @Inject constructor(
             colorScheme = prefs[Keys.COLOR_SCHEME]
                 ?.let { runCatching { ColorSchemeOption.valueOf(it) }.getOrDefault(ColorSchemeOption.SLATE) }
                 ?: ColorSchemeOption.SLATE,
-            useMaterialYou      = prefs[Keys.USE_MATERIAL_YOU]     ?: false,
+
             backgroundListening = prefs[Keys.BACKGROUND_LISTENING] ?: true,
             onboardingCompleted = prefs[Keys.ONBOARDING_COMPLETED] ?: false,
             ttsVoice = prefs[Keys.TTS_VOICE]
@@ -82,10 +82,6 @@ class PreferencesRepository @Inject constructor(
 
     suspend fun setColorScheme(scheme: ColorSchemeOption) {
         context.dataStore.edit { it[Keys.COLOR_SCHEME] = scheme.name }
-    }
-
-    suspend fun setUseMaterialYou(enabled: Boolean) {
-        context.dataStore.edit { it[Keys.USE_MATERIAL_YOU] = enabled }
     }
 
     suspend fun setBackgroundListening(enabled: Boolean) {

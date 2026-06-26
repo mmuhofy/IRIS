@@ -14,10 +14,9 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 data class AppearanceSettingsUiState(
-    val colorScheme    : ColorSchemeOption = ColorSchemeOption.SLATE,
-    val useMaterialYou : Boolean           = false,
-    val isDarkMode     : Boolean           = true,
-    val fontFamily     : AppFont           = AppFont.SystemDefault,
+    val colorScheme : ColorSchemeOption = ColorSchemeOption.SLATE,
+    val isDarkMode  : Boolean           = true,
+    val fontFamily  : AppFont           = AppFont.SystemDefault,
 )
 
 @HiltViewModel
@@ -28,10 +27,9 @@ class AppearanceSettingsViewModel @Inject constructor(
     val uiState: StateFlow<AppearanceSettingsUiState> = preferencesRepository.preferences
         .map { prefs ->
             AppearanceSettingsUiState(
-                colorScheme    = prefs.colorScheme,
-                useMaterialYou = prefs.useMaterialYou,
-                isDarkMode     = prefs.isDarkMode,
-                fontFamily     = prefs.fontFamily,
+                colorScheme = prefs.colorScheme,
+                isDarkMode  = prefs.isDarkMode,
+                fontFamily  = prefs.fontFamily,
             )
         }
         .stateIn(
@@ -42,10 +40,6 @@ class AppearanceSettingsViewModel @Inject constructor(
 
     fun onColorSchemeChange(scheme: ColorSchemeOption) {
         viewModelScope.launch { preferencesRepository.setColorScheme(scheme) }
-    }
-
-    fun onMaterialYouChange(enabled: Boolean) {
-        viewModelScope.launch { preferencesRepository.setUseMaterialYou(enabled) }
     }
 
     fun onDarkModeChange(isDark: Boolean) {
