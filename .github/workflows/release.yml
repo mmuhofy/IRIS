@@ -3,6 +3,7 @@ name: Release
 on:
   push:
     branches: [ "main", "develop" ]
+    tags: [ 'v*' ]
   pull_request:
     branches: [ "main" ]
 
@@ -20,6 +21,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -80,26 +83,27 @@ jobs:
           RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
           RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
 
-      - name: Rename APK
+      - name: Rename APK with version
         run: |
           APK=$(find app/build/outputs/apk/release -name "*.apk" | head -n 1)
-          mv "$APK" "app/build/outputs/apk/release/iris-release-${{ github.ref_name }}.apk"
+          VERSION=$(aapt dump badging "$APK" 2>/dev/null | grep -o "versionName='[^']*'" | cut -d"'" -f2 || echo "${{ github.ref_name }}")
+          mv "$APK" "app/build/outputs/apk/release/iris-${VERSION}.apk"
 
       - name: Upload APK to workflow artifacts
         uses: actions/upload-artifact@v4
         with:
           name: iris-release-${{ github.ref_name }}
-          path: app/build/outputs/apk/release/iris-release-*.apk
+          path: app/build/outputs/apk/release/iris-*.apk
           retention-days: 90
 
       - name: Upload APK to GitHub Releases
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        if: startsWith(github.ref, 'refs/tags/v')
         env:
           ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: "true"
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: build-${{ github.run_number }}
-          name: "IRIS Build #${{ github.run_number }}"
-          body: "Signed release APK from commit ${{ github.sha }}"
-          files: app/build/outputs/apk/release/iris-release-*.apk
+          tag_name: ${{ github.ref_name }}
+          name: "IRIS ${{ github.ref_name }}"
+          body: "See the commits for details."
+          files: app/build/outputs/apk/release/iris-*.apk
           make_latest: "true"

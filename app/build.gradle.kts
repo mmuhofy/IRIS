@@ -21,6 +21,28 @@ fun apiKey(name: String): String {
     return "\"$raw\""
 }
 
+fun getVersionCode(): Int {
+    return try {
+        val process = ProcessBuilder("git", "rev-list", "--count", "HEAD")
+            .directory(rootProject.projectDir)
+            .start()
+        process.inputStream.bufferedReader().readLine()?.toIntOrNull() ?: 1
+    } catch (_: Exception) {
+        1
+    }
+}
+
+fun getVersionName(): String {
+    return try {
+        val process = ProcessBuilder("git", "describe", "--tags", "--always", "--dirty")
+            .directory(rootProject.projectDir)
+            .start()
+        process.inputStream.bufferedReader().readLine() ?: "0.1.0"
+    } catch (_: Exception) {
+        "0.1.0"
+    }
+}
+
 kotlin {
     compilerOptions {
         jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17
@@ -39,8 +61,8 @@ android {
         applicationId = "com.iris.assistant"
         minSdk        = 26
         targetSdk     = 28
-        versionCode   = 1
-        versionName   = "0.1.0"
+        versionCode   = getVersionCode()
+        versionName   = getVersionName()
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
