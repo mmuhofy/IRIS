@@ -15,6 +15,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -26,15 +28,18 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.TextUnitType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.iris.assistant.domain.model.TtsProviderType
@@ -101,10 +106,10 @@ fun VoiceSettingsScreen(
                 Spacer(Modifier.height(24.dp))
             }
 
-            // ── Voice character section — compact rows in a single card ───
+            // ── Voice character — swipeable carousel ──────────────────────
             item {
                 VoiceSectionLabel("Ses Karakteri")
-                VoiceListCard(
+                VoiceCarousel(
                     voices   = TtsVoice.entries,
                     selected = uiState.ttsVoice,
                     onSelect = viewModel::onTtsVoiceChange,
@@ -197,35 +202,55 @@ private fun TtsProviderCards(
     }
 }
 
-// ── Voice list — all voices in a single card, compact rows ───────────────────
+// ── Voice character carousel ──────────────────────────────────────────────────
 
 @Composable
-private fun VoiceListCard(
+private fun VoiceCarousel(
     voices  : List<TtsVoice>,
     selected: TtsVoice,
     onSelect: (TtsVoice) -> Unit,
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(18.dp))
-            .background(MaterialTheme.colorScheme.surface),
-    ) {
-        voices.forEachIndexed { index, voice ->
-            VoiceRow(
-                voice    = voice,
-                selected = voice == selected,
-                onClick  = { onSelect(voice) },
-            )
-            if (index < voices.lastIndex) {
-                // Divider aligned to content (left of avatar = 16dp padding + 40dp avatar = 56dp)
+    val initialIndex = voices.indexOf(selected).coerceAtLeast(0)
+    val pagerState = rememberPagerState(
+        initialPage = initialIndex,
+        pageCount   = { voices.size },
+    )
+
+    LaunchedEffect(pagerState.currentPage) {
+        val voice = voices.getOrNull(pagerState.currentPage) ?: return@LaunchedEffect
+        if (voice != selected) onSelect(voice)
+    }
+
+    LaunchedEffect(selected) {
+        val targetIndex = voices.indexOf(selected).coerceAtLeast(0)
+        if (pagerState.currentPage != targetIndex) {
+            pagerState.animateScrollToPage(targetIndex)
+        }
+    }
+
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        HorizontalPager(
+            state       = pagerState,
+            beyondViewportPageCount = 1,
+            modifier    = Modifier
+                .fillMaxWidth()
+                .height(260.dp),
+        ) { page ->
+            VoicePreview(voice = voices[page])
+        }
+
+        Spacer(Modifier.height(12.dp))
+
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            voices.forEachIndexed { index, _ ->
+                val isSelected = index == pagerState.currentPage
                 Box(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(start = 72.dp)
-                        .height(0.5.dp)
+                        .size(if (isSelected) 24.dp else 8.dp, 8.dp)
+                        .clip(RoundedCornerShape(4.dp))
                         .background(
-                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.30f)
+                            if (isSelected) IrisTheme.colors.primary
+                            else Color.White.copy(alpha = 0.15f)
                         ),
                 )
             }
@@ -234,97 +259,71 @@ private fun VoiceListCard(
 }
 
 @Composable
-private fun VoiceRow(
-    voice   : TtsVoice,
-    selected: Boolean,
-    onClick : () -> Unit,
-) {
-    val rowBg   = if (selected) IrisTheme.colors.primary.copy(alpha = 0.07f) else Color.Transparent
-    val nameTxt = if (selected) IrisTheme.colors.primary else ColorTextPrimary
+private fun VoicePreview(voice: TtsVoice) {
+    val initial = voice.displayName.take(1)
 
-    Row(
-        modifier          = Modifier
-            .fillMaxWidth()
-            .background(rowBg)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
+    Column(
+        modifier          = Modifier.fillMaxSize(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
     ) {
-        // Left accent bar — visible only when selected
-        Box(
-            modifier = Modifier
-                .width(3.dp)
-                .height(38.dp)
-                .clip(RoundedCornerShape(2.dp))
-                .background(
-                    if (selected) IrisTheme.colors.primary else Color.Transparent
-                )
-        )
-        Spacer(Modifier.width(10.dp))
-
-        // Avatar circle with initial
+        // Large avatar circle
         Box(
             modifier         = Modifier
-                .size(40.dp)
+                .size(120.dp)
                 .clip(CircleShape)
-                .background(
-                    if (selected) IrisTheme.colors.primary
-                    else MaterialTheme.colorScheme.primaryContainer
-                ),
+                .background(IrisTheme.colors.primary),
             contentAlignment = Alignment.Center,
         ) {
             Text(
-                text       = voice.displayName.take(1),
-                style      = MaterialTheme.typography.titleSmall,
+                text       = initial,
+                style      = MaterialTheme.typography.displaySmall,
                 fontWeight = FontWeight.Bold,
-                color      = if (selected) Color.White else IrisTheme.colors.primary,
+                color      = Color.White,
             )
         }
-        Spacer(Modifier.width(12.dp))
 
-        // Name + personality tag
-        Column(modifier = Modifier.weight(1f)) {
+        Spacer(Modifier.height(16.dp))
+
+        Text(
+            text       = voice.displayName,
+            style      = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.SemiBold,
+            color      = ColorTextPrimary,
+            textAlign  = TextAlign.Center,
+        )
+
+        Spacer(Modifier.height(6.dp))
+
+        // Personality tag pill
+        Box(
+            modifier = Modifier
+                .clip(RoundedCornerShape(8.dp))
+                .background(IrisTheme.colors.primary.copy(alpha = 0.12f))
+                .padding(horizontal = 12.dp, vertical = 4.dp),
+        ) {
             Text(
-                text       = voice.displayName,
-                style      = MaterialTheme.typography.bodyLarge,
-                fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
-                color      = nameTxt,
+                text  = voice.description,
+                style = MaterialTheme.typography.bodyMedium,
+                color = IrisTheme.colors.primary,
             )
-            // Personality tag pill
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(5.dp))
-                    .background(
-                        if (selected) MaterialTheme.colorScheme.primaryContainer
-                        else MaterialTheme.colorScheme.surfaceVariant
-                    )
-                    .padding(horizontal = 7.dp, vertical = 2.dp),
-            ) {
-                Text(
-                    text  = voice.description,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = if (selected) IrisTheme.colors.primary else ColorTextSecondary,
-                )
-            }
         }
+
+        Spacer(Modifier.height(16.dp))
 
         // Play preview button
         Box(
             modifier         = Modifier
-                .size(34.dp)
+                .size(48.dp)
                 .clip(CircleShape)
-                .background(
-                    if (selected) MaterialTheme.colorScheme.primaryContainer
-                    else MaterialTheme.colorScheme.surfaceVariant
-                ),
+                .background(IrisTheme.colors.primary),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 imageVector        = PhIcons.Regular.Play,
                 contentDescription = "Önizle",
-                tint               = if (selected) IrisTheme.colors.primary
-                                     else ColorTextSecondary,
-                modifier           = Modifier.size(16.dp),
+                tint               = Color.White,
+                modifier           = Modifier.size(24.dp),
             )
         }
     }
