@@ -24,16 +24,32 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Check if build is needed
+        id: check-changes
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            CHANGED=$(git diff --name-only "${{ github.event.pull_request.base.sha }}" "${{ github.sha }}" 2>/dev/null || echo "unknown")
+          elif [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            BUILD_NEEDED="true"
+            echo "build_needed=$BUILD_NEEDED" >> "$GITHUB_OUTPUT"
+            exit 0
+          else
+            CHANGED=$(git diff --name-only "${{ github.event.before }}" "${{ github.sha }}" 2>/dev/null || echo "unknown")
+          fi
+          if echo "$CHANGED" | grep -v -E '(\.md$|^docs/|^cliff\.toml$|\.github/workflows/bootstrap\.yml$)' | grep -q .; then
+            BUILD_NEEDED="true"
+          else
+            BUILD_NEEDED="false"
+          fi
+          echo "build_needed=$BUILD_NEEDED" >> "$GITHUB_OUTPUT"
+
       - name: Generate changelog with git-cliff
         if: startsWith(github.ref, 'refs/tags/v')
-        uses: orhun/git-cliff-action@v3
-        with:
-          config: cliff.toml
-          args: --current --verbose -o CHANGELOG.md
-
-      - name: Commit changelog and update tag
-        if: startsWith(github.ref, 'refs/tags/v')
         run: |
+          curl -sSfL "https://github.com/orhun/git-cliff/releases/download/v2.8.0/git-cliff-2.8.0-x86_64-unknown-linux-gnu.tar.gz" -o /tmp/git-cliff.tar.gz
+          tar xzf /tmp/git-cliff.tar.gz -C /tmp
+          sudo install -m 755 /tmp/git-cliff-*/git-cliff /usr/local/bin/
+          git cliff --config cliff.toml --current -o CHANGELOG.md
           if ! git diff --exit-code CHANGELOG.md; then
             git config user.name "github-actions"
             git config user.email "github-actions@github.com"
@@ -44,12 +60,14 @@ jobs:
           fi
 
       - name: Set up JDK 17
+        if: steps.check-changes.outputs.build_needed == 'true' || startsWith(github.ref, 'refs/tags/v')
         uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
 
       - name: Setup Android NDK
+        if: steps.check-changes.outputs.build_needed == 'true' || startsWith(github.ref, 'refs/tags/v')
         run: |
           SDK_DIR="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
           echo "ANDROID_HOME=$SDK_DIR" >> "$GITHUB_ENV"
@@ -69,6 +87,7 @@ jobs:
           echo "ANDROID_NDK_HOME=$SDK_DIR/ndk/$NDK_VERSION" >> "$GITHUB_ENV"
 
       - name: Cache Gradle & Android build cache
+        if: steps.check-changes.outputs.build_needed == 'true' || startsWith(github.ref, 'refs/tags/v')
         uses: actions/cache@v4
         with:
           path: |
@@ -79,6 +98,7 @@ jobs:
             gradle-${{ runner.os }}-
 
       - name: Inject API keys
+        if: steps.check-changes.outputs.build_needed == 'true' || startsWith(github.ref, 'refs/tags/v')
         run: |
           echo "GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}"      >> local.properties
           echo "GROQ_API_KEY=${{ secrets.GROQ_API_KEY }}"          >> local.properties
@@ -89,12 +109,15 @@ jobs:
           echo "HF_API_KEY=${{ secrets.HF_API_KEY }}"              >> local.properties
 
       - name: Decode release keystore
+        if: steps.check-changes.outputs.build_needed == 'true' || startsWith(github.ref, 'refs/tags/v')
         run: echo "${{ secrets.RELEASE_KEYSTORE_B64 }}" | base64 -d > release.keystore
 
       - name: Grant Gradle wrapper permission
+        if: steps.check-changes.outputs.build_needed == 'true' || startsWith(github.ref, 'refs/tags/v')
         run: chmod +x gradlew
 
       - name: Build release APK
+        if: steps.check-changes.outputs.build_needed == 'true' || startsWith(github.ref, 'refs/tags/v')
         run: ./gradlew :app:assembleRelease --build-cache --parallel --no-daemon
         env:
           RELEASE_KEYSTORE_PATH: release.keystore
@@ -103,12 +126,14 @@ jobs:
           RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
 
       - name: Rename APK with version
+        if: steps.check-changes.outputs.build_needed == 'true' || startsWith(github.ref, 'refs/tags/v')
         run: |
           APK=$(find app/build/outputs/apk/release -name "*.apk" | head -n 1)
           VERSION=$(aapt dump badging "$APK" 2>/dev/null | grep -o "versionName='[^']*'" | cut -d"'" -f2 || echo "${{ github.ref_name }}")
           mv "$APK" "app/build/outputs/apk/release/iris-${VERSION}.apk"
 
       - name: Upload APK to workflow artifacts
+        if: steps.check-changes.outputs.build_needed == 'true' || startsWith(github.ref, 'refs/tags/v')
         uses: actions/upload-artifact@v4
         with:
           name: iris-release-${{ github.ref_name }}
