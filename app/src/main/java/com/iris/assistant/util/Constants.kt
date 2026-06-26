@@ -123,6 +123,11 @@ object Constants {
     const val SCROLL_GESTURE_END_RATIO    = 0.30f  // 30% down the screen
     const val SCROLL_GESTURE_DURATION_MS  = 300L   // gesture stroke duration
 
+    // --- Download Tool ---
+    const val IRIS_DOWNLOADS_DIR = "IrisDownloads"
+    const val DOWNLOAD_TIMEOUT_MS = 300_000L // 5 minutes
+    const val DOWNLOAD_BUFFER_SIZE = 8192
+
     // ─────────────────────────────────────────────────────────────────────────
     // Phase 4 — Power Mode / Embedded Shell
     // ─────────────────────────────────────────────────────────────────────────

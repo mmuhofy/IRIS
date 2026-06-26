@@ -14,6 +14,7 @@ import com.iris.assistant.data.tools.screen.NavigateTool
 import com.iris.assistant.data.tools.screen.ReadScreenTool
 import com.iris.assistant.data.tools.screen.ScrollTool
 import com.iris.assistant.data.tools.screen.TypeTool
+import com.iris.assistant.data.tools.download.DownloadTool
 import com.iris.assistant.data.tools.system.GetBatteryStatusTool
 import com.iris.assistant.data.tools.system.OpenAppTool
 import com.iris.assistant.data.tools.system.SetBrightnessTool
@@ -97,6 +98,11 @@ abstract class ToolsModule {
 
     @Binds @IntoSet
     abstract fun bindAddCalendarEventTool(impl: AddCalendarEventTool): JarvisTool
+
+    // --- Download ---
+
+    @Binds @IntoSet
+    abstract fun bindDownloadTool(impl: DownloadTool): JarvisTool
 
     // --- Screen Intelligence ---
 
