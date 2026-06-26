@@ -60,7 +60,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.iris.assistant.data.shell.ShellLine
 import com.iris.assistant.domain.model.BootstrapState
-import com.iris.assistant.ui.components.IrisCard
+import com.iris.assistant.ui.theme.ColorError
 import com.iris.assistant.ui.theme.ColorTextPrimary
 import com.iris.assistant.ui.theme.ColorTextSecondary
 import com.iris.assistant.ui.theme.IrisTheme
@@ -125,7 +125,12 @@ fun PowerModeScreen(
 
             // ── Enable toggle ─────────────────────────────────────────────
             item {
-                IrisCard {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(18.dp))
+                        .background(MaterialTheme.colorScheme.surface),
+                ) {
                     Row(
                         modifier              = Modifier
                             .fillMaxWidth()
@@ -180,7 +185,12 @@ fun PowerModeScreen(
                 // ── Storage permission (if not granted) ────────────────────
                 if (!viewModel.allFilesAccessGranted) {
                     item {
-                        IrisCard {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(18.dp))
+                                .background(MaterialTheme.colorScheme.surface),
+                        ) {
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -393,12 +403,17 @@ private fun ShellSecurityCard(
         Triple(Constants.SHELL_SECURITY_RESTRICTED,   "Kısıtlı",        "Tehlikeli pattern'ler kara listeyle engellenir"),
     )
 
-    IrisCard {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(18.dp))
+            .background(MaterialTheme.colorScheme.surface),
+    ) {
         Column(
             modifier            = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Text(
                 text       = "Shell Güvenliği",
@@ -459,7 +474,12 @@ private fun TerminalCard(
         if (lines.isNotEmpty()) listState.animateScrollToItem(lines.size - 1)
     }
 
-    IrisCard {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(18.dp))
+            .background(MaterialTheme.colorScheme.surface),
+    ) {
         Column(
             modifier            = Modifier
                 .fillMaxWidth()
@@ -507,7 +527,7 @@ private fun TerminalCard(
                     .fillMaxWidth()
                     .height(280.dp)
                     .clip(RoundedCornerShape(12.dp))
-                    .background(Color(0xFF0D0D0D)),
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
             ) {
                 LazyColumn(
                     state    = listState,
@@ -524,9 +544,9 @@ private fun TerminalCard(
                                 lineHeight = 18.sp,
                             ),
                             color = if (line.stream == ShellLine.Stream.STDERR)
-                                Color(0xFFFF6B6B)
+                                ColorError
                             else
-                                Color(0xFFE4E4E7),
+                                MaterialTheme.colorScheme.onSurface,
                         )
                     }
                 }
@@ -535,7 +555,7 @@ private fun TerminalCard(
                         Text(
                             text  = "Başlat'a basarak bir shell oturumu aç",
                             style = MaterialTheme.typography.bodySmall,
-                            color = Color(0xFF52525B),
+                            color = ColorTextSecondary,
                         )
                     }
                 }
@@ -564,8 +584,8 @@ private fun TerminalCard(
                             input = ""
                         }),
                         colors = TextFieldDefaults.colors(
-                            focusedContainerColor   = Color(0xFF18181B),
-                            unfocusedContainerColor = Color(0xFF18181B),
+                            focusedContainerColor   = MaterialTheme.colorScheme.surfaceVariant,
+                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
                             focusedIndicatorColor   = IrisTheme.colors.secondary,
                             unfocusedIndicatorColor = Color.Transparent,
                         ),

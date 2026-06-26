@@ -287,6 +287,7 @@ class BootstrapInstaller @Inject constructor(
         val total = body.contentLength()
         val buffer = ByteArray(BUFFER_SIZE)
         var read = 0L
+        var lastPct = 0
         body.byteStream().use { input ->
             FileOutputStream(dest).use { output ->
                 while (true) {
@@ -294,7 +295,11 @@ class BootstrapInstaller @Inject constructor(
                     if (n == -1) break
                     output.write(buffer, 0, n)
                     read += n
-                    onProgress(read, total)
+                    val pct = if (total > 0) (read * 100 / total).toInt() else 0
+                    if (pct != lastPct || read >= total) {
+                        lastPct = pct
+                        onProgress(read, total)
+                    }
                 }
             }
         }
