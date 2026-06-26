@@ -233,6 +233,7 @@ ToolResult (Success | Error | PermissionRequired | Cancelled)
 ### Implementation notes (BootstrapInstaller.kt, IrisShellSession.kt)
 - **targetSdk=28** is critical — `untrusted_app` (≤28) allows `execute` on app data files; `untrusted_app_29` (29+) blocks it. This is why we fork+execvp() directly instead of using linker64 load.
 - **Bootstrap downloaded at runtime** from GitHub releases (`bootstrap-aarch64.zip`), SHA-256 verified, cached in `filesDir/bootstrap/`. Not embedded.
+  - **OOM fix (2026-06-26, commit e9400a1):** extraction now streams from file via `ZipInputStream` instead of loading the full 58MB zip into RAM with `File.readBytes()`. Download side already streamed to file (commit a78d975).
 - **ELF patching** after extraction:
   - DT_RUNPATH rewritten from `/data/data/com.termux/files/usr/lib` → `/data/data/com.iris.assistant/u/lib` (symlink to actual lib dir). Uses same-length string overwrite in-place.
   - Hardcoded `/data/data/com.termux/files/usr` strings (SYSCONFDIR etc.) replaced with `/data/data/com.iris.assistant/p` via `patchTermuxDataPaths()`. Same-length replacement + symlink `p` → `files/usr`.
