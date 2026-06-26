@@ -255,7 +255,7 @@ class BootstrapInstaller @Inject constructor(
         }
     }
 
-    private fun downloadWithProgress(onProgress: (Long, Long) -> Unit): ByteArray {
+    private suspend fun downloadWithProgress(onProgress: suspend (Long, Long) -> Unit): ByteArray {
         val request = Request.Builder().url(ZIP_URL).get().build()
         val response = okHttpClient.newCall(request).execute()
         if (!response.isSuccessful) {
