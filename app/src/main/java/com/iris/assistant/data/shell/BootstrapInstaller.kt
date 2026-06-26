@@ -10,48 +10,40 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.withContext
+import okhttp3.OkHttpClient
+import okhttp3.Request
 import java.io.File
 import java.io.FileOutputStream
+import java.io.InputStream
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
+import java.security.MessageDigest
 import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
 import javax.inject.Inject
 import javax.inject.Singleton
 
-/**
- * Installs the IRIS bootstrap into the app's private files directory.
- *
- * The bootstrap zip is embedded in libiris-bootstrap.so at compile time
- * via NDK (iris-bootstrap-zip.S + iris-bootstrap.c) and extracted at
- * runtime through JNI. This avoids the need to bundle a large zip in assets.
- *
- * The zip contains a fully extracted filesystem under the prefix:
- *   data/data/com.iris.assistant/files/
- * which is stripped during extraction, landing everything under [context.filesDir].
- *
- * Layout after installation:
- *   filesDir/
- *     usr/     ← PREFIX
- *     home/    ← HOME
- */
 @Singleton
 class BootstrapInstaller @Inject constructor(
     @ApplicationContext private val context: Context,
+    private val okHttpClient: OkHttpClient,
 ) {
     companion object {
-        private const val TAG               = "BootstrapInstaller"
-        private const val STRIP_PREFIX      = "data/data/com.iris.assistant/files/"
-        private const val VERSION_FILE      = "bootstrap/INSTALLED_VERSION"
-        private const val BOOTSTRAP_VERSION = "iris-1"
-        private const val BUFFER_SIZE       = 8096
+        private const val TAG = "BootstrapInstaller"
 
-        init {
-            System.loadLibrary("iris-bootstrap")
-        }
+        private const val BOOTSTRAP_TAG = "bootstrap-20260624-r1"
+        private const val BOOTSTRAP_ZIP_NAME = "bootstrap-aarch64.zip"
+        private const val CHECKSUMS_NAME = "CHECKSUMS.sha256"
 
-        @JvmStatic
-        private external fun nativeGetBootstrapZip(): ByteArray
+        private val BASE_URL = "https://github.com/mmuhofy/IRIS/releases/download/$BOOTSTRAP_TAG"
+        private val ZIP_URL = "$BASE_URL/$BOOTSTRAP_ZIP_NAME"
+        private val CHECKSUMS_URL = "$BASE_URL/$CHECKSUMS_NAME"
+
+        private const val STRIP_PREFIX = "data/data/com.iris.assistant/files/"
+        private const val VERSION_FILE = "bootstrap/INSTALLED_VERSION"
+        private const val BOOTSTRAP_VERSION = BOOTSTRAP_TAG
+        private const val BUFFER_SIZE = 8096
+        private const val CACHE_ZIP_NAME = "$BOOTSTRAP_TAG.zip"
     }
 
     val prefixDir: File
@@ -65,6 +57,12 @@ class BootstrapInstaller @Inject constructor(
 
     private val versionFile: File
         get() = File(context.filesDir, VERSION_FILE)
+
+    private val cacheDir: File
+        get() = File(context.filesDir, "bootstrap").also { it.mkdirs() }
+
+    private val cachedZip: File
+        get() = File(cacheDir, CACHE_ZIP_NAME)
 
     fun isInstalled(): Boolean =
         versionFile.exists() &&
@@ -80,17 +78,40 @@ class BootstrapInstaller @Inject constructor(
             return@flow
         }
 
-        emit(BootstrapState.Extracting)
-
-        val buffer = ByteArray(BUFFER_SIZE)
-
         try {
             stagingDir.deleteRecursively()
             stagingDir.mkdirs()
             prefixDir.deleteRecursively()
 
-            val zipBytes = resolveNestedZip(nativeGetBootstrapZip())
-            ZipInputStream(zipBytes.inputStream().buffered()).use { zis ->
+            val zipBytes = if (cachedZip.exists()) {
+                Log.i(TAG, "Using cached bootstrap zip: ${cachedZip.absolutePath}")
+                cachedZip.readBytes()
+            } else {
+                emit(BootstrapState.Checking)
+                val expectedSha256 = downloadChecksum()
+                emit(BootstrapState.Downloading(0, -1))
+                val data = downloadWithProgress { sent, total ->
+                    emit(BootstrapState.Downloading(sent, total))
+                }
+                if (expectedSha256 != null) {
+                    val actual = sha256(data)
+                    if (expectedSha256 != actual) {
+                        throw RuntimeException(
+                            "SHA-256 mismatch: expected=$expectedSha256 actual=$actual"
+                        )
+                    }
+                    Log.i(TAG, "Bootstrap zip verified (SHA-256)")
+                }
+                cachedZip.parentFile?.mkdirs()
+                cachedZip.writeBytes(data)
+                data
+            }
+
+            emit(BootstrapState.Extracting)
+            val buffer = ByteArray(BUFFER_SIZE)
+            val effectiveZip = resolveNestedZip(zipBytes)
+
+            ZipInputStream(effectiveZip.inputStream().buffered()).use { zis ->
                 while (true) {
                     val entry = zis.nextEntry ?: break
 
@@ -143,11 +164,6 @@ class BootstrapInstaller @Inject constructor(
 
             homeDir.mkdirs()
 
-            // ── Create short symlink to lib directory ─────────────────────
-            // The bootstrap binaries have DT_RUNPATH = /data/data/com.termux/files/usr/lib
-            // (34 bytes). We replace it with a shorter path that fits in the
-            // same ELF string table slot, then symlink that short path to the
-            // real lib directory.
             val shortLibDir = File("/data/data/${context.packageName}/u/lib")
             shortLibDir.parentFile?.mkdirs()
             try { Os.remove(shortLibDir.absolutePath) } catch (_: android.system.ErrnoException) { }
@@ -158,11 +174,9 @@ class BootstrapInstaller @Inject constructor(
                 Log.w(TAG, "Short lib symlink failed: ${e.message}")
             }
 
-            // ── Patch DT_RUNPATH in key binaries ──────────────────────────
             patchElfRunpath(File(prefixDir, "bin/bash"), shortLibDir.absolutePath)
             patchElfRunpath(File(prefixDir, "bin/apt-get"), shortLibDir.absolutePath)
 
-            // ── Verify DT_RUNPATH ─────────────────────────────────────────
             File(prefixDir, "bin/bash").let { f ->
                 if (f.exists()) {
                     val actual = readElfRunpath(f)
@@ -174,16 +188,9 @@ class BootstrapInstaller @Inject constructor(
                 }
             }
 
-            // ── Add ANDROID_LD_LIBRARY_PATH note ──────────────────────────
             addAndroidNote(File(prefixDir, "bin/bash"))
             addAndroidNote(File(prefixDir, "bin/apt-get"))
 
-            // ── Patch hardcoded Termux paths in ELF binaries ──────────────
-            // Bash and other binaries were compiled with
-            // --prefix=/data/data/com.termux/files/usr, so strings like
-            // SYSCONFDIR are hardcoded to /data/data/com.termux/files/usr/etc.
-            // We replace /data/data/com.termux/files/usr with a shorter symlink
-            // path /data/data/<pkg>/p, then create that symlink.
             patchTermuxDataPaths(File(prefixDir, "bin/bash"))
             patchTermuxDataPaths(File(prefixDir, "bin/apt-get"))
 
@@ -197,7 +204,6 @@ class BootstrapInstaller @Inject constructor(
                 Log.w(TAG, "Short prefix symlink failed: ${e.message}")
             }
 
-            // ── Verify libraries exist ────────────────────────────────────
             val libDir = File(prefixDir, "lib")
             listOf("libreadline.so.8", "libncursesw.so.6", "libandroid-support.so").forEach { name ->
                 val libFile = File(libDir, name)
@@ -230,6 +236,48 @@ class BootstrapInstaller @Inject constructor(
 
     }.flowOn(Dispatchers.IO)
 
+    private fun downloadChecksum(): String? {
+        return try {
+            val request = Request.Builder().url(CHECKSUMS_URL).get().build()
+            val response = okHttpClient.newCall(request).execute()
+            if (!response.isSuccessful) return null
+            val body = response.body?.string() ?: return null
+            body.lineSequence().forEach { line ->
+                val parts = line.trim().split("\\s+".toRegex())
+                if (parts.size >= 2 && parts[1].contains(BOOTSTRAP_ZIP_NAME)) {
+                    return parts[0]
+                }
+            }
+            null
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to download checksum: ${e.message}")
+            null
+        }
+    }
+
+    private fun downloadWithProgress(onProgress: (Long, Long) -> Unit): ByteArray {
+        val request = Request.Builder().url(ZIP_URL).get().build()
+        val response = okHttpClient.newCall(request).execute()
+        if (!response.isSuccessful) {
+            throw RuntimeException("Download failed: HTTP ${response.code}")
+        }
+        val body = response.body ?: throw RuntimeException("Empty response body")
+        val total = body.contentLength()
+        val buffer = ByteArray(BUFFER_SIZE)
+        val output = java.io.ByteArrayOutputStream((total.coerceAtMost(Int.MAX_VALUE.toLong())).toInt())
+        var read = 0L
+        body.byteStream().use { input ->
+            while (true) {
+                val n = input.read(buffer)
+                if (n == -1) break
+                output.write(buffer, 0, n)
+                read += n
+                onProgress(read, total)
+            }
+        }
+        return output.toByteArray()
+    }
+
     suspend fun uninstall() = withContext(Dispatchers.IO) {
         prefixDir.deleteRecursively()
         stagingDir.deleteRecursively()
@@ -238,10 +286,6 @@ class BootstrapInstaller @Inject constructor(
         Log.i(TAG, "Bootstrap uninstalled")
     }
 
-    /**
-     * If [zipBytes] is a double-zipped archive (a zip containing a single zip),
-     * extract and return the inner zip bytes. Otherwise return as-is.
-     */
     private fun resolveNestedZip(zipBytes: ByteArray): ByteArray {
         val firstEntry: ZipEntry
         val firstEntryBytes: ByteArray
@@ -266,6 +310,11 @@ class BootstrapInstaller @Inject constructor(
         if (firstEntryBytes[0] != 0x50.toByte() || firstEntryBytes[1] != 0x4B.toByte()) return zipBytes
         Log.i(TAG, "Detected nested zip, unwrapping: '${firstEntry.name}' (${firstEntryBytes.size} bytes)")
         return firstEntryBytes
+    }
+
+    private fun sha256(data: ByteArray): String {
+        val digest = MessageDigest.getInstance("SHA-256")
+        return digest.digest(data).joinToString("") { "%02x".format(it) }
     }
 
     // ── ELF patching helpers ────────────────────────────────────────────────

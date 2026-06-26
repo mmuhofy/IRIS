@@ -69,25 +69,6 @@ jobs:
       - name: Decode release keystore
         run: echo "${{ secrets.RELEASE_KEYSTORE_B64 }}" | base64 -d > release.keystore
 
-      - name: Download bootstrap zip to NDK jni directory
-        run: |
-          curl -fsSL \
-            "https://github.com/mmuhofy/IRIS/releases/download/bootstrap-20260624-r1/CHECKSUMS.sha256" \
-            -o /tmp/CHECKSUMS.sha256
-          curl -fsSL \
-            "https://github.com/mmuhofy/IRIS/releases/download/bootstrap-20260624-r1/bootstrap-aarch64.zip" \
-            -o /tmp/bootstrap-outer.zip
-          EXPECTED=$(grep "bootstrap-aarch64.zip" /tmp/CHECKSUMS.sha256 | awk '{print $1}')
-          ACTUAL=$(sha256sum /tmp/bootstrap-outer.zip | awk '{print $1}')
-          if [ "$EXPECTED" != "$ACTUAL" ]; then
-            echo "SHA-256 mismatch! expected=$EXPECTED actual=$ACTUAL"
-            exit 1
-          fi
-          echo "Bootstrap zip verified: $ACTUAL"
-          mkdir -p app/src/main/jni
-          unzip -o /tmp/bootstrap-outer.zip -d app/src/main/jni/
-          echo "Inner zip ready: $(ls -lh app/src/main/jni/bootstrap-aarch64.zip)"
-
       - name: Grant Gradle wrapper permission
         run: chmod +x gradlew
 

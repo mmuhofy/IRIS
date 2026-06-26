@@ -10,8 +10,7 @@ import dagger.hilt.components.SingletonComponent
  * [BootstrapInstaller] and [IrisShellSession] are both @Singleton + @Inject constructor,
  * so Hilt resolves them automatically — no explicit @Provides needed.
  *
- * Bootstrap is embedded in libiris-bootstrap.so via NDK (jni/) and extracted
- * by BootstrapInstaller at runtime through JNI.
+ * Bootstrap zip is downloaded at runtime from GitHub releases on first install.
  */
 @Module
 @InstallIn(SingletonComponent::class)

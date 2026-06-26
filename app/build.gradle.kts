@@ -52,9 +52,7 @@ android {
         buildConfigField("String", "GROQ_LLM_API_KEY", apiKey("GROQ_LLM_API_KEY"))
         buildConfigField("String", "HF_API_KEY",       apiKey("HF_API_KEY"))
 
-        // Bootstrap zip is embedded in libiris-bootstrap.so via NDK (jni/ directory).
-        // Place bootstrap-aarch64.zip in app/src/main/jni/ before building.
-        // Download from: https://github.com/mmuhofy/IRIS/releases/tag/bootstrap-20260624-r1
+        // Bootstrap is downloaded at runtime from GitHub releases on first install.
     }
 
     buildFeatures {

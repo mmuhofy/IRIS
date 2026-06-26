@@ -8,8 +8,6 @@ include $(CLEAR_VARS)
 
 LOCAL_MODULE    := iris-bootstrap
 LOCAL_SRC_FILES := \
-    iris-bootstrap-zip.S \
-    iris-bootstrap.c \
     iris-subprocess.c
 LOCAL_LDLIBS    := -llog
 LOCAL_CFLAGS    := -std=c17
