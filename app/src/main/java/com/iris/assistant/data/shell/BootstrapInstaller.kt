@@ -178,6 +178,25 @@ class BootstrapInstaller @Inject constructor(
             addAndroidNote(File(prefixDir, "bin/bash"))
             addAndroidNote(File(prefixDir, "bin/apt-get"))
 
+            // ── Patch hardcoded Termux paths in ELF binaries ──────────────
+            // Bash and other binaries were compiled with
+            // --prefix=/data/data/com.termux/files/usr, so strings like
+            // SYSCONFDIR are hardcoded to /data/data/com.termux/files/usr/etc.
+            // We replace /data/data/com.termux/files/usr with a shorter symlink
+            // path /data/data/<pkg>/p, then create that symlink.
+            patchTermuxDataPaths(File(prefixDir, "bin/bash"))
+            patchTermuxDataPaths(File(prefixDir, "bin/apt-get"))
+
+            val shortPrefixLink = File("/data/data/${context.packageName}/p")
+            shortPrefixLink.parentFile?.mkdirs()
+            try { Os.remove(shortPrefixLink.absolutePath) } catch (_: android.system.ErrnoException) { }
+            try {
+                Os.symlink(prefixDir.absolutePath, shortPrefixLink.absolutePath)
+                Log.i(TAG, "Short prefix symlink: ${shortPrefixLink.absolutePath} -> ${prefixDir.absolutePath}")
+            } catch (e: Exception) {
+                Log.w(TAG, "Short prefix symlink failed: ${e.message}")
+            }
+
             // ── Verify libraries exist ────────────────────────────────────
             val libDir = File(prefixDir, "lib")
             listOf("libreadline.so.8", "libncursesw.so.6", "libandroid-support.so").forEach { name ->
@@ -439,5 +458,45 @@ class BootstrapInstaller @Inject constructor(
         data[pos + 15] = 0
         elfFile.writeBytes(data)
         Log.i(TAG, "Added ANDROID_LD_LIBRARY_PATH note to ${elfFile.name}")
+    }
+
+    private fun patchTermuxDataPaths(elfFile: File) {
+        if (!elfFile.isFile) return
+        val data = elfFile.readBytes()
+        if (data.size < 64) return
+
+        val oldBytes = "/data/data/com.termux/files/usr".encodeToByteArray()
+        val newBytes = "/data/data/${context.packageName}/p".encodeToByteArray()
+        if (oldBytes.size != newBytes.size) {
+            Log.w(TAG, "Cannot patch ${elfFile.name}: length mismatch (old=${oldBytes.size}, new=${newBytes.size})")
+            return
+        }
+
+        var count = 0
+        var pos = 0
+        while (true) {
+            val idx = data.indexOf(oldBytes, pos)
+            if (idx < 0) break
+            newBytes.copyInto(data, idx)
+            count++
+            pos = idx + oldBytes.size
+        }
+
+        if (count > 0) {
+            elfFile.writeBytes(data)
+            Log.i(TAG, "Patched $count /data/data/com.termux/files/usr path(s) in ${elfFile.name}")
+        } else {
+            Log.d(TAG, "No Termux paths found in ${elfFile.name}")
+        }
+    }
+
+    private fun ByteArray.indexOf(pattern: ByteArray, startIndex: Int): Int {
+        outer@ for (i in startIndex..size - pattern.size) {
+            for (j in pattern.indices) {
+                if (this[i + j] != pattern[j]) continue@outer
+            }
+            return i
+        }
+        return -1
     }
 }
