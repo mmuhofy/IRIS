@@ -286,7 +286,7 @@ private fun HomeTopBar(
     val primary = IrisTheme.colors.primary
 
     Row(
-        modifier = modifier.padding(horizontal = 6.dp, vertical = 12.dp),
+        modifier = modifier.padding(horizontal = 16.dp, vertical = 12.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
