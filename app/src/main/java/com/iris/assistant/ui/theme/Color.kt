@@ -8,30 +8,30 @@ import androidx.compose.ui.graphics.Color
 
 val ColorSurface       = Color(0xFF1C1C1E)
 val ColorError         = Color(0xFFF87171)
-val ColorTextPrimary   = Color(0xFFFAFAFA)
-val ColorTextSecondary = Color(0xFF71717A)
+val ColorTextPrimary   = Color(0xFFF5F4F0)
+val ColorTextSecondary = Color(0xFF8A867E)
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Warm Stone — warm beige-gray, grounded elegance (default)
+// Warm Stone — sıcak taş, yumuşak zemin (default)
 // ═══════════════════════════════════════════════════════════════════════════
 
 val SlateDark = IrisColorScheme(
     primary              = Color(0xFFD4C9BA),
-    onPrimary            = Color(0xFF1C1812),
-    primaryContainer     = Color(0xFF352B20),
+    onPrimary            = Color(0xFF1E1A14),
+    primaryContainer     = Color(0xFF3A3025),
     onPrimaryContainer   = Color(0xFFEDE0D2),
     gradientEnd          = Color(0xFFB09A85),
     onGradientEnd        = Color(0xFFFFFFFF),
     secondary            = Color(0xFFC0B5A8),
-    onSecondary          = Color(0xFF1A1714),
-    secondaryContainer   = Color(0xFF332D27),
+    onSecondary          = Color(0xFF1C1916),
+    secondaryContainer   = Color(0xFF37312B),
     onSecondaryContainer = Color(0xFFDED3C6),
-    surface              = Color(0xFF1A1916),
-    onSurface            = Color(0xFFF0EDE8),
-    surfaceVariant       = Color(0xFF272421),
-    onSurfaceVariant     = Color(0xFFBFB6AC),
-    background           = Color(0xFF11100E),
-    onBackground         = Color(0xFFF0EDE8),
+    surface              = Color(0xFF1D1B18),
+    onSurface            = Color(0xFFEAE7E2),
+    surfaceVariant       = Color(0xFF292622),
+    onSurfaceVariant     = Color(0xFFBAB1A7),
+    background           = Color(0xFF141311),
+    onBackground         = Color(0xFFEAE7E2),
     isDark               = true,
 )
 
@@ -56,26 +56,26 @@ val SlateLight = IrisColorScheme(
 )
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Rose Quartz — dusty mauve, warm elegance
+// Rose Quartz — toz pembe, sıcak
 // ═══════════════════════════════════════════════════════════════════════════
 
 val RoseQuartzDark = IrisColorScheme(
     primary              = Color(0xFFE2B3CB),
-    onPrimary            = Color(0xFF2A1521),
-    primaryContainer     = Color(0xFF442A3A),
+    onPrimary            = Color(0xFF2C1723),
+    primaryContainer     = Color(0xFF472C3C),
     onPrimaryContainer   = Color(0xFFF4D7E4),
     gradientEnd          = Color(0xFFCD8DAC),
     onGradientEnd        = Color(0xFFFFFFFF),
     secondary            = Color(0xFFCFC2C8),
-    onSecondary          = Color(0xFF1E1B1D),
-    secondaryContainer   = Color(0xFF392F35),
+    onSecondary          = Color(0xFF201D1E),
+    secondaryContainer   = Color(0xFF3C3237),
     onSecondaryContainer = Color(0xFFE6DBE0),
-    surface              = Color(0xFF1A181A),
-    onSurface            = Color(0xFFEFEBED),
-    surfaceVariant       = Color(0xFF272326),
-    onSurfaceVariant     = Color(0xFFB8ACB3),
-    background           = Color(0xFF121113),
-    onBackground         = Color(0xFFEFEBED),
+    surface              = Color(0xFF1D1B1C),
+    onSurface            = Color(0xFFEDE8EA),
+    surfaceVariant       = Color(0xFF2A2528),
+    onSurfaceVariant     = Color(0xFFBDB1B8),
+    background           = Color(0xFF141314),
+    onBackground         = Color(0xFFEDE8EA),
     isDark               = true,
 )
 
@@ -100,25 +100,25 @@ val RoseQuartzLight = IrisColorScheme(
 )
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Sage — muted green, calm & natural
+// Sage — adaçayı yeşili, sakin
 // ═══════════════════════════════════════════════════════════════════════════
 
 val SageDark = IrisColorScheme(
     primary              = Color(0xFF91D2AE),
-    onPrimary            = Color(0xFF0D2417),
-    primaryContainer     = Color(0xFF254033),
+    onPrimary            = Color(0xFF0F2619),
+    primaryContainer     = Color(0xFF274235),
     onPrimaryContainer   = Color(0xFFCDEDDB),
     gradientEnd          = Color(0xFF6DB490),
     onGradientEnd        = Color(0xFFFFFFFF),
     secondary            = Color(0xFFC2CDBE),
-    onSecondary          = Color(0xFF171D18),
-    secondaryContainer   = Color(0xFF2D362E),
+    onSecondary          = Color(0xFF191F1A),
+    secondaryContainer   = Color(0xFF2F3730),
     onSecondaryContainer = Color(0xFFDFE7DC),
-    surface              = Color(0xFF191D19),
+    surface              = Color(0xFF1B1F1B),
     onSurface            = Color(0xFFEDF2EC),
-    surfaceVariant       = Color(0xFF232822),
-    onSurfaceVariant     = Color(0xFFBAC0B9),
-    background           = Color(0xFF10140F),
+    surfaceVariant       = Color(0xFF262A25),
+    onSurfaceVariant     = Color(0xFFBDC3BC),
+    background           = Color(0xFF131613),
     onBackground         = Color(0xFFEDF2EC),
     isDark               = true,
 )
@@ -144,25 +144,25 @@ val SageLight = IrisColorScheme(
 )
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Cobalt — deep indigo-blue
+// Cobalt — gece mavisi
 // ═══════════════════════════════════════════════════════════════════════════
 
 val CobaltDark = IrisColorScheme(
     primary              = Color(0xFF95BBF8),
-    onPrimary            = Color(0xFF0C172D),
-    primaryContainer     = Color(0xFF1C2C4E),
+    onPrimary            = Color(0xFF0E1A30),
+    primaryContainer     = Color(0xFF1E2F50),
     onPrimaryContainer   = Color(0xFFD5E3FF),
     gradientEnd          = Color(0xFF6D97DD),
     onGradientEnd        = Color(0xFFFFFFFF),
     secondary            = Color(0xFFC1C7D6),
-    onSecondary          = Color(0xFF151922),
-    secondaryContainer   = Color(0xFF2C313D),
+    onSecondary          = Color(0xFF171B24),
+    secondaryContainer   = Color(0xFF2E333F),
     onSecondaryContainer = Color(0xFFDDE2EC),
-    surface              = Color(0xFF191B22),
+    surface              = Color(0xFF1B1D24),
     onSurface            = Color(0xFFECEEF4),
-    surfaceVariant       = Color(0xFF23262E),
-    onSurfaceVariant     = Color(0xFFB3B8C4),
-    background           = Color(0xFF0F1118),
+    surfaceVariant       = Color(0xFF262830),
+    onSurfaceVariant     = Color(0xFFB7BCC8),
+    background           = Color(0xFF13151A),
     onBackground         = Color(0xFFECEEF4),
     isDark               = true,
 )
@@ -188,26 +188,26 @@ val CobaltLight = IrisColorScheme(
 )
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Ember — warm copper
+// Ember — bakır sıcaklığı
 // ═══════════════════════════════════════════════════════════════════════════
 
 val EmberDark = IrisColorScheme(
     primary              = Color(0xFFF5B96F),
-    onPrimary            = Color(0xFF291804),
-    primaryContainer     = Color(0xFF452B0E),
+    onPrimary            = Color(0xFF2B1A06),
+    primaryContainer     = Color(0xFF472D10),
     onPrimaryContainer   = Color(0xFFFDE0B8),
     gradientEnd          = Color(0xFFD48E4B),
     onGradientEnd        = Color(0xFFFFFFFF),
     secondary            = Color(0xFFD2C5B6),
-    onSecondary          = Color(0xFF211C17),
-    secondaryContainer   = Color(0xFF38322A),
+    onSecondary          = Color(0xFF231E19),
+    secondaryContainer   = Color(0xFF3A342C),
     onSecondaryContainer = Color(0xFFEADFD2),
-    surface              = Color(0xFF1A1815),
-    onSurface            = Color(0xFFF0ECE7),
-    surfaceVariant       = Color(0xFF272420),
-    onSurfaceVariant     = Color(0xFFBFB6AA),
-    background           = Color(0xFF12100E),
-    onBackground         = Color(0xFFF0ECE7),
+    surface              = Color(0xFF1D1B17),
+    onSurface            = Color(0xFFEFEBE5),
+    surfaceVariant       = Color(0xFF292521),
+    onSurfaceVariant     = Color(0xFFC1B8AC),
+    background           = Color(0xFF151310),
+    onBackground         = Color(0xFFEFEBE5),
     isDark               = true,
 )
 
@@ -232,25 +232,25 @@ val EmberLight = IrisColorScheme(
 )
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Monochrome — pure graphite greyscale
+// Monochrome — grafit gri
 // ═══════════════════════════════════════════════════════════════════════════
 
 val MonochromeDark = IrisColorScheme(
     primary              = Color(0xFFE8E8EA),
-    onPrimary            = Color(0xFF18181A),
-    primaryContainer     = Color(0xFF2A2A2C),
+    onPrimary            = Color(0xFF1A1A1C),
+    primaryContainer     = Color(0xFF2C2C2E),
     onPrimaryContainer   = Color(0xFFF5F5F5),
     gradientEnd          = Color(0xFFA4A4A9),
     onGradientEnd        = Color(0xFFFFFFFF),
     secondary            = Color(0xFFC6C6C8),
-    onSecondary          = Color(0xFF18181A),
-    secondaryContainer   = Color(0xFF373739),
+    onSecondary          = Color(0xFF1A1A1C),
+    secondaryContainer   = Color(0xFF39393B),
     onSecondaryContainer = Color(0xFFE5E5E5),
-    surface              = Color(0xFF19191B),
+    surface              = Color(0xFF1C1C1E),
     onSurface            = Color(0xFFF5F5F5),
-    surfaceVariant       = Color(0xFF262628),
+    surfaceVariant       = Color(0xFF28282A),
     onSurfaceVariant     = Color(0xFFC1C1C4),
-    background           = Color(0xFF111113),
+    background           = Color(0xFF141416),
     onBackground         = Color(0xFFF5F5F5),
     isDark               = true,
 )

@@ -427,7 +427,6 @@ private fun TopBarIconButton(
     contentDescription: String,
     onClick: () -> Unit
 ) {
-    val primary = IrisTheme.colors.primary
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
     val pressScale by animateFloatAsState(
@@ -441,6 +440,7 @@ private fun TopBarIconButton(
             .size(44.dp)
             .scale(pressScale)
             .clip(CircleShape)
+            .background(MaterialTheme.colorScheme.surfaceVariant)
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
@@ -451,7 +451,7 @@ private fun TopBarIconButton(
         Icon(
             imageVector = icon,
             contentDescription = contentDescription,
-            tint = primary,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.size(22.dp)
         )
     }
