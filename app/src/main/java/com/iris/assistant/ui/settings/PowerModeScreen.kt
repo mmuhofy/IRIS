@@ -250,7 +250,12 @@ private fun BootstrapStatusCard(
     onInstall      : () -> Unit,
     onUninstall    : () -> Unit,
 ) {
-    IrisCard {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(18.dp))
+            .background(MaterialTheme.colorScheme.surface),
+    ) {
         Column(
             modifier            = Modifier
                 .fillMaxWidth()
