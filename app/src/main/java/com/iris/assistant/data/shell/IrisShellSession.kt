@@ -15,10 +15,8 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
-import android.os.Build
 import java.io.File
 import java.io.FileDescriptor
-import java.util.zip.ZipFile
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -66,30 +64,6 @@ class IrisShellSession @Inject constructor(
         }
         if (!shellBin.canExecute()) shellBin.setExecutable(true)
 
-        val execHookLib = File(prefixPath, "lib/libiris-exec-hook.so")
-        if (!execHookLib.exists()) {
-            val abi = Build.SUPPORTED_64_BIT_ABIS.firstOrNull()
-                ?: Build.SUPPORTED_32_BIT_ABIS.firstOrNull()
-                ?: "arm64-v8a"
-            val apk = context.packageManager
-                .getApplicationInfo(context.packageName, 0)
-                .sourceDir
-            ZipFile(apk).use { zip ->
-                val entry = zip.getEntry("lib/$abi/libiris-exec-hook.so")
-                if (entry != null) {
-                    zip.getInputStream(entry).use { input ->
-                        execHookLib.outputStream().use { output ->
-                            input.copyTo(output)
-                        }
-                    }
-                    execHookLib.setExecutable(true)
-                    Log.i(TAG, "Extracted exec hook lib to ${execHookLib.absolutePath}")
-                } else {
-                    Log.w(TAG, "libiris-exec-hook.so not found in APK for abi=$abi")
-                }
-            }
-        }
-
         val envVars = arrayOf(
             "HOME=$homePath",
             "PREFIX=$prefixPath",
@@ -98,7 +72,6 @@ class IrisShellSession @Inject constructor(
             "TERM=xterm-256color",
             "LANG=en_US.UTF-8",
             "LD_LIBRARY_PATH=$prefixPath/lib",
-            "LD_PRELOAD=${execHookLib.absolutePath}",
             "TERMUX_PREFIX=$prefixPath",
         )
 
