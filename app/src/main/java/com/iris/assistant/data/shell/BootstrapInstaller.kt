@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileOutputStream
 import java.io.InputStream
@@ -83,12 +84,7 @@ class BootstrapInstaller @Inject constructor(
             stagingDir.mkdirs()
             prefixDir.deleteRecursively()
 
-            val zipBytes: ByteArray
-
-            if (cachedZip.exists()) {
-                Log.i(TAG, "Using cached bootstrap zip: ${cachedZip.absolutePath}")
-                zipBytes = cachedZip.readBytes()
-            } else {
+            if (!cachedZip.exists()) {
                 emit(BootstrapState.Checking)
                 val expectedSha256 = downloadChecksum()
                 emit(BootstrapState.Downloading(0, -1))
@@ -107,14 +103,40 @@ class BootstrapInstaller @Inject constructor(
                     Log.i(TAG, "Bootstrap zip verified (SHA-256)")
                 }
                 tempFile.renameTo(cachedZip)
-                zipBytes = cachedZip.readBytes()
+            } else {
+                Log.i(TAG, "Using cached bootstrap zip: ${cachedZip.absolutePath}")
             }
 
             emit(BootstrapState.Extracting)
             val buffer = ByteArray(BUFFER_SIZE)
-            val effectiveZip = resolveNestedZip(zipBytes)
 
-            ZipInputStream(effectiveZip.inputStream().buffered()).use { zis ->
+            val extractStream: InputStream = cachedZip.inputStream().buffered().let { outer ->
+                val peekZis = ZipInputStream(outer)
+                val firstEntry = peekZis.nextEntry
+                if (firstEntry == null) {
+                    peekZis.close()
+                    throw RuntimeException("Empty bootstrap zip")
+                }
+                val firstBytes = ByteArrayOutputStream()
+                val tmpBuf = ByteArray(4096)
+                while (true) {
+                    val n = peekZis.read(tmpBuf)
+                    if (n == -1) break
+                    firstBytes.write(tmpBuf, 0, n)
+                }
+                peekZis.closeEntry()
+                val hasMore = peekZis.nextEntry != null
+                peekZis.close()
+                val data = firstBytes.toByteArray()
+                if (!hasMore && data.size >= 4 && data[0] == 0x50.toByte() && data[1] == 0x4B.toByte()) {
+                    Log.i(TAG, "Detected nested zip: '${firstEntry.name}' (${data.size} bytes)")
+                    data.inputStream().buffered()
+                } else {
+                    cachedZip.inputStream().buffered()
+                }
+            }
+
+            ZipInputStream(extractStream).use { zis ->
                 while (true) {
                     val entry = zis.nextEntry ?: break
 
@@ -284,32 +306,6 @@ class BootstrapInstaller @Inject constructor(
         homeDir.deleteRecursively()
         versionFile.delete()
         Log.i(TAG, "Bootstrap uninstalled")
-    }
-
-    private fun resolveNestedZip(zipBytes: ByteArray): ByteArray {
-        val firstEntry: ZipEntry
-        val firstEntryBytes: ByteArray
-        try {
-            val stream = zipBytes.inputStream().buffered()
-            ZipInputStream(stream).use { zis ->
-                firstEntry = zis.nextEntry ?: return zipBytes
-                val buf = ByteArray(BUFFER_SIZE)
-                val inner = java.io.ByteArrayOutputStream()
-                while (true) {
-                    val n = zis.read(buf)
-                    if (n == -1) break
-                    inner.write(buf, 0, n)
-                }
-                firstEntryBytes = inner.toByteArray()
-                if (zis.nextEntry != null) return zipBytes
-            }
-        } catch (_: Exception) {
-            return zipBytes
-        }
-        if (firstEntryBytes.size < 4) return zipBytes
-        if (firstEntryBytes[0] != 0x50.toByte() || firstEntryBytes[1] != 0x4B.toByte()) return zipBytes
-        Log.i(TAG, "Detected nested zip, unwrapping: '${firstEntry.name}' (${firstEntryBytes.size} bytes)")
-        return firstEntryBytes
     }
 
     private fun sha256File(file: File): String {
