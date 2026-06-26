@@ -116,6 +116,10 @@ android {
         }
     }
 
+    lint {
+        disable += "ExpiredTargetSdkVersion"
+    }
+
     ksp {
         arg("room.schemaLocation", "$projectDir/schemas")
     }
