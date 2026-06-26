@@ -83,28 +83,31 @@ class BootstrapInstaller @Inject constructor(
             stagingDir.mkdirs()
             prefixDir.deleteRecursively()
 
-            val zipBytes = if (cachedZip.exists()) {
+            val zipBytes: ByteArray
+
+            if (cachedZip.exists()) {
                 Log.i(TAG, "Using cached bootstrap zip: ${cachedZip.absolutePath}")
-                cachedZip.readBytes()
+                zipBytes = cachedZip.readBytes()
             } else {
                 emit(BootstrapState.Checking)
                 val expectedSha256 = downloadChecksum()
                 emit(BootstrapState.Downloading(0, -1))
-                val data = downloadWithProgress { sent, total ->
+                val tempFile = File(cacheDir, "${CACHE_ZIP_NAME}.tmp")
+                downloadToFile(tempFile) { sent, total ->
                     emit(BootstrapState.Downloading(sent, total))
                 }
                 if (expectedSha256 != null) {
-                    val actual = sha256(data)
+                    val actual = sha256File(tempFile)
                     if (expectedSha256 != actual) {
+                        tempFile.delete()
                         throw RuntimeException(
                             "SHA-256 mismatch: expected=$expectedSha256 actual=$actual"
                         )
                     }
                     Log.i(TAG, "Bootstrap zip verified (SHA-256)")
                 }
-                cachedZip.parentFile?.mkdirs()
-                cachedZip.writeBytes(data)
-                data
+                tempFile.renameTo(cachedZip)
+                zipBytes = cachedZip.readBytes()
             }
 
             emit(BootstrapState.Extracting)
@@ -255,7 +258,7 @@ class BootstrapInstaller @Inject constructor(
         }
     }
 
-    private suspend fun downloadWithProgress(onProgress: suspend (Long, Long) -> Unit): ByteArray {
+    private suspend fun downloadToFile(dest: File, onProgress: suspend (Long, Long) -> Unit) {
         val request = Request.Builder().url(ZIP_URL).get().build()
         val response = okHttpClient.newCall(request).execute()
         if (!response.isSuccessful) {
@@ -264,18 +267,18 @@ class BootstrapInstaller @Inject constructor(
         val body = response.body ?: throw RuntimeException("Empty response body")
         val total = body.contentLength()
         val buffer = ByteArray(BUFFER_SIZE)
-        val output = java.io.ByteArrayOutputStream((total.coerceAtMost(Int.MAX_VALUE.toLong())).toInt())
         var read = 0L
         body.byteStream().use { input ->
-            while (true) {
-                val n = input.read(buffer)
-                if (n == -1) break
-                output.write(buffer, 0, n)
-                read += n
-                onProgress(read, total)
+            FileOutputStream(dest).use { output ->
+                while (true) {
+                    val n = input.read(buffer)
+                    if (n == -1) break
+                    output.write(buffer, 0, n)
+                    read += n
+                    onProgress(read, total)
+                }
             }
         }
-        return output.toByteArray()
     }
 
     suspend fun uninstall() = withContext(Dispatchers.IO) {
@@ -312,9 +315,17 @@ class BootstrapInstaller @Inject constructor(
         return firstEntryBytes
     }
 
-    private fun sha256(data: ByteArray): String {
+    private fun sha256File(file: File): String {
         val digest = MessageDigest.getInstance("SHA-256")
-        return digest.digest(data).joinToString("") { "%02x".format(it) }
+        val buffer = ByteArray(BUFFER_SIZE)
+        file.inputStream().buffered().use { input ->
+            while (true) {
+                val n = input.read(buffer)
+                if (n == -1) break
+                digest.update(buffer, 0, n)
+            }
+        }
+        return digest.digest().joinToString("") { "%02x".format(it) }
     }
 
     // ── ELF patching helpers ────────────────────────────────────────────────
