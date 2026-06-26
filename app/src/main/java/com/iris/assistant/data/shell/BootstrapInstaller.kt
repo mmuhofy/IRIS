@@ -191,9 +191,6 @@ class BootstrapInstaller @Inject constructor(
                 }
             }
 
-            addAndroidNote(File(prefixDir, "bin/bash"))
-            addAndroidNote(File(prefixDir, "bin/apt-get"))
-
             patchTermuxDataPaths(File(prefixDir, "bin/bash"))
             patchTermuxDataPaths(File(prefixDir, "bin/apt-get"))
 
@@ -381,7 +378,7 @@ class BootstrapInstaller @Inject constructor(
                     29L -> runpathStrOffset = dVal
                 }
                 if (dTag == 0L) break
-                off += 24
+                off += 16
             }
             break
         }
@@ -452,7 +449,7 @@ class BootstrapInstaller @Inject constructor(
                     29L -> runpathStrOffset = dVal
                 }
                 if (dTag == 0L) break
-                off += 24
+                off += 16
             }
         }
         if (runpathStrOffset < 0L || strtab == 0L) return null
@@ -462,62 +459,6 @@ class BootstrapInstaller @Inject constructor(
         var end = strOff
         while (end < data.size && data[end] != 0.toByte()) end++
         return data.copyOfRange(strOff, end).decodeToString()
-    }
-
-    private fun addAndroidNote(elfFile: File) {
-        if (!elfFile.isFile) return
-        val data = elfFile.readBytes()
-        if (data.size < 64) return
-        if (data[0] != 0x7f.toByte() || data[1] != 'E'.code.toByte() ||
-            data[2] != 'L'.code.toByte() || data[3] != 'F'.code.toByte()) return
-        if (data[4] != 2.toByte()) return
-
-        val phoff = ByteBuffer.wrap(data, 32, 8).order(ByteOrder.LITTLE_ENDIAN).long
-        val phentsize = ByteBuffer.wrap(data, 54, 2).order(ByteOrder.LITTLE_ENDIAN).short.toInt() and 0xFFFF
-        val phnum = ByteBuffer.wrap(data, 56, 2).order(ByteOrder.LITTLE_ENDIAN).short.toInt() and 0xFFFF
-        if (phnum == 0 || phentsize == 0) return
-
-        var noteOff = -1L
-        var noteFilesz = 0L
-        for (i in 0 until phnum) {
-            val phOff = phoff + i * phentsize
-            if (phOff < 0L || phOff.toInt() + 56 > data.size) return
-            if (ByteBuffer.wrap(data, phOff.toInt(), 4).order(ByteOrder.LITTLE_ENDIAN).int != 4) continue
-            noteOff = ByteBuffer.wrap(data, phOff.toInt() + 8, 8).order(ByteOrder.LITTLE_ENDIAN).long
-            noteFilesz = ByteBuffer.wrap(data, phOff.toInt() + 32, 8).order(ByteOrder.LITTLE_ENDIAN).long
-            break
-        }
-        if (noteOff < 0L) return
-
-        var notesEnd = noteOff
-        while (notesEnd < noteOff + noteFilesz) {
-            val idx = notesEnd.toInt()
-            if (idx + 12 > data.size) break
-            val nNamesz = ByteBuffer.wrap(data, idx, 4).order(ByteOrder.LITTLE_ENDIAN).int
-            val nDescsz = ByteBuffer.wrap(data, idx + 4, 4).order(ByteOrder.LITTLE_ENDIAN).int
-            if (nNamesz <= 0 || nNamesz > 256 || nDescsz < 0 || nDescsz > 65536) break
-            val namePadded = ((nNamesz + 3) and 0x7FFFFFFC).toLong()
-            val descPadded = ((nDescsz + 3) and 0x7FFFFFFC).toLong()
-            notesEnd += 12L + namePadded + descPadded
-            if (notesEnd >= noteOff + noteFilesz) break
-        }
-
-        if (notesEnd + 16 > noteOff + noteFilesz) {
-            Log.w(TAG, "PT_NOTE too small in ${elfFile.name}")
-            return
-        }
-
-        val pos = notesEnd.toInt()
-        val bb = ByteBuffer.wrap(data, pos, data.size - pos).order(ByteOrder.LITTLE_ENDIAN)
-        bb.putInt(2)
-        bb.putInt(0)
-        bb.putInt(0x40000000)
-        data[pos + 12] = 'L'.code.toByte()
-        data[pos + 13] = 0
-        data[pos + 14] = 0
-        data[pos + 15] = 0
-        elfFile.writeBytes(data)
-        Log.i(TAG, "Added ANDROID_LD_LIBRARY_PATH note to ${elfFile.name}")
     }
 
     private fun patchTermuxDataPaths(elfFile: File) {

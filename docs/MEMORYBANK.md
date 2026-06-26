@@ -230,6 +230,19 @@ ToolResult (Success | Error | PermissionRequired | Cancelled)
 - Whether proot binary ships inside bootstrap or requires custom NDK build.
 - `MANAGE_EXTERNAL_STORAGE` permission requirement for scoped storage on target SDK.
 
+### Implementation notes (BootstrapInstaller.kt, IrisShellSession.kt)
+- **targetSdk=28** is critical — `untrusted_app` (≤28) allows `execute` on app data files; `untrusted_app_29` (29+) blocks it. This is why we fork+execvp() directly instead of using linker64 load.
+- **Bootstrap downloaded at runtime** from GitHub releases (`bootstrap-aarch64.zip`), SHA-256 verified, cached in `filesDir/bootstrap/`. Not embedded.
+- **ELF patching** after extraction:
+  - DT_RUNPATH rewritten from `/data/data/com.termux/files/usr/lib` → `/data/data/com.iris.assistant/u/lib` (symlink to actual lib dir). Uses same-length string overwrite in-place.
+  - Hardcoded `/data/data/com.termux/files/usr` strings (SYSCONFDIR etc.) replaced with `/data/data/com.iris.assistant/p` via `patchTermuxDataPaths()`. Same-length replacement + symlink `p` → `files/usr`.
+  - **Bug (2026-06-26, fix in a78d975+):** `off += 24` used in dynamic entry iteration — `Elf64_Dyn` entries are 16 bytes, not 24. This caused misparsing that randomly overwrote DT_NEEDED library names with the RUNPATH path, producing `libiris-exec-hook.so` dependency on bash. Fixed to `off += 16`.
+  - **Bug (2026-06-26):** `addAndroidNote()` wrote a note with type `0x40000000` (ANDROID_NOTES_TYPES_START, not a valid note type) with descsz=0. Did nothing useful; removed.
+- **No LD_PRELOAD needed** — targetSdk=28 allows direct execve. Previous LD_PRELOAD hook (`libiris-exec-hook.so`) removed.
+- **Symlinks after install:**
+  - `/data/data/com.iris.assistant/u/lib` → `files/usr/lib` (RUNPATH resolution)
+  - `/data/data/com.iris.assistant/p` → `files/usr` (SYSCONFDIR etc.)
+
 ---
 
 ## 8. Permissions & Privacy
