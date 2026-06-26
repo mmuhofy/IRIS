@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import android.provider.Settings
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -224,8 +225,16 @@ private fun buildPermissionGroups(): List<PermissionGroup> = listOf(
                 label          = "Kesin alarm",
                 icon           = PhIcons.Regular.Alarm,
                 description    = "Zamanlanmış hatırlatıcı kurma",
-                isGranted      = { ctx -> (ctx.getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager).canScheduleExactAlarms() },
-                settingsIntent = { ctx -> Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM).apply { data = Uri.parse("package:${ctx.packageName}") } },
+                isGranted      = { ctx ->
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                        (ctx.getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager).canScheduleExactAlarms()
+                    } else true
+                },
+                settingsIntent = { ctx ->
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                        Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM).apply { data = Uri.parse("package:${ctx.packageName}") }
+                    } else appDetailsIntent(ctx)
+                },
             ),
             PermissionItem(
                 label          = "Takvim",

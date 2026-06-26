@@ -31,10 +31,14 @@ android {
     namespace   = "com.iris.assistant"
     compileSdk  = 36
 
+    lint {
+        disable += "ExpiredTargetSdkVersion"
+    }
+
     defaultConfig {
         applicationId = "com.iris.assistant"
         minSdk        = 26
-        targetSdk     = 36
+        targetSdk     = 28
         versionCode   = 1
         versionName   = "0.1.0"
 
