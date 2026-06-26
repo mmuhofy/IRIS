@@ -38,7 +38,7 @@ enum class ColorSchemeOption(
 
 @Composable
 fun IrisTheme(
-    colorSchemeOption : ColorSchemeOption = ColorSchemeOption.SLATE,
+    colorSchemeOption : ColorSchemeOption = ColorSchemeOption.COBALT,
     fontFamily        : AppFont           = AppFont.Inter,
     isDark            : Boolean           = true,
     content           : @Composable () -> Unit,
@@ -64,7 +64,7 @@ fun IrisTheme(
 
 @Composable
 fun IrisThemeTransparent(
-    colorSchemeOption : ColorSchemeOption = ColorSchemeOption.SLATE,
+    colorSchemeOption : ColorSchemeOption = ColorSchemeOption.COBALT,
     fontFamily        : AppFont           = AppFont.Inter,
     isDark            : Boolean           = true,
     content           : @Composable () -> Unit,

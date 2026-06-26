@@ -50,8 +50,8 @@ class PreferencesRepository @Inject constructor(
     val preferences: Flow<UserPreferences> = context.dataStore.data.map { prefs ->
         UserPreferences(
             colorScheme = prefs[Keys.COLOR_SCHEME]
-                ?.let { runCatching { ColorSchemeOption.valueOf(it) }.getOrDefault(ColorSchemeOption.SLATE) }
-                ?: ColorSchemeOption.SLATE,
+                ?.let { runCatching { ColorSchemeOption.valueOf(it) }.getOrDefault(ColorSchemeOption.COBALT) }
+                ?: ColorSchemeOption.COBALT,
 
             backgroundListening = prefs[Keys.BACKGROUND_LISTENING] ?: true,
             onboardingCompleted = prefs[Keys.ONBOARDING_COMPLETED] ?: false,

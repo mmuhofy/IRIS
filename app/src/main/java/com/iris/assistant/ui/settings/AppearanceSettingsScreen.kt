@@ -65,10 +65,10 @@ private data class ThemeMeta(
 )
 
 private val ALL_THEMES = listOf(
-    ThemeMeta(ColorSchemeOption.SLATE,       "Stone",       "Sıcak taş — varsayılan"),
+    ThemeMeta(ColorSchemeOption.SLATE,       "Stone",       "Sıcak taş"),
     ThemeMeta(ColorSchemeOption.ROSE_QUARTZ, "Rose Quartz", "Toz pembe"),
     ThemeMeta(ColorSchemeOption.SAGE,        "Sage",        "Adaçayı yeşili"),
-    ThemeMeta(ColorSchemeOption.COBALT,      "Cobalt",      "Gece mavisi"),
+    ThemeMeta(ColorSchemeOption.COBALT,      "Cobalt",      "Gece mavisi — varsayılan"),
     ThemeMeta(ColorSchemeOption.EMBER,       "Ember",       "Bakır sıcaklığı"),
     ThemeMeta(ColorSchemeOption.MONOCHROME,  "Monochrome",  "Grafit gri"),
 )

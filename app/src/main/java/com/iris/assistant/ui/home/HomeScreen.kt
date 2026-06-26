@@ -445,7 +445,8 @@ private fun TopBarIconButton(
                 interactionSource = interactionSource,
                 indication = null,
                 onClick = onClick
-            ),
+            )
+            .padding(8.dp),
         contentAlignment = Alignment.Center
     ) {
         Icon(

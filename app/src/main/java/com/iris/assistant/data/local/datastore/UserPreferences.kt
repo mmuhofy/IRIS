@@ -9,7 +9,7 @@ import com.iris.assistant.ui.theme.ColorSchemeOption
 import com.iris.assistant.util.Constants
 
 data class UserPreferences(
-    val colorScheme         : ColorSchemeOption = ColorSchemeOption.SLATE,
+    val colorScheme         : ColorSchemeOption = ColorSchemeOption.COBALT,
     val backgroundListening : Boolean           = true,
     val onboardingCompleted : Boolean           = false,
     val ttsVoice            : TtsVoice          = TtsVoice.DEFAULT,

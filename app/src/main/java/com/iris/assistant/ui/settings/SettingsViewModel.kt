@@ -26,7 +26,7 @@ import java.io.File
 import javax.inject.Inject
 
 data class SettingsUiState(
-    val colorScheme        : ColorSchemeOption  = ColorSchemeOption.SLATE,
+    val colorScheme        : ColorSchemeOption  = ColorSchemeOption.COBALT,
     val backgroundListening: Boolean            = true,
     val ttsVoice           : TtsVoice           = TtsVoice.DEFAULT,
     val llmProvider        : String             = Constants.LLM_PROVIDER_GEMINI,

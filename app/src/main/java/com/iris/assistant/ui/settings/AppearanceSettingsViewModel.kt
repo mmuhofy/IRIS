@@ -14,7 +14,7 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 data class AppearanceSettingsUiState(
-    val colorScheme : ColorSchemeOption = ColorSchemeOption.SLATE,
+    val colorScheme : ColorSchemeOption = ColorSchemeOption.COBALT,
     val isDarkMode  : Boolean           = true,
     val fontFamily  : AppFont           = AppFont.SystemDefault,
 )
