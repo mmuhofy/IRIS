@@ -67,10 +67,10 @@ class PreferencesRepository @Inject constructor(
             localModelName = prefs[Keys.LOCAL_MODEL_NAME] ?: "",
             localModelPath = prefs[Keys.LOCAL_MODEL_PATH] ?: "",
             isDarkMode         = prefs[Keys.IS_DARK_MODE]  ?: true,
-            fontFamilyKey  = prefs[Keys.FONT_FAMILY] ?: AppFont.SystemDefault.key,
+            fontFamilyKey  = prefs[Keys.FONT_FAMILY] ?: AppFont.Inter.key,
             fontFamily     = prefs[Keys.FONT_FAMILY]
                 ?.let { AppFont.fromKey(it) }
-                ?: AppFont.SystemDefault,
+                ?: AppFont.Inter,
             ttsProvider = prefs[Keys.TTS_PROVIDER]
                 ?.let { TtsProviderType.fromKey(it) }
                 ?: TtsProviderType.GEMINI,

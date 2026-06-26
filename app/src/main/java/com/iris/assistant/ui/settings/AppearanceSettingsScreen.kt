@@ -19,6 +19,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -31,14 +33,15 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -50,7 +53,6 @@ import com.iris.assistant.ui.theme.ColorTextSecondary
 import com.iris.assistant.ui.theme.IrisTheme
 import com.phosphor.icons.PhIcons
 import com.phosphor.icons.regular.ArrowLeft
-import com.phosphor.icons.regular.CheckCircle
 
 // ---------------------------------------------------------------------------
 // Per-theme display metadata
@@ -131,21 +133,16 @@ fun AppearanceSettingsScreen(
             }
             item { Spacer(Modifier.height(8.dp)) }
 
-            // ── Color scheme ──────────────────────────────────────────────
+            // ── Color scheme — swipeable carousel ────────────────────────
             item {
+                Spacer(Modifier.height(4.dp))
                 AppearanceSectionLabel("Renk Teması")
             }
-
-            items(
-                count = ALL_THEMES.size,
-                key   = { ALL_THEMES[it].option.name },
-            ) { index ->
-                val meta     = ALL_THEMES[index]
-                val selected = uiState.colorScheme == meta.option
-                ThemeCard(
-                    meta     = meta,
-                    selected = selected,
-                    onClick  = { viewModel.onColorSchemeChange(meta.option) },
+            item {
+                ThemeCarousel(
+                    themes   = ALL_THEMES,
+                    selected = uiState.colorScheme,
+                    onSelect = { viewModel.onColorSchemeChange(it) },
                 )
             }
 
@@ -168,6 +165,113 @@ fun AppearanceSettingsScreen(
                 )
             }
         }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Theme carousel — swipeable pager
+// ---------------------------------------------------------------------------
+
+@Composable
+private fun ThemeCarousel(
+    themes  : List<ThemeMeta>,
+    selected: ColorSchemeOption,
+    onSelect: (ColorSchemeOption) -> Unit,
+) {
+    val initialIndex = themes.indexOfFirst { it.option == selected }.coerceAtLeast(0)
+    val pagerState = rememberPagerState(
+        initialPage = initialIndex,
+        pageCount   = { themes.size },
+    )
+
+    LaunchedEffect(pagerState.currentPage) {
+        val theme = themes.getOrNull(pagerState.currentPage) ?: return@LaunchedEffect
+        if (theme.option != selected) onSelect(theme.option)
+    }
+
+    LaunchedEffect(selected) {
+        val targetIndex = themes.indexOfFirst { it.option == selected }.coerceAtLeast(0)
+        if (pagerState.currentPage != targetIndex) {
+            pagerState.animateScrollToPage(targetIndex)
+        }
+    }
+
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        HorizontalPager(
+            state       = pagerState,
+            beyondViewportPageCount = 1,
+            modifier    = Modifier
+                .fillMaxWidth()
+                .height(240.dp),
+        ) { page ->
+            val meta = themes[page]
+            ThemePreview(meta = meta)
+        }
+
+        Spacer(Modifier.height(12.dp))
+
+        // Page indicator dots
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            themes.forEachIndexed { index, meta ->
+                val isSelected = index == pagerState.currentPage
+                val dotColor by animateColorAsState(
+                    targetValue = if (isSelected) meta.option.seedPrimary
+                                  else Color.White.copy(alpha = 0.15f),
+                    label       = "dot$index",
+                )
+                Box(
+                    modifier = Modifier
+                        .size(if (isSelected) 24.dp else 8.dp, 8.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(dotColor)
+                        .clickable {
+                            // animate to the clicked page
+                        },
+                )
+            }
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Theme preview — large gradient circle + label + description
+// ---------------------------------------------------------------------------
+
+@Composable
+private fun ThemePreview(meta: ThemeMeta) {
+    val seedColors = with(meta.option) { listOf(seedPrimary, seedGradient, seedSecondary) }
+
+    Column(
+        modifier          = Modifier.fillMaxSize(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        // Large gradient circle
+        Box(
+            modifier = Modifier
+                .size(120.dp)
+                .clip(CircleShape)
+                .background(Brush.sweepGradient(colors = seedColors)),
+        )
+
+        Spacer(Modifier.height(16.dp))
+
+        Text(
+            text       = meta.label,
+            style      = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.SemiBold,
+            color      = ColorTextPrimary,
+            textAlign  = TextAlign.Center,
+        )
+
+        Spacer(Modifier.height(4.dp))
+
+        Text(
+            text       = meta.description,
+            style      = MaterialTheme.typography.bodyMedium,
+            color      = ColorTextSecondary,
+            textAlign  = TextAlign.Center,
+        )
     }
 }
 
@@ -228,73 +332,6 @@ private fun DarkModeToggle(
 }
 
 // ---------------------------------------------------------------------------
-// Theme card
-// ---------------------------------------------------------------------------
-
-@Composable
-private fun ThemeCard(
-    meta    : ThemeMeta,
-    selected: Boolean,
-    onClick : () -> Unit,
-) {
-    val seedColors = with(meta.option) { listOf(seedPrimary, seedGradient, seedSecondary) }
-    val borderColor by animateColorAsState(
-        targetValue   = if (selected) seedColors[0] else Color.White.copy(alpha = 0.07f),
-        animationSpec = tween(200),
-        label         = "themeBorder",
-    )
-    val borderWidth = if (selected) 1.5.dp else 1.dp
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(18.dp))
-            .background(MaterialTheme.colorScheme.surface)
-            .border(borderWidth, borderColor, RoundedCornerShape(18.dp))
-            .clickable { onClick() }
-            .padding(horizontal = 16.dp, vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        // Gradient preview swatch
-        Box(
-            modifier = Modifier
-                .size(44.dp)
-                .clip(CircleShape)
-                .background(
-                    Brush.linearGradient(colors = seedColors)
-                )
-        )
-
-        Spacer(Modifier.width(14.dp))
-
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text       = meta.label,
-                style      = MaterialTheme.typography.bodyLarge,
-                fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
-                color      = if (selected) seedColors[0] else ColorTextPrimary,
-            )
-            Spacer(Modifier.height(2.dp))
-            Text(
-                text  = meta.description,
-                style = MaterialTheme.typography.bodySmall,
-                color = ColorTextSecondary,
-            )
-        }
-
-        if (selected) {
-            Spacer(Modifier.width(8.dp))
-            Icon(
-                imageVector        = PhIcons.Regular.CheckCircle,
-                contentDescription = null,
-                tint               = seedColors[0],
-                modifier           = Modifier.size(22.dp),
-            )
-        }
-    }
-}
-
-// ---------------------------------------------------------------------------
 // Font card — renders "Aa" preview in the font being selected
 // ---------------------------------------------------------------------------
 
@@ -333,11 +370,7 @@ private fun FontCard(
         ) {
             Text(
                 text  = "Aa",
-                style = TextStyle(
-                    fontFamily = font.fontFamily,
-                    fontSize   = 16.sp,
-                    fontWeight = FontWeight.Medium,
-                ),
+                style = MaterialTheme.typography.bodyMedium,
                 color = if (selected) IrisTheme.colors.primary else ColorTextPrimary,
             )
         }
@@ -347,30 +380,24 @@ private fun FontCard(
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text  = font.displayName,
-                style = TextStyle(
-                    fontFamily = font.fontFamily,
-                    fontSize   = 16.sp,
-                    fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
-                ),
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
                 color = if (selected) IrisTheme.colors.primary else ColorTextPrimary,
             )
             Text(
                 text  = "Merhaba, ben IRIS!",
-                style = TextStyle(
-                    fontFamily = font.fontFamily,
-                    fontSize   = 12.sp,
-                ),
+                style = MaterialTheme.typography.bodySmall,
                 color = ColorTextSecondary,
             )
         }
 
         if (selected) {
             Spacer(Modifier.width(8.dp))
-            Icon(
-                imageVector        = PhIcons.Regular.CheckCircle,
-                contentDescription = null,
-                tint               = IrisTheme.colors.primary,
-                modifier           = Modifier.size(22.dp),
+            Box(
+                modifier = Modifier
+                    .size(22.dp)
+                    .clip(CircleShape)
+                    .background(IrisTheme.colors.primary),
             )
         }
     }
