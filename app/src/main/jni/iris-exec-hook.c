@@ -72,11 +72,9 @@ static char *resolve_path(const char *file) {
     return NULL;
 }
 
-static int try_via_linker(const char *pathname, char *const argv[], char *const envp[]) {
+static int exec_via_linker(const char *bin, char *const argv[], char *const envp[]) {
     if (!g_linker) return -1;
-
-    // Avoid intercepting linker->linker recursion
-    if (pathname && strstr(pathname, "linker")) return -1;
+    if (bin && strstr(bin, "linker")) return -1;
 
     int argc = argv_len(argv);
     int total = argc + 3;
@@ -84,7 +82,7 @@ static int try_via_linker(const char *pathname, char *const argv[], char *const 
     if (!new_argv) return -1;
 
     new_argv[0] = g_linker;
-    new_argv[1] = pathname ? pathname : (argv ? argv[0] : "");
+    new_argv[1] = bin;
     for (int i = 0; i < argc; i++) new_argv[i + 2] = argv[i];
     new_argv[argc + 2] = NULL;
 
@@ -101,11 +99,13 @@ int execve(const char *pathname, char *const argv[], char *const envp[]) {
 
     if (errno == EACCES) {
         LOGV("execve EACCES, trying linker for: %s", pathname);
-        return try_via_linker(pathname, argv, envp);
+        return exec_via_linker(pathname, argv, envp);
     }
 
     return -1;
 }
+
+extern char **environ;
 
 int execvp(const char *file, char *const argv[]) {
     if (!g_initialized) init();
@@ -117,21 +117,9 @@ int execvp(const char *file, char *const argv[]) {
         char *resolved = resolve_path(file);
         if (resolved) {
             LOGV("execvp EACCES, trying linker for: %s -> %s", file, resolved);
-            int argc = argv_len(argv);
-            int total = argc + 3;
-            const char **new_argv = malloc(total * sizeof(char *));
-            if (new_argv) {
-                new_argv[0] = g_linker;
-                new_argv[1] = resolved;
-                new_argv[2] = argv[0];
-                for (int i = 1; i < argc; i++) new_argv[i + 2] = argv[i];
-                new_argv[argc + 1] = NULL;
-                free(resolved);
-                int ret = real_execve(g_linker, (char *const *)new_argv, NULL);
-                free(new_argv);
-                return ret;
-            }
+            int ret = exec_via_linker(resolved, argv, environ);
             free(resolved);
+            return ret;
         }
     }
 
@@ -142,31 +130,15 @@ int execvpe(const char *file, char *const argv[], char *const envp[]) {
     if (!g_initialized) init();
     if (!g_linker) return real_execvpe ? real_execvpe(file, argv, envp) : real_execvp(file, argv);
 
-    if (real_execvpe) {
-        real_execvpe(file, argv, envp);
-    } else {
-        real_execvp(file, argv);
-    }
+    (real_execvpe ? real_execvpe : (execvpe_fn)real_execvp)(file, argv, envp);
 
     if (errno == EACCES) {
         char *resolved = resolve_path(file);
         if (resolved) {
             LOGV("execvpe EACCES, trying linker for: %s -> %s", file, resolved);
-            int argc = argv_len(argv);
-            int total = argc + 3;
-            const char **new_argv = malloc(total * sizeof(char *));
-            if (new_argv) {
-                new_argv[0] = g_linker;
-                new_argv[1] = resolved;
-                new_argv[2] = argv[0];
-                for (int i = 1; i < argc; i++) new_argv[i + 2] = argv[i];
-                new_argv[argc + 1] = NULL;
-                free(resolved);
-                int ret = real_execve(g_linker, (char *const *)new_argv, envp);
-                free(new_argv);
-                return ret;
-            }
+            int ret = exec_via_linker(resolved, argv, envp);
             free(resolved);
+            return ret;
         }
     }
 
