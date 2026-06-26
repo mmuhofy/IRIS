@@ -79,7 +79,7 @@ class IrisShellSession @Inject constructor(
         val rawFd = nativeCreateSubprocess(
             shellBin.absolutePath,
             homePath,
-            arrayOf("--noprofile", "--norc"),
+            arrayOf("--login"),
             envVars,
             pid,
         )
