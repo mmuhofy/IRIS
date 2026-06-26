@@ -24,6 +24,25 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Generate changelog with git-cliff
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: orhun/git-cliff-action@v3
+        with:
+          config: cliff.toml
+          args: --current --verbose -o CHANGELOG.md
+
+      - name: Commit changelog and update tag
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          if ! git diff --exit-code CHANGELOG.md; then
+            git config user.name "github-actions"
+            git config user.email "github-actions@github.com"
+            git add CHANGELOG.md
+            git commit --amend --no-edit
+            git tag -f "${{ github.ref_name }}"
+            git push origin "${{ github.ref_name }}" --force
+          fi
+
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
@@ -104,6 +123,6 @@ jobs:
         with:
           tag_name: ${{ github.ref_name }}
           name: "IRIS ${{ github.ref_name }}"
-          body: "See the commits for details."
+          body: "See [CHANGELOG.md](https://github.com/mmuhofy/IRIS/blob/main/CHANGELOG.md) for details."
           files: app/build/outputs/apk/release/iris-*.apk
           make_latest: "true"

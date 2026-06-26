@@ -1,0 +1,39 @@
+[changelog]
+header = """
+# Changelog\n\nAll notable changes to IRIS are documented in this file.\n
+"""
+body = """
+{% if not version %}
+  ## [Unreleased]
+{% else %}
+  ## [{{ version | trim_start_matches(pat="v") }}] - {{ timestamp | date(format="%Y-%m-%d") }}
+{% endif %}
+
+{% for group, commits in commits | group_by(attribute="group") %}
+  ### {{ group | upper_first }}
+  {% for commit in commits %}
+    - {% if commit.breaking %}[breaking] {% endif %}{{ commit.message | upper_first }}{% if commit.github.username %}  ({{ commit.github.username }}){% endif %}
+  {% endfor %}
+{% endfor %}
+\n
+"""
+trim = false
+postprocess = "prepend"
+
+[git]
+conventional_commits = true
+filter_unconventional = true
+split_commits = false
+
+[conventional_commits]
+types = [
+  { type = "feat",     section = "Features",      hidden = false },
+  { type = "fix",      section = "Bug Fixes",      hidden = false },
+  { type = "refactor", section = "Refactoring",    hidden = false },
+  { type = "perf",     section = "Performance",    hidden = false },
+  { type = "style",    section = "Styling",        hidden = false },
+  { type = "test",     section = "Tests",          hidden = false },
+  { type = "docs",     section = "Documentation",  hidden = false },
+  { type = "ci",       section = "CI/CD",          hidden = false },
+  { type = "chore",    section = "Chores",         hidden = true  },
+]
