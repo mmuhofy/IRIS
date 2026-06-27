@@ -13,6 +13,7 @@ import com.iris.assistant.domain.model.IrisException
 import com.iris.assistant.domain.usecase.SendMessageUseCase
 import com.iris.assistant.domain.usecase.TranscribeAudioUseCase
 import com.iris.assistant.data.remote.tts.TtsProvider
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -141,6 +142,7 @@ class AssistantViewModel(
                     }
                 )
             }.getOrElse { e ->
+                if (e is CancellationException) throw e
                 Log.e(TAG, "Recording failed", e)
                 _uiState.update {
                     it.copy(
@@ -171,6 +173,7 @@ class AssistantViewModel(
             val transcript = runCatching {
                 transcribeAudioUseCase(audioBytes)
             }.getOrElse { e ->
+                if (e is CancellationException) throw e
                 Log.e(TAG, "STT failed", e)
                 _uiState.update {
                     it.copy(
@@ -202,11 +205,14 @@ class AssistantViewModel(
                 reply = sendMessageUseCase(listOf(
                     ChatMessage(role = ChatMessage.Role.USER, content = text)
                 ))
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: IrisException.PermissionRequiredException) {
                 _uiState.update {
                     it.copy(
-                        capsuleMode = CapsuleMode.LISTENING,
+                        capsuleMode = CapsuleMode.REPLY,
                         errorMessage = "İzin gerekiyor: ${e.permission}",
+                        messages = it.messages + ChatBubble(text = "İzin gerekiyor: ${e.permission}", isUser = false),
                     )
                 }
                 return@launch
@@ -214,7 +220,7 @@ class AssistantViewModel(
                 Log.e(TAG, "LLM failed", e)
                 _uiState.update {
                     it.copy(
-                        capsuleMode = CapsuleMode.LISTENING,
+                        capsuleMode = CapsuleMode.REPLY,
                         errorMessage = "Yanıt alınamadı",
                         messages = it.messages + ChatBubble(text = "Bir hata oluştu.", isUser = false),
                     )
