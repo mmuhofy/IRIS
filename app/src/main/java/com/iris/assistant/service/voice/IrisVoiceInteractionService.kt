@@ -12,7 +12,7 @@ class IrisVoiceInteractionService : VoiceInteractionService() {
 
     override fun onLaunchVoiceAssistFromKeyguard() {
         Log.d(TAG, "onLaunchVoiceAssistFromKeyguard")
-        showSession(Bundle.EMPTY, VoiceInteractionService.SHOW_SOURCE_KEYGUARD)
+        showSession(Bundle.EMPTY, 0)
     }
 
     override fun onReady() {

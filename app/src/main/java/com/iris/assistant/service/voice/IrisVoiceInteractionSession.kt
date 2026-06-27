@@ -3,9 +3,9 @@ package com.iris.assistant.service.voice
 import android.content.Context
 import android.os.Bundle
 import android.service.voice.VoiceInteractionSession
+import android.util.DisplayMetrics
 import android.util.Log
 import android.view.View
-import android.view.ViewTreeObserver
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
@@ -49,44 +49,30 @@ class IrisVoiceInteractionSession(context: Context) : VoiceInteractionSession(co
             ttsProvider = ep.ttsProvider(),
         ).also { viewModel = it }
 
-        val composeView = ComposeView(context).apply {
+        return ComposeView(context).apply {
             setContent {
                 IrisThemeTransparent {
                     SessionCapsuleContent(viewModel = vm, onFinish = { finish() })
                 }
             }
         }
-
-        // Recompute insets after layout so the touchable region matches the
-        // actual capsule position (onComputeInsets uses a fixed estimate on
-        // first call, but we re-compute once laid out).
-        composeView.viewTreeObserver.addOnGlobalLayoutListener(
-            object : ViewTreeObserver.OnGlobalLayoutListener {
-                override fun onGlobalLayout() {
-                    composeView.viewTreeObserver.removeOnGlobalLayoutListener(this)
-                    computeInsets()
-                }
-            }
-        )
-
-        return composeView
     }
 
     override fun onComputeInsets(outInsets: Insets?) {
         super.onComputeInsets(outInsets)
         outInsets ?: return
 
-        val metrics = context.resources.displayMetrics
-        val capsuleHeightPx = (72 * metrics.density).toInt()
+        val dm: DisplayMetrics = context.resources.displayMetrics
+        val capsuleHeightPx = (72 * dm.density).toInt()
 
         // Only the bottom strip containing the capsule is touchable.
         // Everything above passes through to the app behind.
         outInsets.touchableInsets = Insets.TOUCHABLE_INSETS_CONTENT
         outInsets.contentInsets.set(
             0,
-            metrics.heightPx - capsuleHeightPx,
-            metrics.widthPx,
-            metrics.heightPx,
+            dm.heightPixels - capsuleHeightPx,
+            dm.widthPixels,
+            dm.heightPixels,
         )
     }
 
@@ -102,7 +88,7 @@ class IrisVoiceInteractionSession(context: Context) : VoiceInteractionSession(co
 
     override fun onDestroy() {
         super.onDestroy()
-        viewModel?.onCleared()
+        viewModel?.release()
         viewModel = null
     }
 }

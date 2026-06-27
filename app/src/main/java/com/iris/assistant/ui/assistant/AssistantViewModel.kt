@@ -264,6 +264,12 @@ class AssistantViewModel(
         }
     }
 
+    fun release() {
+        pipelineJob?.cancel()
+        ttsProvider.release()
+        onCleared()
+    }
+
     override fun onCleared() {
         super.onCleared()
         pipelineJob?.cancel()
