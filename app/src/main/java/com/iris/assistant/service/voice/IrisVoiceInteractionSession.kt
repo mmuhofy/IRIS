@@ -12,13 +12,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ComposeView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
-import androidx.lifecycle.ViewTreeLifecycleOwner
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.iris.assistant.ui.assistant.AssistantCapsule
 import com.iris.assistant.ui.assistant.AssistantViewModel
 import com.iris.assistant.ui.theme.IrisThemeTransparent
@@ -59,10 +60,11 @@ class IrisVoiceInteractionSession(context: Context) : VoiceInteractionSession(co
         ).also { viewModel = it }
 
         return ComposeView(context).apply {
-            ViewTreeLifecycleOwner.set(this, this@IrisVoiceInteractionSession)
             setContent {
-                IrisThemeTransparent {
-                    SessionCapsuleContent(viewModel = vm, onFinish = { finish() })
+                CompositionLocalProvider(LocalLifecycleOwner provides this@IrisVoiceInteractionSession) {
+                    IrisThemeTransparent {
+                        SessionCapsuleContent(viewModel = vm, onFinish = { finish() })
+                    }
                 }
             }
         }
