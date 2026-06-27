@@ -127,8 +127,7 @@ fun AssistantCapsule(
             targetState = state.capsuleMode,
             transitionSpec = {
                 (fadeIn(tween(200)) + slideInVertically(tween(200)) { it / 4 })
-                    togetherWith
-                    (fadeOut(tween(150)) + slideOutVertically(tween(150)) { -it / 4 })
+                    .togetherWith(fadeOut(tween(150)) + slideOutVertically(tween(150)) { -it / 4 })
             },
             label = "capsuleContent",
         ) { mode ->
