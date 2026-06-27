@@ -30,6 +30,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -40,6 +41,7 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.TextUnitType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.launch
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.iris.assistant.domain.model.TtsProviderType
@@ -215,17 +217,11 @@ private fun VoiceCarousel(
         initialPage = initialIndex,
         pageCount   = { voices.size },
     )
+    val scope = rememberCoroutineScope()
 
     LaunchedEffect(pagerState.currentPage) {
         val voice = voices.getOrNull(pagerState.currentPage) ?: return@LaunchedEffect
         if (voice != selected) onSelect(voice)
-    }
-
-    LaunchedEffect(selected) {
-        val targetIndex = voices.indexOf(selected).coerceAtLeast(0)
-        if (pagerState.currentPage != targetIndex) {
-            pagerState.animateScrollToPage(targetIndex)
-        }
     }
 
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -251,7 +247,13 @@ private fun VoiceCarousel(
                         .background(
                             if (isSelected) IrisTheme.colors.primary
                             else Color.White.copy(alpha = 0.15f)
-                        ),
+                        )
+                        .clickable {
+                            scope.launch {
+                                pagerState.animateScrollToPage(index)
+                                onSelect(voices[index])
+                            }
+                        },
                 )
             }
         }
