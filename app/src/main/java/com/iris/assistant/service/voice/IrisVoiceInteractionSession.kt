@@ -15,6 +15,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ComposeView
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.LifecycleRegistry
+import androidx.lifecycle.ViewTreeLifecycleOwner
 import com.iris.assistant.ui.assistant.AssistantCapsule
 import com.iris.assistant.ui.assistant.AssistantViewModel
 import com.iris.assistant.ui.theme.IrisThemeTransparent
@@ -30,12 +34,17 @@ private const val TAG = "IrisVoiceInteractionSession"
  * and uses onComputeInsets to restrict touchable area to the capsule bounds —
  * touches outside pass through naturally to the underlying app.
  */
-class IrisVoiceInteractionSession(context: Context) : VoiceInteractionSession(context) {
+class IrisVoiceInteractionSession(context: Context) : VoiceInteractionSession(context), LifecycleOwner {
+
+    private val lifecycleRegistry = LifecycleRegistry(this)
+
+    override val lifecycle: Lifecycle get() = lifecycleRegistry
 
     private var viewModel: AssistantViewModel? = null
 
     override fun onCreateContentView(): View {
         Log.d(TAG, "onCreateContentView")
+        lifecycleRegistry.currentState = Lifecycle.State.CREATED
 
         val ep = EntryPointAccessors.fromApplication(
             context.applicationContext, VoiceInteractionEntryPoint::class.java
@@ -50,6 +59,7 @@ class IrisVoiceInteractionSession(context: Context) : VoiceInteractionSession(co
         ).also { viewModel = it }
 
         return ComposeView(context).apply {
+            ViewTreeLifecycleOwner.set(this, this@IrisVoiceInteractionSession)
             setContent {
                 IrisThemeTransparent {
                     SessionCapsuleContent(viewModel = vm, onFinish = { finish() })
@@ -79,17 +89,20 @@ class IrisVoiceInteractionSession(context: Context) : VoiceInteractionSession(co
     override fun onShow(args: Bundle?, showFlags: Int) {
         super.onShow(args, showFlags)
         Log.d(TAG, "onShow")
+        lifecycleRegistry.currentState = Lifecycle.State.RESUMED
     }
 
     override fun onHide() {
         super.onHide()
         Log.d(TAG, "onHide")
+        lifecycleRegistry.currentState = Lifecycle.State.STARTED
     }
 
     override fun onDestroy() {
-        super.onDestroy()
+        lifecycleRegistry.currentState = Lifecycle.State.DESTROYED
         viewModel?.release()
         viewModel = null
+        super.onDestroy()
     }
 }
 
