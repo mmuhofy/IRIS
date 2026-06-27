@@ -126,9 +126,9 @@ fun AssistantCapsule(
         AnimatedContent(
             targetState = state.capsuleMode,
             transitionSpec = {
-                fadeIn(tween(200)) + slideInVertically(tween(200)) { it / 4 }
+                (fadeIn(tween(200)) + slideInVertically(tween(200)) { it / 4 })
                     togetherWith
-                fadeOut(tween(150)) + slideOutVertically(tween(150)) { -it / 4 }
+                    (fadeOut(tween(150)) + slideOutVertically(tween(150)) { -it / 4 })
             },
             label = "capsuleContent",
         ) { mode ->
@@ -569,14 +569,19 @@ private fun InputContent(
 
         // Send
         val canSend = text.isNotBlank()
+        val sendMod = if (canSend) {
+            Modifier.background(
+                Brush.linearGradient(listOf(primary, gradientEnd)),
+                CircleShape,
+            )
+        } else {
+            Modifier.background(Color.White.copy(alpha = 0.08f), CircleShape)
+        }
         Box(
             modifier = Modifier
                 .size(36.dp)
                 .clip(CircleShape)
-                .background(
-                    if (canSend) Brush.linearGradient(listOf(primary, gradientEnd))
-                    else Color.White.copy(alpha = 0.08f)
-                )
+                .then(sendMod)
                 .clickable(
                     enabled = canSend,
                     interactionSource = remember { MutableInteractionSource() },
