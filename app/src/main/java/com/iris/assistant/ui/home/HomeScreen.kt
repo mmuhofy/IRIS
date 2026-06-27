@@ -152,7 +152,7 @@ fun HomeScreen(
                 modifier = Modifier.align(Alignment.Center),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-        Box {
+        Box(contentAlignment = Alignment.Center) {
                     // AmbientGlow is a decorative layer only — IrisCoreAnimation.kt untouched
                     AmbientGlow(state = uiState.coreState)
                     IrisCoreAnimation(
