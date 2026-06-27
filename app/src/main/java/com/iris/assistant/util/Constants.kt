@@ -40,11 +40,11 @@ object Constants {
     }
 
     val LLM_MODELS = listOf(
-        LlmModelInfo("gemini-3.5-flash",                              "3.5 Flash",         LLM_PROVIDER_GEMINI),
-        LlmModelInfo("gemini-3.1-flash",                              "3.1 Flash",         LLM_PROVIDER_GEMINI),
-        LlmModelInfo("gemini-2.5-flash",                              "2.5 Flash",         LLM_PROVIDER_GEMINI),
-        LlmModelInfo("gemini-3.5-pro",                                "3.5 Pro",           LLM_PROVIDER_GEMINI),
-        LlmModelInfo("gemini-2.5-pro",                                "2.5 Pro",           LLM_PROVIDER_GEMINI),
+        LlmModelInfo("gemini-3.5-flash",                              "Gemini 3.5 Flash",      LLM_PROVIDER_GEMINI),
+        LlmModelInfo("gemini-3.1-flash-lite",                         "Gemini 3.1 Flash Lite", LLM_PROVIDER_GEMINI),
+        LlmModelInfo("gemini-2.5-pro",                                "Gemini 2.5 Pro",        LLM_PROVIDER_GEMINI),
+        LlmModelInfo("gemini-2.5-flash",                              "Gemini 2.5 Flash",      LLM_PROVIDER_GEMINI),
+        LlmModelInfo("gemini-2.5-flash-lite",                         "Gemini 2.5 Flash Lite", LLM_PROVIDER_GEMINI),
         LlmModelInfo("llama-3.3-70b-versatile",                       "Llama 3.3 70B",     LLM_PROVIDER_GROQ),
         LlmModelInfo("llama-3.1-8b-instant",                          "Llama 3.1 8B",      LLM_PROVIDER_GROQ),
         LlmModelInfo("openai/gpt-oss-120b",                           "GPT-OSS 120B",      LLM_PROVIDER_GROQ),

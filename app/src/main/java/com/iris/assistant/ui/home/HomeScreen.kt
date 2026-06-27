@@ -40,6 +40,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -58,6 +59,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.graphicsLayer
 
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -291,20 +293,19 @@ private fun HomeTopBar(
     modifier: Modifier = Modifier
 ) {
     val primary = IrisTheme.colors.primary
+    val onSurface = MaterialTheme.colorScheme.onSurface
 
     Row(
         modifier = modifier.padding(horizontal = 16.dp, vertical = 12.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Menu icon
         TopBarIconButton(
             icon = PhIcons.Regular.List,
             contentDescription = "Menu",
             onClick = onMenuClick
         )
 
-        // Model selector chip + dropdown
         Box {
             ModelChip(
                 modelName = modelName,
@@ -318,12 +319,13 @@ private fun HomeTopBar(
                 onDismissRequest = { onDropdownExpandChange(false) },
                 shape = RoundedCornerShape(16.dp),
             ) {
-                models.forEach { model ->
+                models.forEachIndexed { index, model ->
                     val isSelected = model.apiName == modelName
                     Surface(
                         onClick = { onModelChange(model.apiName) },
-                        shape = RoundedCornerShape(12.dp),
-                        color = Color.Transparent,
+                        shape = RoundedCornerShape(10.dp),
+                        color = if (isSelected) primary.copy(alpha = 0.12f)
+                                else Color.Transparent,
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 6.dp, vertical = 2.dp),
@@ -331,38 +333,61 @@ private fun HomeTopBar(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 12.dp, vertical = 12.dp),
+                                .padding(horizontal = 14.dp, vertical = 12.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            Text(
-                                text = model.displayName,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = if (isSelected) primary
-                                else MaterialTheme.colorScheme.onSurface,
-                                modifier = Modifier.weight(1f),
-                            )
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = model.displayName,
+                                    style = MaterialTheme.typography.bodyMedium.copy(
+                                        fontWeight = FontWeight.Medium,
+                                    ),
+                                    color = if (isSelected) primary
+                                            else onSurface,
+                                    maxLines = 1,
+                                )
+                                Text(
+                                    text = providerBadgeLabel(model.provider),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = onSurface.copy(alpha = 0.45f),
+                                    maxLines = 1,
+                                )
+                            }
                             if (isSelected) {
-                                Spacer(Modifier.width(6.dp))
+                                Spacer(Modifier.width(8.dp))
                                 Icon(
                                     imageVector = PhIcons.Regular.Check,
                                     contentDescription = null,
                                     tint = primary,
-                                    modifier = Modifier.size(14.dp),
+                                    modifier = Modifier.size(16.dp),
                                 )
                             }
                         }
+                    }
+                    if (index < models.lastIndex) {
+                        HorizontalDivider(
+                            modifier = Modifier.padding(horizontal = 14.dp),
+                            color = onSurface.copy(alpha = 0.08f),
+                            thickness = 0.5.dp,
+                        )
                     }
                 }
             }
         }
 
-        // Settings icon
         TopBarIconButton(
             icon = PhIcons.Regular.Gear,
             contentDescription = "Ayarlar",
             onClick = onSettingsClick
         )
     }
+}
+
+private fun providerBadgeLabel(provider: String): String = when (provider) {
+    Constants.LLM_PROVIDER_GEMINI -> "Google Gemini"
+    Constants.LLM_PROVIDER_GROQ   -> "Groq"
+    Constants.LLM_PROVIDER_LOCAL  -> "Local"
+    else                           -> provider
 }
 
 // ---------------------------------------------------------------------------
@@ -376,53 +401,61 @@ private fun ModelChip(
     onClick: () -> Unit
 ) {
     val primary = IrisTheme.colors.primary
+    val onSurface = MaterialTheme.colorScheme.onSurface
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
 
-    val chipBgAlpha by animateFloatAsState(
-        targetValue = if (pressed || expanded) 0.14f else 0.07f,
-        animationSpec = tween(120),
-        label = "chipBg"
-    )
     val pressScale by animateFloatAsState(
-        targetValue = if (pressed) 0.95f else 1f,
-        animationSpec = tween(120),
+        targetValue = if (pressed) 0.96f else 1f,
+        animationSpec = tween(100),
         label = "chipScale"
     )
 
     Surface(
         onClick = onClick,
         shape = RoundedCornerShape(50.dp),
-        color = primary.copy(alpha = chipBgAlpha),
+        color = Color.Transparent,
+        border = BorderStroke(
+            width = if (expanded) 1.5.dp else 1.dp,
+            color = if (expanded) primary.copy(alpha = 0.5f)
+                    else onSurface.copy(alpha = 0.18f),
+        ),
         interactionSource = interactionSource,
         modifier = Modifier.scale(pressScale)
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 9.dp)
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)
         ) {
             Text(
-                text = modelName
-                    .replace("-", " ")
-                    .replaceFirstChar { it.uppercase() },
+                text = formatModelName(modelName),
                 style = MaterialTheme.typography.labelLarge.copy(
                     fontWeight = FontWeight.SemiBold,
                     letterSpacing = 0.2.sp
                 ),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = onSurface.copy(alpha = 0.8f),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
-            Spacer(Modifier.width(5.dp))
+            Spacer(Modifier.width(4.dp))
             Icon(
                 imageVector = PhIcons.Regular.CaretDown,
                 contentDescription = "Model değiştir",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(14.dp)
+                tint = onSurface.copy(alpha = 0.5f),
+                modifier = Modifier
+                    .size(14.dp)
+                    .graphicsLayer {
+                        rotationX = if (expanded) 180f else 0f
+                    }
             )
         }
     }
 }
+
+private fun formatModelName(apiName: String): String =
+    apiName.split("-").joinToString(" ") { part ->
+        part.replaceFirstChar { if (it.isLowerCase()) it.uppercase() else it.toString() }
+    }
 
 // ---------------------------------------------------------------------------
 // TopBarIconButton — minimal icon button with scale press feedback
