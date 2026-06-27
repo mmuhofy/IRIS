@@ -597,50 +597,6 @@ private fun AmbientGlow(state: IrisCoreState, modifier: Modifier = Modifier) {
 }
 
 // ---------------------------------------------------------------------------
-// ControlDock — bottom row: screen ctrl | hero mic | stop
-// ---------------------------------------------------------------------------
-
-@Composable
-private fun ControlDock(
-    isMuted: Boolean,
-    isListening: Boolean,
-    isScreenCtrl: Boolean,
-    onMicToggle: () -> Unit,
-    onStop: () -> Unit,
-    onScreenControlToggle: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceEvenly,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        SecondaryDockButton(
-            icon = PhIcons.Regular.Television,
-            label = "Ekran",
-            isActive = isScreenCtrl,
-            onClick = onScreenControlToggle
-        )
-
-        PrimaryMicButton(
-            isMuted = isMuted,
-            isListening = isListening,
-            onClick = onMicToggle
-        )
-
-        DockPill(
-            icon = PhIcons.Regular.StopCircle,
-            label = "Durdur",
-            isActive = false,
-            onClick = onStop,
-            modifier = Modifier.weight(1f),
-        )
-    }
-}
-
-// ---------------------------------------------------------------------------
-// ModernDock — unified pill container with three uniform buttons
-// ---------------------------------------------------------------------------
 
 @Composable
 private fun ControlDock(
