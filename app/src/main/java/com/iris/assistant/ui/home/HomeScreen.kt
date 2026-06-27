@@ -58,7 +58,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.draw.shadow
+
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -628,177 +628,161 @@ private fun ControlDock(
             onClick = onMicToggle
         )
 
-        SecondaryDockButton(
+        DockPill(
             icon = PhIcons.Regular.StopCircle,
             label = "Durdur",
             isActive = false,
-            onClick = onStop
+            onClick = onStop,
+            modifier = Modifier.weight(1f),
         )
     }
 }
 
 // ---------------------------------------------------------------------------
-// PrimaryMicButton — hero button with gradient + colored shadow + pulse ring
+// ModernDock — unified pill container with three uniform buttons
 // ---------------------------------------------------------------------------
 
 @Composable
-private fun PrimaryMicButton(
+private fun ControlDock(
     isMuted: Boolean,
     isListening: Boolean,
-    onClick: () -> Unit
+    isScreenCtrl: Boolean,
+    onMicToggle: () -> Unit,
+    onStop: () -> Unit,
+    onScreenControlToggle: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val primary = IrisTheme.colors.primary
     val gradientEnd = IrisTheme.colors.gradientEnd
-    val surface = MaterialTheme.colorScheme.surface
 
-    // Infinite pulse animations — only rendered when actively listening
-    val infiniteTransition = rememberInfiniteTransition(label = "micPulse")
-    val pulseScale by infiniteTransition.animateFloat(
-        initialValue = 1f,
-        targetValue = 1.08f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(850, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "micPulseScale"
-    )
-    val ringAlpha by infiniteTransition.animateFloat(
-        initialValue = 0.08f,
-        targetValue = 0.24f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(850, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "ringAlpha"
-    )
-
-    val interactionSource = remember { MutableInteractionSource() }
-    val pressed by interactionSource.collectIsPressedAsState()
-    val pressScale by animateFloatAsState(
-        targetValue = if (pressed) 0.91f else 1f,
-        animationSpec = tween(120),
-        label = "micPressScale"
-    )
-
-    // Combine press + pulse; pulse only when listening and not muted
-    val activeListening = isListening && !isMuted
-    val finalScale = pressScale * (if (activeListening) pulseScale else 1f)
-
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Box(
-            contentAlignment = Alignment.Center,
-            modifier = Modifier.size(88.dp)
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(32.dp))
+            .background(MaterialTheme.colorScheme.surface)
+            .padding(6.dp),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            // Outer pulse ring — visible only when listening
-            if (activeListening) {
-                Box(
-                    modifier = Modifier
-                        .size(88.dp)
-                        .background(
-                            color = primary.copy(alpha = ringAlpha),
-                            shape = CircleShape
-                        )
-                )
-            }
+            DockPill(
+                icon = PhIcons.Regular.Television,
+                label = "Ekran",
+                isActive = isScreenCtrl,
+                onClick = onScreenControlToggle,
+                modifier = Modifier.weight(1f),
+            )
 
-            // Button body — gradient when active, surface when muted
-            // UNTESTED — verify shadow ambientColor/spotColor params in your Compose BOM
-            Box(
-                modifier = Modifier
-                    .size(68.dp)
-                    .scale(finalScale)
-                    .shadow(
-                        elevation = if (!isMuted) 20.dp else 6.dp,
-                        shape = CircleShape,
-                        ambientColor = if (!isMuted) primary.copy(alpha = 0.22f) else Color.Black,
-                        spotColor = if (!isMuted) primary.copy(alpha = 0.38f) else Color.Black
-                    )
-                    .clip(CircleShape)
-                    .then(
-                        if (!isMuted) {
-                            Modifier.background(
-                                brush = Brush.linearGradient(listOf(primary, gradientEnd)),
-                                shape = CircleShape
-                            )
-                        } else {
-                            Modifier.background(color = surface, shape = CircleShape)
-                        }
-                    )
-                    .clickable(
-                        interactionSource = interactionSource,
-                        indication = null, // scale animation provides press feedback (Apple-style)
-                        onClick = onClick
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = if (isMuted) PhIcons.Regular.MicrophoneSlash
-                    else PhIcons.Regular.Microphone,
-                    contentDescription = if (isMuted) "Sessiz" else "Mikrofon",
-                    tint = if (!isMuted) Color.White else ColorTextSecondary,
-                    modifier = Modifier.size(28.dp)
-                )
-            }
+            DockPill(
+                icon = if (isMuted) PhIcons.Regular.MicrophoneSlash else PhIcons.Regular.Microphone,
+                label = if (isMuted) "Sessiz" else "Mikrofon",
+                isActive = !isMuted,
+                isListening = isListening,
+                useGradient = !isMuted,
+                primary = primary,
+                gradientEnd = gradientEnd,
+                onClick = onMicToggle,
+                modifier = Modifier.weight(1.3f),
+            )
+
+            DockPill(
+                icon = PhIcons.Regular.StopCircle,
+                label = "Durdur",
+                isActive = false,
+                onClick = onStop,
+                modifier = Modifier.weight(1f),
+            )
         }
-
-        Spacer(Modifier.height(8.dp))
-
-        Text(
-            text = if (isMuted) "Sessiz" else "Mikrofon",
-            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium),
-            color = if (!isMuted) primary else ColorTextSecondary
-        )
     }
 }
 
-// ---------------------------------------------------------------------------
-// SecondaryDockButton — flanking controls with scale press feedback
-// ---------------------------------------------------------------------------
-
 @Composable
-private fun SecondaryDockButton(
+private fun DockPill(
     icon: ImageVector,
     label: String,
     isActive: Boolean,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    isListening: Boolean = false,
+    useGradient: Boolean = false,
+    primary: Color = Color.Unspecified,
+    gradientEnd: Color = Color.Unspecified,
 ) {
-    val primary = IrisTheme.colors.primary
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
     val pressScale by animateFloatAsState(
-        targetValue = if (pressed) 0.88f else 1f,
+        targetValue = if (pressed) 0.94f else 1f,
         animationSpec = tween(120),
-        label = "secBtnScale"
+        label = "dockPillScale",
     )
 
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Surface(
-            onClick = onClick,
-            shape = CircleShape,
-            color = if (isActive) primary.copy(alpha = 0.14f)
-            else MaterialTheme.colorScheme.surface,
-            shadowElevation = 4.dp,
-            interactionSource = interactionSource,
-            modifier = Modifier
-                .size(52.dp)
-                .scale(pressScale)
-        ) {
-            Box(contentAlignment = Alignment.Center) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = label,
-                    tint = if (isActive) primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(22.dp)
+    val infiniteTransition = rememberInfiniteTransition(label = "dockPulse")
+    val pulseAlpha by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 0.12f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(850, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "dockPulseAlpha",
+    )
+
+    val bgColor = when {
+        useGradient -> Color.Transparent
+        isActive -> primary
+        else -> MaterialTheme.colorScheme.surfaceVariant
+    }
+
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(24.dp))
+            .scale(pressScale)
+            .then(
+                if (useGradient) {
+                    Modifier.background(
+                        brush = Brush.linearGradient(listOf(primary, gradientEnd)),
+                        shape = RoundedCornerShape(24.dp),
+                    )
+                } else {
+                    Modifier.background(color = bgColor, shape = RoundedCornerShape(24.dp))
+                }
+            )
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick,
+            )
+            .padding(vertical = 12.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            if (isListening && useGradient) {
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .background(
+                            color = Color.White.copy(alpha = pulseAlpha),
+                            shape = CircleShape,
+                        ),
                 )
             }
+            Icon(
+                imageVector = icon,
+                contentDescription = label,
+                tint = if (isActive || useGradient) Color.White
+                       else MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(24.dp),
+            )
         }
 
-        Spacer(Modifier.height(6.dp))
+        Spacer(Modifier.height(4.dp))
 
         Text(
             text = label,
-            style = MaterialTheme.typography.labelSmall,
-            color = if (isActive) primary else ColorTextSecondary
+            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium),
+            color = if (isActive || useGradient) Color.White.copy(alpha = 0.85f)
+                    else MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 }
