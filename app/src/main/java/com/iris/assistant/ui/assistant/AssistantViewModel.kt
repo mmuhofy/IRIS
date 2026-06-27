@@ -9,6 +9,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.iris.assistant.data.audio.AudioRecorder
 import com.iris.assistant.domain.model.ChatMessage
+import com.iris.assistant.domain.model.IrisException
 import com.iris.assistant.domain.usecase.SendMessageUseCase
 import com.iris.assistant.domain.usecase.TranscribeAudioUseCase
 import com.iris.assistant.data.remote.tts.TtsProvider
@@ -19,27 +20,42 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+// ---------------------------------------------------------------------------
+// Data models
+// ---------------------------------------------------------------------------
+
 data class ChatBubble(
     val text: String,
     val isUser: Boolean
 )
 
+enum class CapsuleMode {
+    LISTENING,
+    THINKING,
+    REPLY,
+    INPUT,
+}
+
 data class AssistantUiState(
-    val textInput  : String           = "",
-    val messages   : List<ChatBubble> = emptyList(),
-    val amplitude  : Float            = 0f,
-    val isListening: Boolean          = false,
-    val isThinking : Boolean          = false,
-    val isSpeaking : Boolean          = false,
-    val isDone     : Boolean          = false
+    val capsuleMode : CapsuleMode        = CapsuleMode.LISTENING,
+    val textInput   : String             = "",
+    val messages    : List<ChatBubble>   = emptyList(),
+    val amplitude   : Float              = 0f,
+    val replyText   : String             = "",
+    val isDismissed : Boolean            = false,
+    val errorMessage: String?            = null,
 )
 
+// ---------------------------------------------------------------------------
+// AssistantViewModel
+// ---------------------------------------------------------------------------
+
 class AssistantViewModel(
-    private val context              : Context,
-    private val audioRecorder        : AudioRecorder,
+    private val context               : Context,
+    private val audioRecorder         : AudioRecorder,
     private val transcribeAudioUseCase: TranscribeAudioUseCase,
-    private val sendMessageUseCase   : SendMessageUseCase,
-    private val ttsProvider          : TtsProvider
+    private val sendMessageUseCase    : SendMessageUseCase,
+    private val ttsProvider           : TtsProvider
 ) : ViewModel() {
 
     companion object {
@@ -51,131 +67,195 @@ class AssistantViewModel(
 
     private var pipelineJob: Job? = null
 
+    init {
+        startVoicePipeline()
+    }
+
+    // -----------------------------------------------------------------------
+    // Input changes
+    // -----------------------------------------------------------------------
+
     fun onTextInputChanged(text: String) {
         _uiState.update { it.copy(textInput = text) }
     }
 
+    // -----------------------------------------------------------------------
+    // Tap capsule — expand to input mode
+    // -----------------------------------------------------------------------
+
+    fun onCapsuleTap() {
+        val s = _uiState.value
+        if (s.capsuleMode == CapsuleMode.INPUT) return
+        pipelineJob?.cancel()
+        pipelineJob = null
+        ttsProvider.stop()
+        _uiState.update {
+            it.copy(
+                capsuleMode = CapsuleMode.INPUT,
+                amplitude = 0f,
+            )
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // Send text from input
+    // -----------------------------------------------------------------------
+
     fun sendText() {
         val text = _uiState.value.textInput.trim()
         if (text.isEmpty()) return
-        sendMessage(text)
+        _uiState.update {
+            it.copy(
+                textInput = "",
+                capsuleMode = CapsuleMode.THINKING,
+                messages = it.messages + ChatBubble(text = text, isUser = true),
+            )
+        }
+        sendToLlm(text)
     }
+
+    // -----------------------------------------------------------------------
+    // Start voice pipeline
+    // -----------------------------------------------------------------------
 
     fun startVoicePipeline() {
         if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO)
             != PackageManager.PERMISSION_GRANTED
         ) {
-            finish()
+            dismiss()
             return
         }
 
         pipelineJob = viewModelScope.launch {
-            _uiState.update { it.copy(isListening = true, amplitude = 0f) }
+            _uiState.update {
+                it.copy(
+                    capsuleMode = CapsuleMode.LISTENING,
+                    amplitude = 0f,
+                )
+            }
 
             val audioBytes = runCatching {
                 audioRecorder.recordUntilSilence(
-                    onAmplitude = { amp -> _uiState.update { it.copy(amplitude = amp) } }
+                    onAmplitude = { amp ->
+                        _uiState.update { it.copy(amplitude = amp) }
+                    }
                 )
             }.getOrElse { e ->
                 Log.e(TAG, "Recording failed", e)
-                _uiState.update { it.copy(isListening = false) }
+                _uiState.update {
+                    it.copy(
+                        capsuleMode = CapsuleMode.LISTENING,
+                        errorMessage = "Kayıt başarısız",
+                    )
+                }
                 return@launch
             }
 
             if (audioBytes.isEmpty()) {
-                _uiState.update { it.copy(isListening = false) }
+                _uiState.update {
+                    it.copy(
+                        capsuleMode = CapsuleMode.LISTENING,
+                        amplitude = 0f,
+                    )
+                }
                 return@launch
             }
 
-            _uiState.update { it.copy(isListening = false, amplitude = 0f, isThinking = true) }
+            _uiState.update {
+                it.copy(
+                    capsuleMode = CapsuleMode.THINKING,
+                    amplitude = 0f,
+                )
+            }
 
             val transcript = runCatching {
                 transcribeAudioUseCase(audioBytes)
             }.getOrElse { e ->
                 Log.e(TAG, "STT failed", e)
-                _uiState.update { it.copy(isThinking = false) }
-                return@launch
-            }
-
-            _uiState.update { state ->
-                state.copy(messages = state.messages + ChatBubble(text = transcript, isUser = true))
-            }
-
-            val reply: String
-            try {
-                reply = sendMessageUseCase(listOf(
-                    ChatMessage(role = ChatMessage.Role.USER, content = transcript)
-                ))
-            } catch (e: Exception) {
-                Log.e(TAG, "LLM failed", e)
-                _uiState.update { it.copy(isThinking = false) }
-                _uiState.update { state ->
-                    state.copy(messages = state.messages + ChatBubble(text = "Bir hata oluştu.", isUser = false))
+                _uiState.update {
+                    it.copy(
+                        capsuleMode = CapsuleMode.LISTENING,
+                        errorMessage = "Ses anlaşılamadı",
+                    )
                 }
                 return@launch
             }
 
-            _uiState.update { it.copy(isThinking = false, isSpeaking = true) }
             _uiState.update { state ->
-                state.copy(messages = state.messages + ChatBubble(text = reply, isUser = false))
+                state.copy(
+                    messages = state.messages + ChatBubble(text = transcript, isUser = true),
+                )
             }
 
-            ttsProvider.speak(
-                text       = reply,
-                onProgress = { p -> _uiState.update { it.copy(amplitude = p.coerceIn(0f, 1f)) } },
-                onDone     = {
-                    _uiState.update { it.copy(isSpeaking = false, amplitude = 0f) }
-                }
-            )
+            sendToLlm(transcript)
         }
     }
 
-    private fun sendMessage(text: String) {
-        _uiState.update { it.copy(textInput = "", isThinking = true) }
+    // -----------------------------------------------------------------------
+    // LLM call (shared by voice + text)
+    // -----------------------------------------------------------------------
 
+    private fun sendToLlm(text: String) {
         pipelineJob = viewModelScope.launch {
-            _uiState.update { state ->
-                state.copy(messages = state.messages + ChatBubble(text = text, isUser = true))
-            }
-
             val reply: String
             try {
                 reply = sendMessageUseCase(listOf(
                     ChatMessage(role = ChatMessage.Role.USER, content = text)
                 ))
+            } catch (e: IrisException.PermissionRequiredException) {
+                _uiState.update {
+                    it.copy(
+                        capsuleMode = CapsuleMode.LISTENING,
+                        errorMessage = "İzin gerekiyor: ${e.permission}",
+                    )
+                }
+                return@launch
             } catch (e: Exception) {
                 Log.e(TAG, "LLM failed", e)
-                _uiState.update { it.copy(isThinking = false) }
-                _uiState.update { state ->
-                    state.copy(messages = state.messages + ChatBubble(text = "Bir hata oluştu.", isUser = false))
+                _uiState.update {
+                    it.copy(
+                        capsuleMode = CapsuleMode.LISTENING,
+                        errorMessage = "Yanıt alınamadı",
+                        messages = it.messages + ChatBubble(text = "Bir hata oluştu.", isUser = false),
+                    )
                 }
                 return@launch
             }
 
-            _uiState.update { it.copy(isThinking = false, isSpeaking = true) }
             _uiState.update { state ->
-                state.copy(messages = state.messages + ChatBubble(text = reply, isUser = false))
+                state.copy(
+                    capsuleMode = CapsuleMode.REPLY,
+                    replyText = reply,
+                    messages = state.messages + ChatBubble(text = reply, isUser = false),
+                )
             }
 
             ttsProvider.speak(
-                text       = reply,
-                onProgress = { p -> _uiState.update { it.copy(amplitude = p.coerceIn(0f, 1f)) } },
-                onDone     = {
-                    _uiState.update { it.copy(isSpeaking = false, amplitude = 0f) }
-                }
+                text = reply,
+                onProgress = { p ->
+                    _uiState.update { it.copy(amplitude = p.coerceIn(0f, 1f)) }
+                },
+                onDone = {
+                    _uiState.update {
+                        it.copy(amplitude = 0f)
+                    }
+                    // Stay in REPLY mode until user dismisses or taps
+                },
             )
         }
     }
 
-    fun stop() {
+    // -----------------------------------------------------------------------
+    // Dismiss
+    // -----------------------------------------------------------------------
+
+    fun dismiss() {
         pipelineJob?.cancel()
         pipelineJob = null
         ttsProvider.stop()
-        finish()
-    }
-
-    private fun finish() {
-        _uiState.update { it.copy(isDone = true, isListening = false, isThinking = false, isSpeaking = false) }
+        _uiState.update {
+            it.copy(isDismissed = true, amplitude = 0f, errorMessage = null)
+        }
     }
 
     override fun onCleared() {

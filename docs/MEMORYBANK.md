@@ -322,3 +322,35 @@ ToolResult (Success | Error | PermissionRequired | Cancelled)
 - ❌ Max-step cap on screen-control loops (explicitly rejected by Muhofy).
 - ❌ Separate Termux app + termux-api dependency (replaced by embedded proot environment).
 - ❌ Shell scope limited to file operations only (rejected — full general-purpose shell; see §7).
+
+---
+
+## 14. AssistantActivity Redesign (2026-06-27)
+
+### Before
+- `AssistantActivity.kt`: 732 satir, AGSL shader inline, SweepCanvas (AGSL + Canvas compat), tum UI tek dosyada
+- Eski "pill" UI: full-width koyu kart, thin gradient border, hardcoded renkler
+- Hardcoded renkler: `Color(0xFF1C1C1E)` pill bg, `Color(0xFFF87171)`/`#FCD34D`/`#34D399` orb renkler
+- Sadece entry animasyonu var (sweep), exit animasyonu yok
+- IDLE state var (kullaniciya "Nasil yardimci olabilirim?" gosterir)
+
+### After
+- `AssistantActivity.kt` → 140 satir, sadece activity + root composable
+- `AssistantCapsule.kt` → yeni dosya, tum capsule UI componentleri
+- `AssistantViewModel.kt` → guncellendi, yeni state model
+
+**Yeni Capsule Design:**
+- 4 state: LISTENING, THINKING, REPLY, INPUT (eski IDLE kalkti — acilir acilmaz LISTENING)
+- Capsule width mode'a gore degisir: LISTENING/THINKING/REPLY → dar (max 340dp), INPUT → full-width
+- Renkler: `#1C1C1E` capsule bg korundu, orb renkleri state'e gore (kirmizi listening, primary thinking, yesil reply)
+- Ust kenar gradient border line (#95BBF8 alpha gradient)
+- LISTENING: kirmizi status dot + "Dinliyorum..." + 32-bar animated waveform (IrisTheme gradient)
+- THINKING: primary dot + ●●● animated dots + "Dusunuyorum..." + stop button
+- REPLY: yesil dot + reply text (max 2 lines) + close X
+- INPUT: expand edilmis kart, text field (border: primary), mic + send button (gradient)
+
+**Yeni Davranis:**
+- Capsule'a tikla → LISTENING/THINKING/REPLY → INPUT mode + keyboard
+- Entry: scale + fade (spring)
+- Exit: scale + fade + 250ms delay → finish()
+- Back press / outside tap → dismiss()
