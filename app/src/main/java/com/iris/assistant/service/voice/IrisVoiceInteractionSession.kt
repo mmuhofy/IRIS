@@ -18,7 +18,6 @@ import androidx.compose.ui.platform.ComposeView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
-import androidx.lifecycle.ViewTreeLifecycleOwner
 import com.iris.assistant.ui.assistant.AssistantCapsule
 import com.iris.assistant.ui.assistant.AssistantViewModel
 import com.iris.assistant.ui.theme.IrisThemeTransparent
@@ -59,12 +58,22 @@ class IrisVoiceInteractionSession(context: Context) : VoiceInteractionSession(co
         ).also { viewModel = it }
 
         return ComposeView(context).apply {
-            ViewTreeLifecycleOwner.set(this, this@IrisVoiceInteractionSession)
+            attachViewTreeLifecycleOwner(this@IrisVoiceInteractionSession)
             setContent {
                 IrisThemeTransparent {
                     SessionCapsuleContent(viewModel = vm, onFinish = { finish() })
                 }
             }
+        }
+    }
+
+    private fun attachViewTreeLifecycleOwner(owner: LifecycleOwner) {
+        try {
+            val cls = Class.forName("androidx.lifecycle.ViewTreeLifecycleOwner")
+            cls.getMethod("set", View::class.java, LifecycleOwner::class.java)
+                .invoke(null, this, owner)
+        } catch (e: Exception) {
+            Log.w(TAG, "Could not set ViewTreeLifecycleOwner via reflection", e)
         }
     }
 
@@ -75,8 +84,6 @@ class IrisVoiceInteractionSession(context: Context) : VoiceInteractionSession(co
         val dm: DisplayMetrics = context.resources.displayMetrics
         val capsuleHeightPx = (72 * dm.density).toInt()
 
-        // Only the bottom strip containing the capsule is touchable.
-        // Everything above passes through to the app behind.
         outInsets.touchableInsets = Insets.TOUCHABLE_INSETS_CONTENT
         outInsets.contentInsets.set(
             0,
@@ -105,11 +112,6 @@ class IrisVoiceInteractionSession(context: Context) : VoiceInteractionSession(co
         super.onDestroy()
     }
 }
-
-// ---------------------------------------------------------------------------
-// Session capsule composable — wraps the shared AssistantCapsule in a
-// bottom-aligned full-screen transparent Box.
-// ---------------------------------------------------------------------------
 
 @Composable
 private fun SessionCapsuleContent(
