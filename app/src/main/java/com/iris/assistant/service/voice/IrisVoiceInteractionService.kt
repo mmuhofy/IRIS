@@ -1,9 +1,8 @@
 package com.iris.assistant.service.voice
 
-import android.content.Intent
+import android.os.Bundle
 import android.service.voice.VoiceInteractionService
 import android.util.Log
-import com.iris.assistant.ui.assistant.AssistantActivity
 
 class IrisVoiceInteractionService : VoiceInteractionService() {
 
@@ -13,9 +12,16 @@ class IrisVoiceInteractionService : VoiceInteractionService() {
 
     override fun onLaunchVoiceAssistFromKeyguard() {
         Log.d(TAG, "onLaunchVoiceAssistFromKeyguard")
-        val intent = Intent(this, AssistantActivity::class.java).apply {
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-        }
-        startActivity(intent)
+        showSession(Bundle.EMPTY, VoiceInteractionService.SHOW_SOURCE_KEYGUARD)
+    }
+
+    override fun onReady() {
+        super.onReady()
+        Log.d(TAG, "onReady")
+    }
+
+    override fun onShutdown() {
+        super.onShutdown()
+        Log.d(TAG, "onShutdown")
     }
 }

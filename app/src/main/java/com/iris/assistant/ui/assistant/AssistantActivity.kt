@@ -2,8 +2,6 @@ package com.iris.assistant.ui.assistant
 
 import android.os.Bundle
 import android.util.Log
-import android.view.Gravity
-import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
@@ -25,33 +23,18 @@ import kotlinx.coroutines.delay
 
 private const val TAG = "AssistantActivity"
 
-// ---------------------------------------------------------------------------
-// Floating assistant overlay
-//
-// Key design:
-// - Theme.IRIS.Translucent uses windowIsFloating=true so the window is
-//   sized to content (WRAP_CONTENT) and positioned at bottom-center.
-// - Touches outside the window naturally pass through to the app behind,
-//   because the window is NOT full-screen.
-// - In INPUT mode the window expands to full width so the text field
-//   has room; in all other modes it wraps the capsule width.
-// - Back button or capsule X dismisses.
-// ---------------------------------------------------------------------------
-
+/**
+ * Fallback translucent activity for manual assistant launches (e.g. from
+ * notification, WakeWordService when not yet default assistant).
+ *
+ * The primary voice interaction path uses [IrisVoiceInteractionSession]
+ * which renders the capsule in a TYPE_VOICE_INTERACTION window with native
+ * touch passthrough. This Activity is kept as a secondary entry point for
+ * when the system cannot bind a VoiceInteractionService.
+ */
 class AssistantActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        @Suppress("DEPRECATION")
-        window.setLayout(
-            WindowManager.LayoutParams.WRAP_CONTENT,
-            WindowManager.LayoutParams.WRAP_CONTENT,
-        )
-        window.attributes = window.attributes.apply {
-            gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
-            flags = flags or WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL
-        }
-
         Log.d(TAG, "onCreate")
 
         val ep = EntryPointAccessors.fromApplication(
@@ -71,20 +54,7 @@ class AssistantActivity : ComponentActivity() {
             }
         }
     }
-
-    fun updateWindowWidth(mode: CapsuleMode) {
-        val newWidth = if (mode == CapsuleMode.INPUT) {
-            WindowManager.LayoutParams.MATCH_PARENT
-        } else {
-            WindowManager.LayoutParams.WRAP_CONTENT
-        }
-        window.setLayout(newWidth, WindowManager.LayoutParams.WRAP_CONTENT)
-    }
 }
-
-// ---------------------------------------------------------------------------
-// Root screen — no full-screen wrapper, just the capsule
-// ---------------------------------------------------------------------------
 
 @Composable
 private fun AssistantScreen(
@@ -92,11 +62,6 @@ private fun AssistantScreen(
     onClose: () -> Unit,
 ) {
     val state by viewModel.uiState.collectAsState()
-
-    val activity = LocalContext.current as AssistantActivity
-    LaunchedEffect(state.capsuleMode) {
-        activity.updateWindowWidth(state.capsuleMode)
-    }
 
     LaunchedEffect(state.isDismissed) {
         if (state.isDismissed) {
