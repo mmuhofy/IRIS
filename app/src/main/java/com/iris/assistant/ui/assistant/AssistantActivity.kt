@@ -1,7 +1,9 @@
 package com.iris.assistant.ui.assistant
 
+import android.graphics.Rect
 import android.os.Bundle
 import android.util.Log
+import android.view.MotionEvent
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
@@ -24,6 +26,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.unit.dp
 import com.iris.assistant.service.voice.VoiceInteractionEntryPoint
 import com.iris.assistant.ui.theme.IrisThemeTransparent
@@ -33,10 +37,20 @@ import kotlinx.coroutines.delay
 private const val TAG = "AssistantActivity"
 
 // ---------------------------------------------------------------------------
-// Activity
+// Activity — translucent overlay
+//
+// Touch passthrough strategy:
+// - FLAG_NOT_FOCUSABLE  stays CLEAR  → IME works, back key reaches BackHandler
+// - FLAG_NOT_TOUCH_MODAL stays SET    → WMS can dispatch to windows below
+// - dispatchTouchEvent returns false  → WMS tries the next window
+//   for touches outside the capsule area
+// - Capsule bounds are tracked via onGloballyPositioned
 // ---------------------------------------------------------------------------
 
 class AssistantActivity : ComponentActivity() {
+    private var capsuleBounds = Rect(0, 0, 0, 0)
+    private var boundsReady = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -61,8 +75,30 @@ class AssistantActivity : ComponentActivity() {
 
         setContent {
             IrisThemeTransparent {
-                AssistantScreen(viewModel = viewModel, onClose = { finish() })
+                AssistantScreen(
+                    viewModel = viewModel,
+                    onClose = { finish() },
+                    onCapsuleBoundsChanged = { rect ->
+                        capsuleBounds = rect
+                        boundsReady = true
+                    },
+                )
             }
+        }
+    }
+
+    // -------------------------------------------------------------------
+    // Touch passthrough — only consume touches inside the capsule
+    // -------------------------------------------------------------------
+
+    override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
+        if (!boundsReady) {
+            return super.dispatchTouchEvent(ev)
+        }
+        return if (capsuleBounds.contains(ev.x.toInt(), ev.y.toInt())) {
+            super.dispatchTouchEvent(ev)
+        } else {
+            false
         }
     }
 }
@@ -75,6 +111,7 @@ class AssistantActivity : ComponentActivity() {
 private fun AssistantScreen(
     viewModel: AssistantViewModel,
     onClose: () -> Unit,
+    onCapsuleBoundsChanged: (Rect) -> Unit = {},
 ) {
     val state by viewModel.uiState.collectAsState()
 
@@ -118,6 +155,17 @@ private fun AssistantScreen(
                 onMicClick = viewModel::startVoicePipeline,
                 onCapsuleTap = viewModel::onCapsuleTap,
                 onClose = viewModel::dismiss,
+                modifier = Modifier.onGloballyPositioned { coords ->
+                    val window = coords.boundsInWindow()
+                    onCapsuleBoundsChanged(
+                        Rect(
+                            window.left.toInt(),
+                            window.top.toInt(),
+                            window.right.toInt(),
+                            window.bottom.toInt(),
+                        )
+                    )
+                },
             )
         }
     }
