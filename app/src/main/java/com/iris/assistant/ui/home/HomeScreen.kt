@@ -152,7 +152,10 @@ fun HomeScreen(
                 modifier = Modifier.align(Alignment.Center),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Box(contentAlignment = Alignment.Center) {
+        Box(
+            modifier = Modifier.size(32.dp),
+            contentAlignment = Alignment.Center
+        ) {
                     // AmbientGlow is a decorative layer only — IrisCoreAnimation.kt untouched
                     AmbientGlow(state = uiState.coreState)
                     IrisCoreAnimation(
@@ -719,7 +722,10 @@ private fun DockPill(
             .padding(vertical = 12.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Box(contentAlignment = Alignment.Center) {
+        Box(
+            modifier = Modifier.size(32.dp),
+            contentAlignment = Alignment.Center
+        ) {
             if (isListening && useGradient) {
                 Box(
                     modifier = Modifier

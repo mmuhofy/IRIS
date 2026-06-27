@@ -35,6 +35,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -44,6 +45,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.launch
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.iris.assistant.ui.theme.AppFont
@@ -183,17 +185,11 @@ private fun ThemeCarousel(
         initialPage = initialIndex,
         pageCount   = { themes.size },
     )
+    val scope = rememberCoroutineScope()
 
     LaunchedEffect(pagerState.currentPage) {
         val theme = themes.getOrNull(pagerState.currentPage) ?: return@LaunchedEffect
         if (theme.option != selected) onSelect(theme.option)
-    }
-
-    LaunchedEffect(selected) {
-        val targetIndex = themes.indexOfFirst { it.option == selected }.coerceAtLeast(0)
-        if (pagerState.currentPage != targetIndex) {
-            pagerState.animateScrollToPage(targetIndex)
-        }
     }
 
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -225,7 +221,10 @@ private fun ThemeCarousel(
                         .clip(RoundedCornerShape(4.dp))
                         .background(dotColor)
                         .clickable {
-                            // animate to the clicked page
+                            scope.launch {
+                                pagerState.animateScrollToPage(index)
+                                onSelect(meta.option)
+                            }
                         },
                 )
             }
