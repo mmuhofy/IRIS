@@ -44,7 +44,7 @@ import com.phosphor.icons.PhIcons
 import com.phosphor.icons.regular.ArrowLeft
 import com.phosphor.icons.regular.BatteryHigh   // UNTESTED — verify before use
 import com.phosphor.icons.regular.Headphones
-import com.phosphor.icons.regular.Info           // UNTESTED — verify before use
+import com.phosphor.icons.regular.Info
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -199,8 +199,7 @@ private fun InfoRow(label: String, body: String) {
             contentAlignment = Alignment.Center,
         ) {
             Icon(
-                // Using Headphones as safe fallback; replace with Info if available
-                imageVector        = PhIcons.Regular.Headphones,
+                imageVector        = PhIcons.Regular.Info,
                 contentDescription = null,
                 tint               = IrisTheme.colors.secondary,
                 modifier           = Modifier.size(16.dp),

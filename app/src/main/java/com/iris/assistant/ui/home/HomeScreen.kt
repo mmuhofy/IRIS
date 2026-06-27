@@ -77,7 +77,14 @@ import com.iris.assistant.ui.theme.ColorTextSecondary
 import com.iris.assistant.ui.theme.IrisTheme
 import com.iris.assistant.util.Constants
 import com.phosphor.icons.PhIcons
-import com.phosphor.icons.regular.*
+import com.phosphor.icons.regular.CaretDown
+import com.phosphor.icons.regular.Check
+import com.phosphor.icons.regular.Gear
+import com.phosphor.icons.regular.List
+import com.phosphor.icons.regular.Microphone
+import com.phosphor.icons.regular.MicrophoneSlash
+import com.phosphor.icons.regular.StopCircle
+import com.phosphor.icons.regular.Television
 
 // ---------------------------------------------------------------------------
 // HomeScreen
@@ -437,7 +444,7 @@ private fun TopBarIconButton(
 
     Box(
         modifier = Modifier
-            .size(44.dp)
+            .size(48.dp)
             .scale(pressScale)
             .clip(CircleShape)
             .background(MaterialTheme.colorScheme.surfaceVariant)
@@ -613,9 +620,9 @@ private fun ControlDock(
 
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(32.dp))
+            .clip(RoundedCornerShape(24.dp))
             .background(MaterialTheme.colorScheme.surface)
-            .padding(6.dp),
+            .padding(8.dp),
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),

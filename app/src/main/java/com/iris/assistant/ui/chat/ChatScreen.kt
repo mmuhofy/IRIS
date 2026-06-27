@@ -25,7 +25,6 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -319,9 +318,8 @@ fun ChatInputBar(
             .fillMaxWidth()
             .padding(horizontal = 12.dp)
             .padding(vertical = 8.dp)
-            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(16.dp)),
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(18.dp)),
     ) {
-        // Row 1 — TextField (transparent containers, no indicator)
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
@@ -349,17 +347,7 @@ fun ChatInputBar(
                     )
                 },
             )
-        }
 
-        // Row 2 — action button (right-aligned, offset up to overlap text row)
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp)
-                .offset(y = (-8).dp),
-            verticalAlignment   = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.End,
-        ) {
             when {
                 isThinking -> {
                     IconButton(

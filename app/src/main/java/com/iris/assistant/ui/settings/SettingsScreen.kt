@@ -254,7 +254,7 @@ private fun IrisSettingsHeader() {
 // ── Section label ─────────────────────────────────────────────────────────────
 
 @Composable
-private fun SettingsSectionLabel(text: String) {
+internal fun SettingsSectionLabel(text: String) {
     Text(
         text          = text.uppercase(),
         style         = MaterialTheme.typography.labelSmall,

@@ -34,6 +34,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.CircleShape
@@ -129,11 +130,10 @@ private fun OnboardingStepLayout(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .statusBarsPadding()
                 .padding(horizontal = 28.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(Modifier.height(52.dp))
-
             // Progress bar (always visible, not animated in)
             SegmentedStepIndicator(currentStep = step, totalSteps = 6)
 
@@ -274,12 +274,12 @@ private fun StepInfoRow(icon: ImageVector, text: String) {
 private fun ExampleCommandChip(text: String) {
     Box(
         modifier = Modifier
-            .clip(RoundedCornerShape(50))
+            .clip(RoundedCornerShape(50.dp))
             .background(MaterialTheme.colorScheme.primaryContainer)
             .border(
                 width = 1.dp,
                 color = IrisTheme.colors.primary.copy(alpha = 0.30f),
-                shape = RoundedCornerShape(50)
+                shape = RoundedCornerShape(50.dp)
             )
             .padding(horizontal = 14.dp, vertical = 8.dp)
     ) {

@@ -4,16 +4,7 @@ object Constants {
 
     // --- UI ---
     const val BUTTON_HEIGHT        = 52
-    const val CARD_CORNER_RADIUS   = 18
-    const val BUTTON_CORNER_RADIUS = 16
     const val IRIS_CORE_SIZE       = 220
-
-    // --- Navigation ---
-    const val NAV_ANIM_DURATION_MS    = 300
-    const val NAV_SCALE_ENTER_FROM    = 0.96f
-    const val NAV_SCALE_EXIT_TO       = 0.96f
-    const val NAV_SLIDE_ENTER_DIVISOR = 4
-    const val NAV_SLIDE_EXIT_DIVISOR  = 6
 
     // --- User ---
     const val USER_NAME = "Muhofy"

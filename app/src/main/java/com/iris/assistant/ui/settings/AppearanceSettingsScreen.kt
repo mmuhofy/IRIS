@@ -221,7 +221,7 @@ private fun ThemeCarousel(
                 )
                 Box(
                     modifier = Modifier
-                        .size(if (isSelected) 24.dp else 8.dp, 8.dp)
+                        .size(if (isSelected) 16.dp else 8.dp, 8.dp)
                         .clip(RoundedCornerShape(4.dp))
                         .background(dotColor)
                         .clickable {

@@ -7,9 +7,8 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.navigation.NavBackStackEntry
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -144,16 +143,16 @@ object OnboardingTransitions {
 }
 
 private val chatEnter: AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition = {
-    fadeIn(tween(250)) + slideInVertically(animationSpec = tween(500)) { it }
+    fadeIn(tween(250)) + scaleIn(animationSpec = tween(300), initialScale = 0.92f)
 }
 private val chatExit: AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition = {
-    fadeOut(tween(200)) + slideOutVertically(animationSpec = tween(500)) { -it }
+    fadeOut(tween(200)) + scaleOut(animationSpec = tween(300), targetScale = 0.92f)
 }
 private val chatPopEnter: AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition = {
-    fadeIn(tween(250))
+    fadeIn(tween(250)) + scaleIn(animationSpec = tween(300), initialScale = 0.92f)
 }
 private val chatPopExit: AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition = {
-    fadeOut(tween(200)) + slideOutVertically(animationSpec = tween(500)) { it }
+    fadeOut(tween(200)) + scaleOut(animationSpec = tween(300), targetScale = 0.92f)
 }
 
 // ---------------------------------------------------------------------------
@@ -445,7 +444,7 @@ private fun IrisDrawerSheet(
     ModalDrawerSheet(
         drawerState          = drawerState,
         drawerContainerColor = MaterialTheme.colorScheme.surface,
-        drawerShape          = RoundedCornerShape(topEnd = 16.dp, bottomEnd = 16.dp),
+        drawerShape          = RoundedCornerShape(topEnd = 18.dp, bottomEnd = 18.dp),
         modifier             = Modifier
             .fillMaxHeight()
             .fillMaxWidth(0.82f),
@@ -617,7 +616,7 @@ private fun DrawerConversationItem(
             Spacer(Modifier.width(8.dp))
             IconButton(
                 onClick  = onDelete,
-                modifier = Modifier.size(32.dp),
+                modifier = Modifier.size(48.dp),
             ) {
                 Icon(
                     imageVector        = PhIcons.Regular.TrashSimple,

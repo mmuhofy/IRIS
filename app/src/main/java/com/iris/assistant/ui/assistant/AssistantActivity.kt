@@ -44,11 +44,9 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.LocalView
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.iris.assistant.service.voice.VoiceInteractionEntryPoint
 import com.iris.assistant.ui.theme.ColorTextSecondary
 import com.iris.assistant.ui.theme.IrisTheme
@@ -575,7 +573,7 @@ private fun PillStateOrb(state: AssistantUiState, primary: Color) {
 // ---------------------------------------------------------------------------
 @Composable
 private fun PillIdle() {
-    Text("Nasıl yardımcı olabilirim?", color = ColorTextSecondary, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    Text("Nasıl yardımcı olabilirim?", style = MaterialTheme.typography.bodySmall, color = ColorTextSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
 }
 
 @Composable
@@ -624,13 +622,13 @@ private fun PillThinking() {
             Box(Modifier.size((8 * sc).dp).background(primary.copy(alpha = a.value), CircleShape))
         }
         Spacer(Modifier.width(4.dp))
-        Text("Düşünüyor", color = ColorTextSecondary, fontSize = 12.sp)
+        Text("Düşünüyor", style = MaterialTheme.typography.bodySmall, color = ColorTextSecondary)
     }
 }
 
 @Composable
 private fun PillReply(text: String) {
-    Text(text, color = Color(0xFFFAFAFA), fontSize = 13.sp, maxLines = 2, overflow = TextOverflow.Ellipsis, lineHeight = 17.sp)
+    Text(text, style = MaterialTheme.typography.bodySmall, color = Color.White, maxLines = 2, overflow = TextOverflow.Ellipsis)
 }
 
 @Composable
@@ -679,13 +677,13 @@ private fun PillInput(text: String, onTextChanged: (String) -> Unit, onSend: () 
         value           = text,
         onValueChange   = onTextChanged,
         modifier        = Modifier.fillMaxWidth().focusRequester(fr),
-        textStyle       = TextStyle(fontSize = 13.sp, color = Color(0xFFFAFAFA)),
+        textStyle       = MaterialTheme.typography.bodySmall.copy(color = Color.White),
         cursorBrush     = SolidColor(primary),
         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
         keyboardActions = KeyboardActions(onSend = { onSend() }),
         singleLine      = true,
         decorationBox   = { inner ->
-            if (text.isEmpty()) Text("Mesaj yaz...", color = ColorTextSecondary, fontSize = 13.sp)
+            if (text.isEmpty()) Text("Mesaj yaz...", style = MaterialTheme.typography.bodySmall, color = ColorTextSecondary)
             inner()
         }
     )

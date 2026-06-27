@@ -246,7 +246,7 @@ private fun VoiceCarousel(
                 val isSelected = index == pagerState.currentPage
                 Box(
                     modifier = Modifier
-                        .size(if (isSelected) 24.dp else 8.dp, 8.dp)
+                        .size(if (isSelected) 16.dp else 8.dp, 8.dp)
                         .clip(RoundedCornerShape(4.dp))
                         .background(
                             if (isSelected) IrisTheme.colors.primary
