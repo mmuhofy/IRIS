@@ -18,6 +18,8 @@ import androidx.compose.ui.platform.ComposeView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
+import androidx.savedstate.SavedStateRegistry
+import androidx.savedstate.SavedStateRegistryOwner
 import com.iris.assistant.ui.assistant.AssistantCapsule
 import com.iris.assistant.ui.assistant.AssistantViewModel
 import com.iris.assistant.ui.theme.IrisThemeTransparent
@@ -33,11 +35,13 @@ private const val TAG = "IrisVoiceInteractionSession"
  * and uses onComputeInsets to restrict touchable area to the capsule bounds —
  * touches outside pass through naturally to the underlying app.
  */
-class IrisVoiceInteractionSession(context: Context) : VoiceInteractionSession(context), LifecycleOwner {
+class IrisVoiceInteractionSession(context: Context) : VoiceInteractionSession(context), LifecycleOwner, SavedStateRegistryOwner {
 
     private val lifecycleRegistry = LifecycleRegistry(this)
 
     override val lifecycle: Lifecycle get() = lifecycleRegistry
+
+    override val savedStateRegistry: SavedStateRegistry = SavedStateRegistry()
 
     private var viewModel: AssistantViewModel? = null
 
@@ -73,7 +77,14 @@ class IrisVoiceInteractionSession(context: Context) : VoiceInteractionSession(co
             cls.getMethod("set", View::class.java, LifecycleOwner::class.java)
                 .invoke(null, this, owner)
         } catch (e: Exception) {
-            Log.w(TAG, "Could not set ViewTreeLifecycleOwner via reflection", e)
+            Log.w(TAG, "Could not set ViewTreeLifecycleOwner", e)
+        }
+        try {
+            val cls = Class.forName("androidx.savedstate.ViewTreeSavedStateRegistryOwner")
+            cls.getMethod("set", View::class.java, SavedStateRegistryOwner::class.java)
+                .invoke(null, this, owner as SavedStateRegistryOwner)
+        } catch (e: Exception) {
+            Log.w(TAG, "Could not set ViewTreeSavedStateRegistryOwner", e)
         }
     }
 
